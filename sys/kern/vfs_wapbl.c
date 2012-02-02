@@ -2830,29 +2830,3 @@ wapbl_replay_read(struct wapbl_replay *wr, void *data, daddr_t blk, long len)
 	}
 	return 0;
 }
-
-#ifdef _KERNEL
-/*
- * This is not really a module now, but maybe on it's way to
- * being one some day.
- */
-MODULE(MODULE_CLASS_VFS, wapbl, NULL);
-
-static int
-wapbl_modcmd(modcmd_t cmd, void *arg)
-{
-
-	switch (cmd) {
-	case MODULE_CMD_INIT:
-		wapbl_init();
-		return 0;
-	case MODULE_CMD_FINI:
-#ifdef notyet
-		return wapbl_fini(true);
-#endif
-		return EOPNOTSUPP;
-	default:
-		return ENOTTY;
-	}
-}
-#endif /* _KERNEL */
