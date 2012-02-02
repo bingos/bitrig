@@ -31,10 +31,6 @@
 
 #define WAPBL_INTERNAL
 
-#if defined(_KERNEL_OPT)
-#include "opt_ffs.h"
-#endif
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>

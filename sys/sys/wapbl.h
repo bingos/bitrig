@@ -40,10 +40,6 @@
  * write ahead physical block logging (WAPBL) support.
  */
 
-#if defined(_KERNEL_OPT)
-#include "opt_wapbl.h"
-#endif
-
 #ifdef WAPBL_DEBUG
 #ifndef WAPBL_DEBUG_PRINT
 #define	WAPBL_DEBUG_PRINT (WAPBL_PRINT_REPLAY | WAPBL_PRINT_OPEN)
