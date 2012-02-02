@@ -194,18 +194,16 @@ int wapbl_debug_print = WAPBL_DEBUG_PRINT;
 struct wapbl *wapbl_debug_wl;
 #endif
 
-int wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail);
-int wapbl_write_blocks(struct wapbl *wl, off_t *offp);
-int wapbl_write_revocations(struct wapbl *wl, off_t *offp);
-int wapbl_write_inodes(struct wapbl *wl, off_t *offp);
+int wapbl_write_commit(struct wapbl *, off_t, off_t);
+int wapbl_write_blocks(struct wapbl *, off_t *);
+int wapbl_write_revocations(struct wapbl *, off_t *);
+int wapbl_write_inodes(struct wapbl *, off_t *);
 #endif /* _KERNEL */
 
-int wapbl_replay_process(struct wapbl_replay *wr, off_t, off_t);
+int wapbl_replay_process(struct wapbl_replay *, off_t, off_t);
 
-static inline size_t wapbl_space_free(size_t avail, off_t head,
-	off_t tail);
-static inline size_t wapbl_space_used(size_t avail, off_t head,
-	off_t tail);
+static inline size_t wapbl_space_free(size_t, off_t, off_t);
+static inline size_t wapbl_space_used(size_t, off_t, off_t);
 
 #ifdef _KERNEL
 
@@ -220,12 +218,12 @@ struct wapbl_ino {
 	mode_t wi_mode;
 };
 
-void wapbl_inodetrk_init(struct wapbl *wl, u_int size);
-void wapbl_inodetrk_free(struct wapbl *wl);
-struct wapbl_ino *wapbl_inodetrk_get(struct wapbl *wl, ino_t ino);
+void wapbl_inodetrk_init(struct wapbl *, u_int);
+void wapbl_inodetrk_free(struct wapbl *);
+struct wapbl_ino *wapbl_inodetrk_get(struct wapbl *, ino_t);
 
-size_t wapbl_transaction_len(struct wapbl *wl);
-static inline size_t wapbl_transaction_inodes_len(struct wapbl *wl);
+size_t wapbl_transaction_len(struct wapbl *);
+static inline size_t wapbl_transaction_inodes_len(struct wapbl *);
 
 #if 0
 int wapbl_replay_verify(struct wapbl_replay *, struct vnode *);
