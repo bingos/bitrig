@@ -34,6 +34,7 @@
  */
 
 #include <sys/param.h>
+#include <sys/bitops.h>
 #include <sys/namei.h>
 #include <sys/proc.h>
 #include <sys/uio.h>
@@ -214,6 +215,10 @@ wapbl_init(void)
 	    "wapblpl", NULL);
 }
 
+/*
+ * Called from wapbl_start() in case allocated but unlinked inodes were found
+ * in the replay log.
+ */
 int
 wapbl_start_flush_inodes(struct wapbl *wl, struct wapbl_replay *wr)
 {
@@ -223,8 +228,8 @@ wapbl_start_flush_inodes(struct wapbl *wl, struct wapbl_replay *wr)
 	    ("wapbl_start: reusing log with %d inodes\n", wr->wr_inodescnt));
 
 	/*
-	 * Its only valid to reuse the replay log if its
-	 * the same as the new log we just opened.
+	 * It is only valid to reuse the replay log if it is the same as the
+	 * new log we just opened.
 	 */
 	KDASSERT(!wapbl_replay_isopen(wr));
 	KASSERT(wl->wl_devvp->v_type == VBLK);
@@ -235,6 +240,7 @@ wapbl_start_flush_inodes(struct wapbl *wl, struct wapbl_replay *wr)
 	KASSERT(wl->wl_circ_off == wr->wr_circ_off);
 	KASSERT(wl->wl_log_dev_bshift == wr->wr_log_dev_bshift);
 	KASSERT(wl->wl_fs_dev_bshift == wr->wr_fs_dev_bshift);
+	KASSERT(wr->wr_inodescnt > 0);
 
 	wl->wl_wc_header->wc_generation = wr->wr_generation + 1;
 
@@ -261,8 +267,14 @@ wapbl_start_flush_inodes(struct wapbl *wl, struct wapbl_replay *wr)
 	return 0;
 }
 
+/*
+ * Start WAPBL on a file system.
+ * - 'off' is the offset of the log on disk (in terms of disk blocks)
+ * - 'count' is the length of the log on disk (in terms of disk blocks)
+ * - 'blksize' is the device's number of bytes per sector (d_secsize)
+ */
 int
-wapbl_start(struct wapbl ** wlp, struct mount *mp, struct vnode *vp,
+wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 	daddr_t off, size_t count, size_t blksize, struct wapbl_replay *wr,
 	wapbl_flush_fn_t flushfn, wapbl_flush_fn_t flushabortfn)
 {
@@ -274,8 +286,9 @@ wapbl_start(struct wapbl ** wlp, struct mount *mp, struct vnode *vp,
 	int fs_dev_bshift = log_dev_bshift;
 	int run;
 
-	WAPBL_PRINTF(WAPBL_PRINT_OPEN, ("wapbl_start: vp=%p off=%" PRId64
-	    " count=%zu blksize=%zu\n", vp, off, count, blksize));
+	WAPBL_PRINTF(WAPBL_PRINT_OPEN, ("wapbl_start: vp=%p off=%lld"
+	    " count=%zu blksize=%zu\n", vp, (unsigned long long)off,
+	    count, blksize));
 
 	if (log_dev_bshift > fs_dev_bshift) {
 		WAPBL_PRINTF(WAPBL_PRINT_OPEN,
