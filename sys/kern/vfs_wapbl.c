@@ -40,12 +40,10 @@
 #include <sys/uio.h>
 #include <sys/vnode.h>
 #include <sys/file.h>
-#include <sys/module.h>
 #include <sys/resourcevar.h>
 #include <sys/conf.h>
 #include <sys/mount.h>
 #include <sys/kernel.h>
-#include <sys/kauth.h>
 #include <sys/mutex.h>
 #include <sys/atomic.h>
 #include <sys/wapbl.h>
