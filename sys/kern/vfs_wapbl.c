@@ -33,12 +33,6 @@
  * This implements file system independent write ahead filesystem logging.
  */
 
-#define WAPBL_INTERNAL
-
-#include <sys/param.h>
-#include <sys/bitops.h>
-
-#ifdef _KERNEL
 #include <sys/param.h>
 #include <sys/namei.h>
 #include <sys/proc.h>
@@ -66,26 +60,6 @@
 struct sysctllog *wapbl_sysctl;
 int wapbl_flush_disk_cache = 1;
 int wapbl_verbose_commit = 0;
-
-#else /* !_KERNEL */
-#include <assert.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/time.h>
-#include <sys/wapbl.h>
-#include <sys/wapbl_replay.h>
-
-#define	KDASSERT(x) assert(x)
-#define	KASSERT(x) assert(x)
-#define	wapbl_alloc(s) malloc(s)
-#define	wapbl_free(a, s) free(a)
-#define	wapbl_calloc(n, s) calloc((n), (s))
-
-#endif /* !_KERNEL */
 
 /*
  * INTERNAL DATA STRUCTURES
@@ -147,10 +121,8 @@ struct wapbl {
 	 * bits.  Note that flush may be skipped without calling this if
 	 * there are no outstanding buffers in the transaction.
 	 */
-#if _KERNEL
 	wapbl_flush_fn_t wl_flush;	/* r	*/
 	wapbl_flush_fn_t wl_flush_abort;/* r	*/
-#endif
 
 	size_t wl_bufbytes;	/* m:	Byte count of pages in wl_bufs */
 	size_t wl_bufcount;	/* m:	Count of buffers in wl_bufs */
@@ -187,9 +159,6 @@ struct wapbl {
 int wapbl_debug_print = WAPBL_DEBUG_PRINT;
 #endif
 
-/****************************************************************/
-#ifdef _KERNEL
-
 #ifdef WAPBL_DEBUG
 struct wapbl *wapbl_debug_wl;
 #endif
@@ -198,14 +167,11 @@ int wapbl_write_commit(struct wapbl *, off_t, off_t);
 int wapbl_write_blocks(struct wapbl *, off_t *);
 int wapbl_write_revocations(struct wapbl *, off_t *);
 int wapbl_write_inodes(struct wapbl *, off_t *);
-#endif /* _KERNEL */
 
 int wapbl_replay_process(struct wapbl_replay *, off_t, off_t);
 
 static inline size_t wapbl_space_free(size_t, off_t, off_t);
 static inline size_t wapbl_space_used(size_t, off_t, off_t);
-
-#ifdef _KERNEL
 
 struct pool wapbl_entry_pool;
 
@@ -224,10 +190,6 @@ struct wapbl_ino *wapbl_inodetrk_get(struct wapbl *, ino_t);
 
 size_t wapbl_transaction_len(struct wapbl *);
 static inline size_t wapbl_transaction_inodes_len(struct wapbl *);
-
-#if 0
-int wapbl_replay_verify(struct wapbl_replay *, struct vnode *);
-#endif
 
 int wapbl_replay_isopen1(struct wapbl_replay *);
 
@@ -305,20 +267,6 @@ wapbl_init(void)
 
 	wapbl_sysctl_init();
 }
-
-#ifdef notyet
-int
-wapbl_fini(bool interface)
-{
-
-	if (aio_sysctl != NULL)
-		 sysctl_teardown(&aio_sysctl);
-
-	pool_destroy(&wapbl_entry_pool);
-
-	return 0;
-}
-#endif
 
 int
 wapbl_start_flush_inodes(struct wapbl *wl, struct wapbl_replay *wr)
@@ -804,9 +752,7 @@ wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 	slen = wl->wl_circ_off + wl->wl_circ_size - off;
 	if (slen < len) {
 		pbn = wl->wl_logpbn + (off >> wl->wl_log_dev_bshift);
-#ifdef _KERNEL
 		pbn = btodb(pbn << wl->wl_log_dev_bshift);
-#endif
 		error = wapbl_write(data, slen, wl->wl_devvp, pbn);
 		if (error)
 			return error;
@@ -815,9 +761,7 @@ wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 		off = wl->wl_circ_off;
 	}
 	pbn = wl->wl_logpbn + (off >> wl->wl_log_dev_bshift);
-#ifdef _KERNEL
 	pbn = btodb(pbn << wl->wl_log_dev_bshift);
-#endif
 	error = wapbl_write(data, len, wl->wl_devvp, pbn);
 	if (error)
 		return error;
@@ -827,8 +771,6 @@ wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 	*offp = off;
 	return 0;
 }
-
-/****************************************************************/
 
 int
 wapbl_begin(struct wapbl *wl, const char *file, int line)
@@ -927,16 +869,6 @@ wapbl_add_buf(struct wapbl *wl, struct buf * bp)
 
 	wapbl_jlock_assert(wl);
 
-#if 0
-	/*
-	 * XXX this might be an issue for swapfiles.
-	 * see uvm_swap.c:1702
-	 *
-	 * XXX2 why require it then?  leap of semantics?
-	 */
-	KASSERT((bp->b_cflags & BC_NOCACHE) == 0);
-#endif
-
 	mutex_enter(&wl->wl_mtx);
 	if (bp->b_flags & B_LOCKED) {
 		LIST_REMOVE(bp, b_wapbllist);
@@ -971,15 +903,6 @@ wapbl_remove_buf_locked(struct wapbl * wl, struct buf *bp)
 	KASSERT(bp->b_cflags & BC_BUSY);
 	wapbl_jlock_assert(wl);
 
-#if 0
-	/*
-	 * XXX this might be an issue for swapfiles.
-	 * see uvm_swap.c:1725
-	 *
-	 * XXXdeux: see above
-	 */
-	KASSERT((bp->b_flags & BC_NOCACHE) == 0);
-#endif
 	KASSERT(bp->b_flags & B_LOCKED);
 
 	WAPBL_PRINTF(WAPBL_PRINT_BUFFER,
@@ -1028,8 +951,6 @@ wapbl_resize_buf(struct wapbl *wl, struct buf *bp, long oldsz, long oldcnt)
 		mutex_exit(&wl->wl_mtx);
 	}
 }
-
-#endif /* _KERNEL */
 
 /****************************************************************/
 /* Some utility inlines */
@@ -1111,10 +1032,6 @@ wapbl_advance_tail(size_t size, size_t off, size_t delta, off_t *headp,
 	*headp = head;
 	*tailp = tail;
 }
-
-#ifdef _KERNEL
-
-/****************************************************************/
 
 /*
  * Remove transactions whose buffers are completely flushed to disk.
@@ -1211,8 +1128,6 @@ wapbl_truncate(struct wapbl *wl, size_t minfree, int waitonly)
 	return 0;
 }
 
-/****************************************************************/
-
 void
 wapbl_biodone(struct buf *bp)
 {
@@ -1254,35 +1169,6 @@ wapbl_biodone(struct buf *bp)
 #endif
 
 	if (bp->b_error) {
-#ifdef notyet /* Can't currently handle possible dirty buffer reuse */
-		/*
-		 * XXXpooka: interfaces not fully updated
-		 * Note: this was not enabled in the original patch
-		 * against netbsd4 either.  I don't know if comment
-		 * above is true or not.
-		 */
-
-		/*
-		 * If an error occurs, report the error and leave the
-		 * buffer as a delayed write on the LRU queue.
-		 * restarting the write would likely result in
-		 * an error spinloop, so let it be done harmlessly
-		 * by the syncer.
-		 */
-		bp->b_flags &= ~(B_DONE);
-		simple_unlock(&bp->b_interlock);
-
-		if (we->we_error == 0) {
-			mutex_enter(&wl->wl_mtx);
-			wl->wl_error_count++;
-			mutex_exit(&wl->wl_mtx);
-			cv_broadcast(&wl->wl_reclaimable_cv);
-		}
-		we->we_error = bp->b_error;
-		bp->b_error = 0;
-		brelse(bp);
-		return;
-#else
 		/* For now, just mark the log permanently errored out */
 
 		mutex_enter(&wl->wl_mtx);
@@ -1291,7 +1177,6 @@ wapbl_biodone(struct buf *bp)
 			cv_broadcast(&wl->wl_reclaimable_cv);
 		}
 		mutex_exit(&wl->wl_mtx);
-#endif
 	}
 
 	mutex_enter(&wl->wl_mtx);
@@ -1390,14 +1275,6 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 	if (wl->wl_bufcount == 0) {
 		goto out;
 	}
-
-#if 0
-	WAPBL_PRINTF(WAPBL_PRINT_FLUSH,
-		     ("wapbl_flush thread %d.%d flushing entries with "
-		      "bufcount=%zu bufbytes=%zu\n",
-		      curproc->p_pid, curlwp->l_lid, wl->wl_bufcount,
-		      wl->wl_bufbytes));
-#endif
 
 	/* Calculate amount of space needed to flush */
 	flushsize = wapbl_transaction_len(wl);
@@ -1537,12 +1414,6 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 	}
 	mutex_exit(&wl->wl_mtx);
 	mutex_exit(&bufcache_lock);
-
-#if 0
-	WAPBL_PRINTF(WAPBL_PRINT_FLUSH,
-		     ("wapbl_flush thread %d.%d done flushing entries...\n",
-		     curproc->p_pid, curlwp->l_lid));
-#endif
 
  out:
 
@@ -1980,9 +1851,7 @@ wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
 	 */
 
 	pbn = wl->wl_logpbn + (wc->wc_generation % 2);
-#ifdef _KERNEL
 	pbn = btodb(pbn << wc->wc_log_dev_bshift);
-#endif
 	error = wapbl_write(wc, wc->wc_len, wl->wl_devvp, pbn);
 	if (error)
 		return error;
@@ -2191,10 +2060,6 @@ wapbl_write_inodes(struct wapbl *wl, off_t *offp)
 	return 0;
 }
 
-#endif /* _KERNEL */
-
-/****************************************************************/
-
 struct wapbl_blk {
 	LIST_ENTRY(wapbl_blk) wb_hash;
 	daddr_t wb_blk;
@@ -2208,32 +2073,14 @@ wapbl_blkhash_init(struct wapbl_replay *wr, u_int size)
 	if (size < WAPBL_BLKPOOL_MIN)
 		size = WAPBL_BLKPOOL_MIN;
 	KASSERT(wr->wr_blkhash == 0);
-#ifdef _KERNEL
 	wr->wr_blkhash = hashinit(size, HASH_LIST, true, &wr->wr_blkhashmask);
-#else /* ! _KERNEL */
-	/* Manually implement hashinit */
-	{
-		unsigned long i, hashsize;
-		for (hashsize = 1; hashsize < size; hashsize <<= 1)
-			continue;
-		wr->wr_blkhash = wapbl_alloc(hashsize * sizeof(*wr->wr_blkhash));
-		for (i = 0; i < hashsize; i++)
-			LIST_INIT(&wr->wr_blkhash[i]);
-		wr->wr_blkhashmask = hashsize - 1;
-	}
-#endif /* ! _KERNEL */
 }
 
 void
 wapbl_blkhash_free(struct wapbl_replay *wr)
 {
 	KASSERT(wr->wr_blkhashcnt == 0);
-#ifdef _KERNEL
 	hashdone(wr->wr_blkhash, HASH_LIST, wr->wr_blkhashmask);
-#else /* ! _KERNEL */
-	wapbl_free(wr->wr_blkhash,
-	    (wr->wr_blkhashmask + 1) * sizeof(*wr->wr_blkhash));
-#endif /* ! _KERNEL */
 }
 
 struct wapbl_blk *
@@ -2315,9 +2162,7 @@ wapbl_circ_read(struct wapbl_replay *wr, void *data, size_t len, off_t *offp)
 	slen = wr->wr_circ_off + wr->wr_circ_size - off;
 	if (slen < len) {
 		pbn = wr->wr_logpbn + (off >> wr->wr_log_dev_bshift);
-#ifdef _KERNEL
 		pbn = btodb(pbn << wr->wr_log_dev_bshift);
-#endif
 		error = wapbl_read(data, slen, wr->wr_devvp, pbn);
 		if (error)
 			return error;
@@ -2326,9 +2171,7 @@ wapbl_circ_read(struct wapbl_replay *wr, void *data, size_t len, off_t *offp)
 		off = wr->wr_circ_off;
 	}
 	pbn = wr->wr_logpbn + (off >> wr->wr_log_dev_bshift);
-#ifdef _KERNEL
 	pbn = btodb(pbn << wr->wr_log_dev_bshift);
-#endif
 	error = wapbl_read(data, len, wr->wr_devvp, pbn);
 	if (error)
 		return error;
@@ -2391,28 +2234,14 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	if (blksize % DEV_BSIZE)
 		return EINVAL;
 
-#ifdef _KERNEL
-#if 0
-	/* XXX vp->v_size isn't reliably set for VBLK devices,
-	 * especially root.  However, we might still want to verify
-	 * that the full load is readable */
-	if ((off + count) * blksize > vp->v_size)
-		return EINVAL;
-#endif
 	if ((error = VOP_BMAP(vp, off, &devvp, &logpbn, 0)) != 0) {
 		return error;
 	}
-#else /* ! _KERNEL */
-	devvp = vp;
-	logpbn = off;
-#endif /* ! _KERNEL */
 
 	scratch = wapbl_alloc(MAXBSIZE);
 
 	pbn = logpbn;
-#ifdef _KERNEL
 	pbn = btodb(pbn << log_dev_bshift);
-#endif
 	error = wapbl_read(scratch, 2<<log_dev_bshift, devvp, pbn);
 	if (error)
 		goto errout;
@@ -2499,14 +2328,12 @@ wapbl_replay_free(struct wapbl_replay *wr)
 	wapbl_free(wr, sizeof(*wr));
 }
 
-#ifdef _KERNEL
 int
 wapbl_replay_isopen1(struct wapbl_replay *wr)
 {
 
 	return wapbl_replay_isopen(wr);
 }
-#endif
 
 void
 wapbl_replay_process_blocks(struct wapbl_replay *wr, off_t *offp)
@@ -2635,126 +2462,6 @@ wapbl_replay_process(struct wapbl_replay *wr, off_t head, off_t tail)
 	wapbl_blkhash_clear(wr);
 	return error;
 }
-
-#if 0
-int
-wapbl_replay_verify(struct wapbl_replay *wr, struct vnode *fsdevvp)
-{
-	off_t off;
-	int mismatchcnt = 0;
-	int logblklen = 1 << wr->wr_log_dev_bshift;
-	int fsblklen = 1 << wr->wr_fs_dev_bshift;
-	void *scratch1 = wapbl_alloc(MAXBSIZE);
-	void *scratch2 = wapbl_alloc(MAXBSIZE);
-	int error = 0;
-
-	KDASSERT(wapbl_replay_isopen(wr));
-
-	off = wch->wc_tail;
-	while (off != wch->wc_head) {
-		struct wapbl_wc_null *wcn;
-#ifdef DEBUG
-		off_t saveoff = off;
-#endif
-		error = wapbl_circ_read(wr, wr->wr_scratch, logblklen, &off);
-		if (error)
-			goto out;
-		wcn = (struct wapbl_wc_null *)wr->wr_scratch;
-		switch (wcn->wc_type) {
-		case WAPBL_WC_BLOCKS:
-			{
-				struct wapbl_wc_blocklist *wc =
-				    (struct wapbl_wc_blocklist *)wr->wr_scratch;
-				int i;
-				for (i = 0; i < wc->wc_blkcount; i++) {
-					int foundcnt = 0;
-					int dirtycnt = 0;
-					int j, n;
-					/*
-					 * Check each physical block into the
-					 * hashtable independently
-					 */
-					n = wc->wc_blocks[i].wc_dlen >>
-					    wch->wc_fs_dev_bshift;
-					for (j = 0; j < n; j++) {
-						struct wapbl_blk *wb =
-						   wapbl_blkhash_get(wr,
-						   wc->wc_blocks[i].wc_daddr + btodb(j * fsblklen));
-						if (wb && (wb->wb_off == off)) {
-							foundcnt++;
-							error =
-							    wapbl_circ_read(wr,
-							    scratch1, fsblklen,
-							    &off);
-							if (error)
-								goto out;
-							error =
-							    wapbl_read(scratch2,
-							    fsblklen, fsdevvp,
-							    wb->wb_blk);
-							if (error)
-								goto out;
-							if (memcmp(scratch1,
-								   scratch2,
-								   fsblklen)) {
-								printf(
-		"wapbl_verify: mismatch block %"PRId64" at off %"PRIdMAX"\n",
-		wb->wb_blk, (intmax_t)off);
-								dirtycnt++;
-								mismatchcnt++;
-							}
-						} else {
-							wapbl_circ_advance(wr,
-							    fsblklen, &off);
-						}
-					}
-#if 0
-					/*
-					 * If all of the blocks in an entry
-					 * are clean, then remove all of its
-					 * blocks from the hashtable since they
-					 * never will need replay.
-					 */
-					if ((foundcnt != 0) &&
-					    (dirtycnt == 0)) {
-						off = saveoff;
-						wapbl_circ_advance(wr,
-						    logblklen, &off);
-						for (j = 0; j < n; j++) {
-							struct wapbl_blk *wb =
-							   wapbl_blkhash_get(wr,
-							   wc->wc_blocks[i].wc_daddr + btodb(j * fsblklen));
-							if (wb &&
-							  (wb->wb_off == off)) {
-								wapbl_blkhash_rem(wr, wb->wb_blk);
-							}
-							wapbl_circ_advance(wr,
-							    fsblklen, &off);
-						}
-					}
-#endif
-				}
-			}
-			break;
-		case WAPBL_WC_REVOCATIONS:
-		case WAPBL_WC_INODES:
-			break;
-		default:
-			KASSERT(0);
-		}
-#ifdef DEBUG
-		wapbl_circ_advance(wr, wcn->wc_len, &saveoff);
-		KASSERT(off == saveoff);
-#endif
-	}
- out:
-	wapbl_free(scratch1, MAXBSIZE);
-	wapbl_free(scratch2, MAXBSIZE);
-	if (!error && mismatchcnt)
-		error = EFTYPE;
-	return error;
-}
-#endif
 
 int
 wapbl_replay_write(struct wapbl_replay *wr, struct vnode *fsdevvp)
