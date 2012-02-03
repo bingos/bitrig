@@ -36,7 +36,6 @@
 #include <sys/param.h>
 #include <sys/namei.h>
 #include <sys/proc.h>
-#include <sys/sysctl.h>
 #include <sys/uio.h>
 #include <sys/vnode.h>
 #include <sys/file.h>
@@ -51,7 +50,6 @@
 
 #include <miscfs/specfs/specdev.h>
 
-struct sysctllog *wapbl_sysctl;
 int wapbl_flush_disk_cache = 1;
 int wapbl_verbose_commit = 1;
 
@@ -209,57 +207,11 @@ struct wapbl_ops wapbl_ops = {
 	.wo_wapbl_biodone	= wapbl_biodone,
 };
 
-int
-wapbl_sysctl_init(void)
-{
-	int rv;
-	const struct sysctlnode *rnode, *cnode;
-
-	wapbl_sysctl = NULL;
-
-	rv = sysctl_createv(&wapbl_sysctl, 0, NULL, &rnode,
-		       CTLFLAG_PERMANENT,
-		       CTLTYPE_NODE, "vfs", NULL,
-		       NULL, 0, NULL, 0,
-		       CTL_VFS, CTL_EOL);
-	if (rv)
-		return rv;
-
-	rv = sysctl_createv(&wapbl_sysctl, 0, &rnode, &rnode,
-		       CTLFLAG_PERMANENT,
-		       CTLTYPE_NODE, "wapbl",
-		       SYSCTL_DESCR("WAPBL journaling options"),
-		       NULL, 0, NULL, 0,
-		       CTL_CREATE, CTL_EOL);
-	if (rv)
-		return rv;
-
-	rv = sysctl_createv(&wapbl_sysctl, 0, &rnode, &cnode,
-		       CTLFLAG_PERMANENT|CTLFLAG_READWRITE,
-		       CTLTYPE_INT, "flush_disk_cache",
-		       SYSCTL_DESCR("flush disk cache"),
-		       NULL, 0, &wapbl_flush_disk_cache, 0,
-		       CTL_CREATE, CTL_EOL);
-	if (rv)
-		return rv;
-
-	rv = sysctl_createv(&wapbl_sysctl, 0, &rnode, &cnode,
-		       CTLFLAG_PERMANENT|CTLFLAG_READWRITE,
-		       CTLTYPE_INT, "verbose_commit",
-		       SYSCTL_DESCR("show time and size of wapbl log commits"),
-		       NULL, 0, &wapbl_verbose_commit, 0,
-		       CTL_CREATE, CTL_EOL);
-	return rv;
-}
-
 void
 wapbl_init(void)
 {
-
 	pool_init(&wapbl_entry_pool, sizeof(struct wapbl_entry), 0, 0, 0,
 	    "wapblentrypl", &pool_allocator_kmem, IPL_VM);
-
-	wapbl_sysctl_init();
 }
 
 int
