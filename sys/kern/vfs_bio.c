@@ -1264,5 +1264,7 @@ bbusy(struct buf *bp, int wait)
 	bremfree(bp);
 	buf_acquire(bp);
 
+	splx(s);
+
 	return (0);
 }
