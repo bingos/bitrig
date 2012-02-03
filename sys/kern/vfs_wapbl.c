@@ -397,7 +397,7 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 	{
 		struct wapbl_wc_header *wc;
 		size_t len = 1 << wl->wl_log_dev_bshift;
-		wc = wapbl_calloc(1, len);
+		wc = malloc(len, M_WAPBL, M_WAITOK);
 		wc->wc_type = WAPBL_WC_HEADER;
 		wc->wc_len = len;
 		wc->wc_circ_off = wl->wl_circ_off;
@@ -2237,7 +2237,7 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	if (wch2->wc_generation > wch->wc_generation)
 		wch = wch2;
 
-	wr = wapbl_calloc(1, sizeof(*wr));
+	wr = malloc(sizeof(*wr), M_WAPBL, M_WAITOK);
 
 	wr->wr_logvp = vp;
 	wr->wr_devvp = devvp;
