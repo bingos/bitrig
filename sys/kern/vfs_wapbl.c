@@ -466,20 +466,17 @@ wapbl_discard(struct wapbl *wl)
 #ifdef WAPBL_DEBUG_PRINT
 	{
 		pid_t pid = -1;
-		lwpid_t lid = -1;
 		if (curproc)
 			pid = curproc->p_pid;
-		if (curlwp)
-			lid = curlwp->l_lid;
 #ifdef WAPBL_DEBUG_BUFBYTES
 		WAPBL_PRINTF(WAPBL_PRINT_DISCARD,
-		    ("wapbl_discard: thread %d.%d discarding "
+		    ("wapbl_discard: proc %d discarding "
 		    "transaction\n"
 		    "\tbufcount=%zu bufbytes=%zu bcount=%zu "
 		    "deallocs=%d inodes=%d\n"
 		    "\terrcnt = %u, reclaimable=%zu reserved=%zu "
 		    "unsynced=%zu\n",
-		    pid, lid, wl->wl_bufcount, wl->wl_bufbytes,
+		    pid, wl->wl_bufcount, wl->wl_bufbytes,
 		    wl->wl_bcount, wl->wl_dealloccnt,
 		    wl->wl_inohashcnt, wl->wl_error_count,
 		    wl->wl_reclaimable_bytes, wl->wl_reserved_bytes,
@@ -493,11 +490,11 @@ wapbl_discard(struct wapbl *wl)
 		}
 #else /* !WAPBL_DEBUG_BUFBYTES */
 		WAPBL_PRINTF(WAPBL_PRINT_DISCARD,
-		    ("wapbl_discard: thread %d.%d discarding transaction\n"
+		    ("wapbl_discard: proc %d discarding transaction\n"
 		    "\tbufcount=%zu bufbytes=%zu bcount=%zu "
 		    "deallocs=%d inodes=%d\n"
 		    "\terrcnt = %u, reclaimable=%zu reserved=%zu\n",
-		    pid, lid, wl->wl_bufcount, wl->wl_bufbytes,
+		    pid, wl->wl_bufcount, wl->wl_bufbytes,
 		    wl->wl_bcount, wl->wl_dealloccnt,
 		    wl->wl_inohashcnt, wl->wl_error_count,
 		    wl->wl_reclaimable_bytes, wl->wl_reserved_bytes));
@@ -534,13 +531,13 @@ wapbl_discard(struct wapbl *wl)
 	mutex_enter(&bufcache_lock);
 	mutex_enter(&wl->wl_mtx);
 	while ((bp = LIST_FIRST(&wl->wl_bufs)) != NULL) {
-		if (bbusy(bp, 0, 0, &wl->wl_mtx) == 0) {
+		if (bbusy(bp, 1) == 0) {
 			/*
 			 * The buffer will be unlocked and
 			 * removed from the transaction in brelse
 			 */
 			mutex_exit(&wl->wl_mtx);
-			brelsel(bp, 0);
+			brelse(bp);
 			mutex_enter(&wl->wl_mtx);
 		}
 	}
@@ -633,14 +630,16 @@ wapbl_stop(struct wapbl *wl, int force)
 int
 wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 {
-	struct pstats *pstats = curlwp->l_proc->p_stats;
-	struct buf *bp;
+	struct pstats *pstats;
+	struct buf iobuf;
 	int error;
 
 	KASSERT((flags & ~(B_WRITE | B_READ)) == 0);
 	KASSERT(devvp->v_type == VBLK);
 
-	if ((flags & (B_WRITE | B_READ)) == B_WRITE) {
+	pstats = curproc->p_stats;
+
+	if ((flags & B_READ) == 0) {
 		mutex_enter(devvp->v_interlock);
 		devvp->v_numoutput++;
 		mutex_exit(devvp->v_interlock);
@@ -649,31 +648,29 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 		pstats->p_ru.ru_inblock++;
 	}
 
-	bp = getiobuf(devvp, true);
-	bp->b_flags = flags;
-	bp->b_cflags = BC_BUSY; /* silly & dubious */
-	bp->b_dev = devvp->v_rdev;
-	bp->b_data = data;
-	bp->b_bufsize = bp->b_resid = bp->b_bcount = len;
-	bp->b_blkno = pbn;
+	iobuf.b_flags = flags | B_BUSY;
+	iobuf.b_dev = devvp->v_rdev;
+	iobuf.b_data = data;
+	iobuf.b_bufsize = iobuf.b_resid = iobuf.b_bcount = len;
+	iobuf.b_blkno = pbn;
 
 	WAPBL_PRINTF(WAPBL_PRINT_IO,
-	    ("wapbl_doio: %s %d bytes at block %"PRId64" on dev 0x%"PRIx64"\n",
-	    BUF_ISWRITE(bp) ? "write" : "read", bp->b_bcount,
-	    bp->b_blkno, bp->b_dev));
+	    ("wapbl_doio: %s %d bytes at block %lld on dev 0x%llx\n",
+	    (iobuf.b_flags & B_READ) ? "read" : "write", iobuf.b_bcount,
+	    (unsigned long long)iobuf.b_blkno,
+	    (unsigned long long)iobuf.b_dev));
 
-	VOP_STRATEGY(devvp, bp);
+	VOP_STRATEGY(devvp, &iobuf);
 
-	error = biowait(bp);
-	putiobuf(bp);
+	error = biowait(&iobuf);
 
 	if (error) {
 		WAPBL_PRINTF(WAPBL_PRINT_ERROR,
-		    ("wapbl_doio: %s %zu bytes at block %" PRId64
-		    " on dev 0x%"PRIx64" failed with error %d\n",
-		    (((flags & (B_WRITE | B_READ)) == B_WRITE) ?
-		     "write" : "read"),
-		    len, pbn, devvp->v_rdev, error));
+		    ("wapbl_doio: %s %d bytes at block %lld"
+		    " on dev 0x%llx failed with error %d\n",
+		    (iobuf.b_flags & B_READ) ? "read" : "write", len,
+		    (unsigned long long)pbn,
+		    (unsigned long long)devvp->v_rdev, error));
 	}
 
 	return error;
@@ -683,7 +680,7 @@ int
 wapbl_write(void *data, size_t len, struct vnode *devvp, daddr_t pbn)
 {
 
-	return wapbl_doio(data, len, devvp, pbn, B_WRITE);
+	return wapbl_doio(data, len, devvp, pbn, 0);
 }
 
 int
@@ -820,6 +817,8 @@ wapbl_end(struct wapbl *wl)
 
 	rw_exit(&wl->wl_rwlock);
 }
+
+/* XXX pedro: stopped here */
 
 void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
