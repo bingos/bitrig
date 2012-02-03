@@ -502,11 +502,14 @@ wapbl_discard(struct wapbl *wl)
 	for (i = 0; i <= wl->wl_inohashmask; i++) {
 		struct wapbl_ino_head *wih;
 		struct wapbl_ino *wi;
+		int s;
 
 		wih = &wl->wl_inohash[i];
 		while ((wi = LIST_FIRST(wih)) != NULL) {
 			LIST_REMOVE(wi, wi_hash);
+			s = splhigh();
 			pool_put(&wapbl_ino_pool, wi);
+			splx(s);
 			KASSERT(wl->wl_inohashcnt > 0);
 			wl->wl_inohashcnt--;
 		}
@@ -542,10 +545,13 @@ wapbl_discard(struct wapbl *wl)
 		 * and increasing reclaimable bytes ? */
 		we->we_wapbl = NULL;
 		if (we->we_bufcount == 0) {
+			int s;
 #ifdef WAPBL_DEBUG_BUFBYTES
 			KASSERT(we->we_unsynced_bufbytes == 0);
 #endif
+			s = splhigh();
 			pool_put(&wapbl_entry_pool, we);
+			splx(s);
 		}
 	}
 
@@ -1089,10 +1095,13 @@ wapbl_biodone(struct buf *bp)
 #endif
 
 		if (we->we_bufcount == 0) {
+			int s;
 #ifdef WAPBL_DEBUG_BUFBYTES
 			KASSERT(we->we_unsynced_bufbytes == 0);
 #endif
+			s = splhigh();
 			pool_put(&wapbl_entry_pool, we);
+			splx(s);
 		}
 
 		brelse(bp, 0);
@@ -1141,6 +1150,7 @@ wapbl_biodone(struct buf *bp)
 	if (we->we_bufcount == 0) {
 		size_t delta = 0;
 		int errcnt = 0;
+		int s;
 #ifdef WAPBL_DEBUG_BUFBYTES
 		KDASSERT(we->we_unsynced_bufbytes == 0);
 #endif
@@ -1154,7 +1164,9 @@ wapbl_biodone(struct buf *bp)
 			if (we->we_error)
 				errcnt++;
 			SIMPLEQ_REMOVE_HEAD(&wl->wl_entries, we_entries);
+			s = splhigh();
 			pool_put(&wapbl_entry_pool, we);
+			splx(s);
 		}
 
 		if (delta) {
@@ -1184,6 +1196,7 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 	size_t flushsize;
 	size_t reserved;
 	int error = 0;
+	int s;
 
 	/*
 	 * Do a quick check to see if a full flush can be skipped
@@ -1287,7 +1300,9 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 	if (error)
 		goto out2;
 
+	s = splhigh();
 	we = pool_get(&wapbl_entry_pool, PR_WAITOK);
+	splx(s);
 
 #ifdef WAPBL_DEBUG_BUFBYTES
 	WAPBL_PRINTF(WAPBL_PRINT_FLUSH,
@@ -1631,8 +1646,11 @@ wapbl_register_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 {
 	struct wapbl_ino_head *wih;
 	struct wapbl_ino *wi;
+	int s;
 
+	s = splhigh();
 	wi = pool_get(&wapbl_ino_pool, PR_WAITOK);
+	splx(s);
 
 	mutex_enter(&wl->wl_mtx);
 	if (wapbl_inodetrk_get(wl, ino) == NULL) {
@@ -1645,8 +1663,11 @@ wapbl_register_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 		    ("wapbl_register_inode: ino=%"PRId64"\n", ino));
 		mutex_exit(&wl->wl_mtx);
 	} else {
+		int s;
 		mutex_exit(&wl->wl_mtx);
+		s = splhigh();
 		pool_put(&wapbl_ino_pool, wi);
+		splx(s);
 	}
 }
 
@@ -1654,6 +1675,7 @@ void
 wapbl_unregister_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 {
 	struct wapbl_ino *wi;
+	int s;
 
 	mutex_enter(&wl->wl_mtx);
 	wi = wapbl_inodetrk_get(wl, ino);
@@ -1664,8 +1686,9 @@ wapbl_unregister_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 		wl->wl_inohashcnt--;
 		LIST_REMOVE(wi, wi_hash);
 		mutex_exit(&wl->wl_mtx);
-
+		s = splhigh();
 		pool_put(&wapbl_ino_pool, wi);
+		splx(s);
 	} else {
 		mutex_exit(&wl->wl_mtx);
 	}
