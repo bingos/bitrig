@@ -1241,3 +1241,28 @@ bcstats_print(int (*pr)(const char *, ...))
 	    bcstats.pendingreads, bcstats.pendingwrites);
 }
 #endif
+
+/*
+ * Very similar to softdep's getdirtybuf().
+ */
+int
+bbusy(struct buf *bp, int wait)
+{
+	int s;
+
+	s = splbio();
+
+	while (bp->b_flags & BUSY) {
+		if (wait == 0) {
+			splx(s);
+			return (1);
+		}
+		bp->b_flags |= B_WANTED;
+		tsleep(bp, PRIBIO+1, "bbusy", 0);
+	}
+		
+	bremfree(bp);
+	buf_acquire(bp);
+
+	return (0);
+}

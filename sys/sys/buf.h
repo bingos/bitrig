@@ -312,6 +312,7 @@ void  buf_daemon(struct proc *);
 void  buf_replacevnode(struct buf *, struct vnode *);
 void  buf_daemon(struct proc *);
 int bread_cluster(struct vnode *, daddr64_t, int, struct buf **);
+int bbusy(struct buf *, int);
 
 #ifdef DEBUG
 void buf_print(struct buf *);
