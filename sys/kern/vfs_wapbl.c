@@ -53,7 +53,7 @@
 
 struct sysctllog *wapbl_sysctl;
 int wapbl_flush_disk_cache = 1;
-int wapbl_verbose_commit = 0;
+int wapbl_verbose_commit = 1;
 
 /*
  * INTERNAL DATA STRUCTURES
