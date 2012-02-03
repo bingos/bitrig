@@ -211,7 +211,7 @@ void
 wapbl_init(void)
 {
 	pool_init(&wapbl_entry_pool, sizeof(struct wapbl_entry), 0, 0, 0,
-	    "wapblentrypl", &pool_allocator_kmem, IPL_VM);
+	    "wapblpl", NULL);
 }
 
 int
