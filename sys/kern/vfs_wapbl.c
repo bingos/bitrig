@@ -1289,9 +1289,8 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 	    &head, &tail);
 #ifdef WAPBL_DEBUG
 	if (head != off) {
-		panic("lost head! head=%"PRIdMAX" tail=%" PRIdMAX
-		      " off=%"PRIdMAX" flush=%zu\n",
-		      (intmax_t)head, (intmax_t)tail, (intmax_t)off,
+		panic("lost head! head=%lld tail=%lld off=%lld flush=%zu\n",
+		      (long long)head, (long long)tail, (long long)off,
 		      flushsize);
 	}
 #else
@@ -1608,10 +1607,11 @@ void
 wapbl_inodetrk_init(struct wapbl *wl, u_int size)
 {
 
-	wl->wl_inohash = hashinit(size, HASH_LIST, true, &wl->wl_inohashmask);
-	if (atomic_inc_uint_nv(&wapbl_ino_pool_refcount) == 1) {
+	wl->wl_inohash = hashinit(size, M_WAPBL, M_WAITOK,
+	    &wl->wl_inohashmask);
+	if (++wapbl_ino_pool_refcount == 1) {
 		pool_init(&wapbl_ino_pool, sizeof(struct wapbl_ino), 0, 0, 0,
-		    "wapblinopl", &pool_allocator_nointr, IPL_NONE);
+		    "wapblinopl", NULL);
 	}
 }
 
@@ -1621,8 +1621,8 @@ wapbl_inodetrk_free(struct wapbl *wl)
 
 	/* XXX this KASSERT needs locking/mutex analysis */
 	KASSERT(wl->wl_inohashcnt == 0);
-	hashdone(wl->wl_inohash, HASH_LIST, wl->wl_inohashmask);
-	if (atomic_dec_uint_nv(&wapbl_ino_pool_refcount) == 0) {
+	free(wl->wl_inohash, M_WAPBL);
+	if (--wapbl_ino_pool_refcount == 0) {
 		pool_destroy(&wapbl_ino_pool);
 	}
 }
@@ -1662,7 +1662,7 @@ wapbl_register_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 		LIST_INSERT_HEAD(wih, wi, wi_hash);
 		wl->wl_inohashcnt++;
 		WAPBL_PRINTF(WAPBL_PRINT_INODE,
-		    ("wapbl_register_inode: ino=%"PRId64"\n", ino));
+		    ("wapbl_register_inode: ino=%lld\n", (long long)ino));
 		mutex_exit(&wl->wl_mtx);
 	} else {
 		int s;
@@ -1683,7 +1683,7 @@ wapbl_unregister_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 	wi = wapbl_inodetrk_get(wl, ino);
 	if (wi) {
 		WAPBL_PRINTF(WAPBL_PRINT_INODE,
-		    ("wapbl_unregister_inode: ino=%"PRId64"\n", ino));
+		    ("wapbl_unregister_inode: ino=%lld\n", (long long)ino));
 		KASSERT(wl->wl_inohashcnt > 0);
 		wl->wl_inohashcnt--;
 		LIST_REMOVE(wi, wi_hash);
@@ -1695,8 +1695,6 @@ wapbl_unregister_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 		mutex_exit(&wl->wl_mtx);
 	}
 }
-
-/****************************************************************/
 
 static inline size_t
 wapbl_transaction_inodes_len(struct wapbl *wl)
@@ -1735,6 +1733,8 @@ wapbl_transaction_len(struct wapbl *wl)
 
 	return len;
 }
+
+/* XXX pedro: stopped here */
 
 /*
  * wapbl_cache_sync: issue DIOCCACHESYNC
