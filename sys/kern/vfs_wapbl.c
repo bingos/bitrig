@@ -192,6 +192,8 @@ int wapbl_replay_isopen1(struct wapbl_replay *);
  */
 int wapbl_lazy_truncate = 0;
 
+#if 0
+/* XXX pedro: only here as a reference, should eventually go away */
 struct wapbl_ops wapbl_ops = {
 	.wo_wapbl_discard	= wapbl_discard,
 	.wo_wapbl_replay_isopen	= wapbl_replay_isopen1,
@@ -207,6 +209,7 @@ struct wapbl_ops wapbl_ops = {
 	/* XXX: the following is only used to say "this is a wapbl buf" */
 	.wo_wapbl_biodone	= wapbl_biodone,
 };
+#endif
 
 void
 wapbl_init(void)
@@ -818,7 +821,7 @@ wapbl_end(struct wapbl *wl)
 	rw_exit(&wl->wl_rwlock);
 }
 
-/* XXX pedro: stopped here */
+/* XXX pedro: what to do with B_LOCKED in openbsd? */
 
 void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
