@@ -821,7 +821,7 @@ wapbl_end(struct wapbl *wl)
 	rw_exit(&wl->wl_rwlock);
 }
 
-/* XXX pedro: what to do with B_LOCKED in openbsd? */
+/* XXX pedro: what to do with B_LOCKED in openbsd? stopped here */
 
 void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
