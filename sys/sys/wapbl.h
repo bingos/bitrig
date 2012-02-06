@@ -193,19 +193,19 @@ wapbl_vptomp(struct vnode *vp)
 	return mp;
 }
 
-static __inline bool
+static __inline int
 wapbl_vphaswapbl(struct vnode *vp)
 {
 	struct mount *mp;
 
 	if (vp == NULL)
-		return false;
+		return 0;
 
 	mp = wapbl_vptomp(vp);
 	if (mp && mp->mnt_wapbl)
-		return true;
+		return 1;
 	else
-		return false;
+		return 0;
 }
 
 #endif /* _KERNEL */
