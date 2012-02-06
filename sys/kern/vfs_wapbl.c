@@ -780,10 +780,10 @@ wapbl_begin(struct wapbl *wl, const char *file, int line)
 
 #if defined(WAPBL_DEBUG_PRINT)
 	WAPBL_PRINTF(WAPBL_PRINT_TRANSACTION,
-	    ("wapbl_begin thread %d.%d with bufcount=%zu "
+	    ("wapbl_begin proc %d with bufcount=%zu "
 	    "bufbytes=%zu bcount=%zu at %s:%d\n",
-	    curproc->p_pid, curlwp->l_lid, wl->wl_bufcount,
-	    wl->wl_bufbytes, wl->wl_bcount, file, line));
+	    curproc->p_pid, wl->wl_bufcount, wl->wl_bufbytes, wl->wl_bcount,
+	    file, line));
 #endif
 
 	return 0;
@@ -795,10 +795,10 @@ wapbl_end(struct wapbl *wl)
 
 #if defined(WAPBL_DEBUG_PRINT)
 	WAPBL_PRINTF(WAPBL_PRINT_TRANSACTION,
-	     ("wapbl_end thread %d.%d with bufcount=%zu "
+	     ("wapbl_end proc %d with bufcount=%zu "
 	      "bufbytes=%zu bcount=%zu\n",
-	      curproc->p_pid, curlwp->l_lid, wl->wl_bufcount,
-	      wl->wl_bufbytes, wl->wl_bcount));
+	      curproc->p_pid, wl->wl_bufcount, wl->wl_bufbytes,
+	      wl->wl_bcount));
 #endif
 
 #ifdef DIAGNOSTIC
