@@ -821,41 +821,38 @@ wapbl_end(struct wapbl *wl)
 	rw_exit(&wl->wl_rwlock);
 }
 
-/* XXX pedro: what to do with B_LOCKED in openbsd? stopped here */
-
 void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
 {
 
 	KASSERT(bp->b_cflags & BC_BUSY);
 	KASSERT(bp->b_vp);
+	splassert(IPL_BIO);
 
 	wapbl_jlock_assert(wl);
 
 	mutex_enter(&wl->wl_mtx);
-	if (bp->b_flags & B_LOCKED) {
+	if (bp->b_flags & B_WAPBL) {
 		LIST_REMOVE(bp, b_wapbllist);
 		WAPBL_PRINTF(WAPBL_PRINT_BUFFER2,
-		   ("wapbl_add_buf thread %d.%d re-adding buf %p "
+		   ("wapbl_add_buf proc %d re-adding buf %p "
 		    "with %d bytes %d bcount\n",
-		    curproc->p_pid, curlwp->l_lid, bp, bp->b_bufsize,
-		    bp->b_bcount));
+		    curproc->p_pid, bp, bp->b_bufsize, bp->b_bcount));
 	} else {
 		/* unlocked by dirty buffers shouldn't exist */
-		KASSERT(!(bp->b_oflags & BO_DELWRI));
+		KASSERT(!(bp->b_flags & B_DELWRI));
 		wl->wl_bufbytes += bp->b_bufsize;
 		wl->wl_bcount += bp->b_bcount;
 		wl->wl_bufcount++;
 		WAPBL_PRINTF(WAPBL_PRINT_BUFFER,
-		   ("wapbl_add_buf thread %d.%d adding buf %p "
+		   ("wapbl_add_buf proc %d adding buf %p "
 		    "with %d bytes %d bcount\n",
-		    curproc->p_pid, curlwp->l_lid, bp, bp->b_bufsize,
-		    bp->b_bcount));
+		    curproc->p_pid, bp, bp->b_bufsize, bp->b_bcount));
 	}
 	LIST_INSERT_HEAD(&wl->wl_bufs, bp, b_wapbllist);
 	mutex_exit(&wl->wl_mtx);
 
-	bp->b_flags |= B_LOCKED;
+	bp->b_flags |= B_WAPBL;
 }
 
 void
