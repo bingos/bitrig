@@ -474,6 +474,11 @@ vn_lock(struct vnode *vp, int flags, struct proc *p)
 {
 	int error;
 
+#ifdef DIAGNOSTIC
+	if (wapbl_vphaswapbl(vp))
+		wapbl_junlock_assert(wapbl_vptomp(vp));
+#endif
+
 	if ((flags & LK_RECURSEFAIL) == 0)
 		flags |= LK_CANRECURSE;
 	

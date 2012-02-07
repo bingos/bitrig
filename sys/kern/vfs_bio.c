@@ -57,6 +57,7 @@
 #include <sys/conf.h>
 #include <sys/kernel.h>
 #include <sys/specdev.h>
+#include <sys/wapbl.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -659,6 +660,12 @@ bdwrite(struct buf *bp)
 {
 	int s;
 
+	if (wapbl_vphaswapbl(bp->b_vp)) {
+		struct mount *mp = wapbl_vptomp(bp->b_vp);
+		if (bp->b_iodone != wapbl_biodone)
+			wapbl_add_buf(mp, bp);
+	}
+
 	/*
 	 * If the block hasn't been seen before:
 	 *	(1) Mark it as having been seen,
@@ -759,6 +766,13 @@ brelse(struct buf *bp)
 		SET(bp->b_flags, B_INVAL);
 
 	if (ISSET(bp->b_flags, B_INVAL)) {
+		if (ISSET(bp->b_flags, B_WAPBL)) {
+			if (wapbl_vphaswapbl(bp->b_vp)) {
+				struct mount *mp = wapbl_vptomp(bp->b_vp);
+				KASSERT(bp->b_iodone != wapbl_biodone);
+				wapbl_remove_buf(mp, bp);
+			}
+		}
 		/*
 		 * If the buffer is invalid, place it in the clean queue, so it
 		 * can be reused.
@@ -918,6 +932,12 @@ start:
 			bremfree(bp);
 			buf_acquire(bp);
 			splx(s);
+#if DIAGNOSTIC
+			/* XXX pedro */
+			if (bp->b_bcount != size)
+				printf("getblk: bcount=%lld, size=%lld\n",
+				    (long long)bp->b_bcount, (long long)size);
+#endif
 			return (bp);
 		}
 	}

@@ -1540,6 +1540,7 @@ ufs_strategy(void *v)
 	struct buf *bp = ap->a_bp;
 	struct vnode *vp = bp->b_vp;
 	struct inode *ip;
+	struct mount *mp;
 	int error;
 	int s;
 
@@ -1568,8 +1569,29 @@ ufs_strategy(void *v)
 	}
 	vp = ip->i_devvp;
 	bp->b_dev = vp->v_rdev;
-	(vp->v_op->vop_strategy)(ap);
-	return (0);
+
+	error = (vp->v_op->vop_strategy)(ap);
+	if (error)
+		return (error);
+
+	if (bp->b_flags == 0)
+		return (0);
+
+	mp = wapbl_vptomp(vp);
+	if (mp == NULL || mp->mnt_wapbl_replay == NULL ||
+	    !wapbl_replay_isopen(mp) ||
+	    !wapbl_replay_can_read(mp, bp->b_blkno, bp->b_bcount))
+		return (0);
+
+	error = biowait(bp);
+	if (error)
+		return (error);
+
+	error = wapbl_replay_read(mp, bp->b_data, bp->b_blkno, bp->b_bcount);
+	if (error)
+		bp->b_flags |= B_INVAL;
+
+	return (error);
 }
 
 /*

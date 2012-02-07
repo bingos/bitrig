@@ -192,25 +192,6 @@ int wapbl_replay_isopen1(struct wapbl_replay *);
  */
 int wapbl_lazy_truncate = 0;
 
-#if 0
-/* XXX pedro: only here as a reference, should eventually go away */
-struct wapbl_ops wapbl_ops = {
-	.wo_wapbl_discard	= wapbl_discard,
-	.wo_wapbl_replay_isopen	= wapbl_replay_isopen1,
-	.wo_wapbl_replay_can_read = wapbl_replay_can_read,
-	.wo_wapbl_replay_read	= wapbl_replay_read,
-	.wo_wapbl_add_buf	= wapbl_add_buf,
-	.wo_wapbl_remove_buf	= wapbl_remove_buf,
-	.wo_wapbl_resize_buf	= wapbl_resize_buf,
-	.wo_wapbl_begin		= wapbl_begin,
-	.wo_wapbl_end		= wapbl_end,
-	.wo_wapbl_junlock_assert= wapbl_junlock_assert,
-
-	/* XXX: the following is only used to say "this is a wapbl buf" */
-	.wo_wapbl_biodone	= wapbl_biodone,
-};
-#endif
-
 void
 wapbl_init(void)
 {
@@ -730,6 +711,8 @@ wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 	return 0;
 }
 
+/* XXX pedro: we need this? */
+#ifdef notyet 
 int
 wapbl_begin(struct wapbl *wl, const char *file, int line)
 {
@@ -817,6 +800,7 @@ wapbl_end(struct wapbl *wl)
 
 	rw_exit(&wl->wl_rwlock);
 }
+#endif /* notyet */
 
 void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
@@ -891,6 +875,7 @@ wapbl_remove_buf(struct wapbl * wl, struct buf *bp)
 	mutex_exit(&wl->wl_mtx);
 }
 
+/* XXX pedro: probably not needed in openbsd */
 void
 wapbl_resize_buf(struct wapbl *wl, struct buf *bp, long oldsz, long oldcnt)
 {
