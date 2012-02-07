@@ -1431,14 +1431,14 @@ void
 wapbl_jlock_assert(struct wapbl *wl)
 {
 
-	KASSERT(rw_lock_held(&wl->wl_rwlock));
+	rw_assert_locked(&wl->wl_rwlock);
 }
 
 void
 wapbl_junlock_assert(struct wapbl *wl)
 {
 
-	KASSERT(!rw_write_held(&wl->wl_rwlock));
+	rw_assert_unlocked(&wl->wl_rwlock);
 }
 
 /* locks missing */
