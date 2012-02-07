@@ -143,6 +143,7 @@ struct buf {
 	RB_ENTRY(buf) b_rbbufs;		/* vnode "hash" tree */
 	LIST_ENTRY(buf) b_list;		/* All allocated buffers. */
 	LIST_ENTRY(buf) b_vnbufs;	/* Buffer's associated vnode. */
+	LIST_ENTRY(buf)	b_wapbllist;	/* transaction buffer list */
 	TAILQ_ENTRY(buf) b_freelist;	/* Free list position if not active. */
 	time_t	b_synctime;		/* Time this buffer should be flushed */
 	struct  proc *b_proc;		/* Associated proc; NULL if kernel. */
