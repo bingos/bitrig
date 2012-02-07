@@ -74,6 +74,7 @@ struct dk_cache {
 
 #define DIOCGCACHE	_IOR('d', 117, struct dk_cache)	/* get cache enabled */
 #define DIOCSCACHE	_IOW('d', 118, struct dk_cache)	/* set cache enabled */
+#define DIOCCACHESYNC	_IOW('d', 120, int)	/* sync cache (force?) */
 
 struct dk_diskmap {
 	char		*device;

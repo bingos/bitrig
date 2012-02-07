@@ -97,7 +97,7 @@ int	sd_vpd_block_limits(struct sd_softc *, int);
 int	sd_vpd_thin(struct sd_softc *, int);
 int	sd_thin_params(struct sd_softc *, int);
 int	sd_get_parms(struct sd_softc *, struct disk_parms *, int);
-void	sd_flush(struct sd_softc *, int);
+int	sd_flush(struct sd_softc *, int);
 
 void	viscpy(u_char *, u_char *, int);
 
@@ -933,6 +933,15 @@ sdioctl(dev_t dev, u_long cmd, caddr_t addr, int flag, struct proc *p)
 		error = sd_ioctl_cache(sc, cmd, (struct dk_cache *)addr);
 		goto exit;
 
+	case DIOCCACHESYNC:
+		if (!ISSET(flag, FWRITE)) {
+			error = EBADF;
+			goto exit;
+		}
+		if ((sd->flags & SDF_DIRTY) != 0 || *(int *)addr != 0)
+			error = sd_flush(sd, 0);
+		goto exit;
+
 	default:
 		if (part != RAW_PART) {
 			error = ENOTTY;
@@ -1750,15 +1759,16 @@ validate:
 	return (SDGP_RESULT_OK);
 }
 
-void
+int
 sd_flush(struct sd_softc *sc, int flags)
 {
 	struct scsi_link *link = sc->sc_link;
 	struct scsi_xfer *xs;
 	struct scsi_synchronize_cache *cmd;
+	int error;
 
 	if (link->quirks & SDEV_NOSYNCCACHE)
-		return;
+		return (0);
 
 	/*
 	 * Issue a SYNCHRONIZE CACHE. Address 0, length 0 means "all remaining
@@ -1769,7 +1779,7 @@ sd_flush(struct sd_softc *sc, int flags)
 	xs = scsi_xs_get(link, flags);
 	if (xs == NULL) {
 		SC_DEBUG(link, SDEV_DB1, ("cache sync failed to get xs\n"));
-		return;
+		return (1);
 	}
 
 	cmd = (struct scsi_synchronize_cache *)xs->cmd;
@@ -1779,10 +1789,14 @@ sd_flush(struct sd_softc *sc, int flags)
 	xs->timeout = 100000;
 	xs->flags |= SCSI_IGNORE_ILLEGAL_REQUEST;
 
-	if (scsi_xs_sync(xs) == 0)
-		sc->flags &= ~SDF_DIRTY;
-	else
-		SC_DEBUG(link, SDEV_DB1, ("cache sync failed\n"));
-
+	error = scsi_xs_sync(xs);
 	scsi_xs_put(xs);
+	if (error) {
+		SC_DEBUG(link, SDEV_DB1, ("cache sync failed\n"));
+		return (1);
+	}
+
+	sc->flags &= ~SDF_DIRTY;
+
+	return (0);
 }

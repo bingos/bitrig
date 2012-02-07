@@ -346,8 +346,8 @@ wdactivate(struct device *self, int act)
 
 	switch (act) {
 	case DVACT_SUSPEND:
-		wd_flushcache(wd, AT_POLL);
-		wd_standby(wd, AT_POLL);
+		wd_flushcache(wd, AT_WAIT);
+		wd_standby(wd, AT_WAIT);
 		break;
 	case DVACT_RESUME:
 		/*
@@ -703,10 +703,8 @@ wdclose(dev_t dev, int flag, int fmt, struct proc *p)
 
 	disk_closepart(&wd->sc_dk, part, fmt);
 
-	if (wd->sc_dk.dk_openmask == 0) {
-		wd_flushcache(wd, 0);
-		/* XXXX Must wait for I/O to complete! */
-	}
+	if (wd->sc_dk.dk_openmask == 0)
+		wd_flushcache(wd, AT_WAIT);
 
 	disk_unlock(&wd->sc_dk);
 
@@ -826,6 +824,10 @@ wdioctl(dev_t dev, u_long xfer, caddr_t addr, int flag, struct proc *p)
 		}
 
 		disk_unlock(&wd->sc_dk);
+		goto exit;
+
+	case DIOCCACHESYNC:
+		error = wd_flushcache(wd, AT_WAIT);
 		goto exit;
 
 #ifdef notyet
@@ -1084,11 +1086,7 @@ wd_flushcache(struct wd_softc *wd, int flags)
 	    WDCC_FLUSHCACHE);
 	wdc_c.r_st_bmask = WDCS_DRDY;
 	wdc_c.r_st_pmask = WDCS_DRDY;
-	if (flags != 0) {
-		wdc_c.flags = AT_POLL;
-	} else {
-		wdc_c.flags = AT_WAIT;
-	}
+	wdc_c.flags = flags;
 	wdc_c.timeout = 30000; /* 30s timeout */
 	if (wdc_exec_command(wd->drvp, &wdc_c) != WDC_COMPLETE) {
 		printf("%s: flush cache command didn't complete\n",
@@ -1118,11 +1116,7 @@ wd_standby(struct wd_softc *wd, int flags)
 	wdc_c.r_command = WDCC_STANDBY_IMMED;
 	wdc_c.r_st_bmask = WDCS_DRDY;
 	wdc_c.r_st_pmask = WDCS_DRDY;
-	if (flags != 0) {
-		wdc_c.flags = AT_POLL;
-	} else {
-		wdc_c.flags = AT_WAIT;
-	}
+	wdc_c.flags = flags;
 	wdc_c.timeout = 30000; /* 30s timeout */
 	if (wdc_exec_command(wd->drvp, &wdc_c) != WDC_COMPLETE) {
 		printf("%s: standby command didn't complete\n",
