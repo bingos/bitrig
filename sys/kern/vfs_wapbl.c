@@ -714,7 +714,7 @@ wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 		error = wapbl_write(data, slen, wl->wl_devvp, pbn);
 		if (error)
 			return error;
-		data = (uint8_t *)data + slen;
+		data = (u_int8_t *)data + slen;
 		len -= slen;
 		off = wl->wl_circ_off;
 	}
@@ -1732,8 +1732,6 @@ wapbl_transaction_len(struct wapbl *wl)
 	return len;
 }
 
-/* XXX pedro: stopped here */
-
 /*
  * wapbl_cache_sync: issue DIOCCACHESYNC
  */
@@ -1752,7 +1750,7 @@ wapbl_cache_sync(struct wapbl *wl, const char *msg)
 		bintime(&start_time);
 	}
 	error = VOP_IOCTL(wl->wl_devvp, DIOCCACHESYNC, &force,
-	    FWRITE, FSCRED);
+	    FWRITE, FSCRED, curproc);
 	if (error) {
 		WAPBL_PRINTF(WAPBL_PRINT_ERROR,
 		    ("wapbl_cache_sync: DIOCCACHESYNC on dev 0x%x "
@@ -1775,10 +1773,9 @@ wapbl_cache_sync(struct wapbl *wl, const char *msg)
 /*
  * Perform commit operation
  *
- * Note that generation number incrementation needs to
- * be protected against racing with other invocations
- * of wapbl_write_commit.  This is ok since this routine
- * is only invoked from wapbl_flush
+ * Note that generation number incrementation needs to be protected against
+ * racing with other invocations of wapbl_write_commit.  This is ok since this
+ * routine is only invoked from wapbl_flush
  */
 int
 wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
@@ -1805,8 +1802,8 @@ wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
 	wc->wc_timensec = ts.tv_nsec;
 
 	WAPBL_PRINTF(WAPBL_PRINT_WRITE,
-	    ("wapbl_write_commit: head = %"PRIdMAX "tail = %"PRIdMAX"\n",
-	    (intmax_t)head, (intmax_t)tail));
+	    ("wapbl_write_commit: head = %lld tail = %lld\n",
+	    (long long)head, (long long)tail));
 
 	/*
 	 * write the commit header.
@@ -1840,7 +1837,7 @@ wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
 		 */
 		if (error)
 			panic("wapbl_write_commit: error writing duplicate "
-			      "log header: %d\n", error);
+			      "log header: %d", error);
 	}
 	return 0;
 }
@@ -1869,7 +1866,7 @@ wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 		int cnt;
 		struct buf *obp = bp;
 
-		KASSERT(bp->b_flags & B_LOCKED);
+		KASSERT(bp->b_flags & B_WAPBL);
 
 		wc->wc_type = WAPBL_WC_BLOCKS;
 		wc->wc_len = blocklen;
@@ -1905,8 +1902,8 @@ wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 		}
 
 		WAPBL_PRINTF(WAPBL_PRINT_WRITE,
-		    ("wapbl_write_blocks: len = %u (padding %zu) off = %"PRIdMAX"\n",
-		    wc->wc_len, padding, (intmax_t)off));
+		    ("wapbl_write_blocks: len = %u (padding %zu) off = %lld\n",
+		    wc->wc_len, padding, (long long)off));
 
 		error = wapbl_circ_write(wl, wc, blocklen, &off);
 		if (error)
@@ -1966,8 +1963,8 @@ wapbl_write_revocations(struct wapbl *wl, off_t *offp)
 			i++;
 		}
 		WAPBL_PRINTF(WAPBL_PRINT_WRITE,
-		    ("wapbl_write_revocations: len = %u off = %"PRIdMAX"\n",
-		    wc->wc_len, (intmax_t)off));
+		    ("wapbl_write_revocations: len = %u off = %lld\n",
+		    wc->wc_len, (long long)off));
 		error = wapbl_circ_write(wl, wc, blocklen, &off);
 		if (error)
 			return error;
@@ -2014,8 +2011,8 @@ wapbl_write_inodes(struct wapbl *wl, off_t *offp)
 			wi = LIST_NEXT(wi, wi_hash);
 		}
 		WAPBL_PRINTF(WAPBL_PRINT_WRITE,
-		    ("wapbl_write_inodes: len = %u off = %"PRIdMAX"\n",
-		    wc->wc_len, (intmax_t)off));
+		    ("wapbl_write_inodes: len = %u off = %lld\n",
+		    wc->wc_len, (long long)off));
 		error = wapbl_circ_write(wl, wc, blocklen, &off);
 		if (error)
 			return error;
@@ -2038,14 +2035,15 @@ wapbl_blkhash_init(struct wapbl_replay *wr, u_int size)
 	if (size < WAPBL_BLKPOOL_MIN)
 		size = WAPBL_BLKPOOL_MIN;
 	KASSERT(wr->wr_blkhash == 0);
-	wr->wr_blkhash = hashinit(size, HASH_LIST, true, &wr->wr_blkhashmask);
+	wr->wr_blkhash = hashinit(size, M_WAPBL, M_WAITOK,
+	    &wr->wr_blkhashmask);
 }
 
 void
 wapbl_blkhash_free(struct wapbl_replay *wr)
 {
 	KASSERT(wr->wr_blkhashcnt == 0);
-	hashdone(wr->wr_blkhash, HASH_LIST, wr->wr_blkhashmask);
+	free(wr->wr_blkhash, M_WAPBL);
 }
 
 struct wapbl_blk *
@@ -2109,8 +2107,6 @@ wapbl_blkhash_clear(struct wapbl_replay *wr)
 	KASSERT(wr->wr_blkhashcnt == 0);
 }
 
-/****************************************************************/
-
 int
 wapbl_circ_read(struct wapbl_replay *wr, void *data, size_t len, off_t *offp)
 {
@@ -2131,7 +2127,7 @@ wapbl_circ_read(struct wapbl_replay *wr, void *data, size_t len, off_t *offp)
 		error = wapbl_read(data, slen, wr->wr_devvp, pbn);
 		if (error)
 			return error;
-		data = (uint8_t *)data + slen;
+		data = (u_int8_t *)data + slen;
 		len -= slen;
 		off = wr->wr_circ_off;
 	}
@@ -2169,8 +2165,6 @@ wapbl_circ_advance(struct wapbl_replay *wr, size_t len, off_t *offp)
 	*offp = off;
 }
 
-/****************************************************************/
-
 int
 wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	daddr_t off, size_t count, size_t blksize)
@@ -2179,7 +2173,7 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	int error;
 	struct vnode *devvp;
 	daddr_t logpbn;
-	uint8_t *scratch;
+	u_int8_t *scratch;
 	struct wapbl_wc_header *wch;
 	struct wapbl_wc_header *wch2;
 	/* Use this until we read the actual log header */
@@ -2188,8 +2182,8 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	daddr_t pbn;
 
 	WAPBL_PRINTF(WAPBL_PRINT_REPLAY,
-	    ("wapbl_replay_start: vp=%p off=%"PRId64 " count=%zu blksize=%zu\n",
-	    vp, off, count, blksize));
+	    ("wapbl_replay_start: vp=%p off=%lld count=%zu blksize=%zu\n",
+	    vp, (long long)off, count, blksize));
 
 	if (off < 0)
 		return EINVAL;
@@ -2241,10 +2235,9 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	used = wapbl_space_used(wch->wc_circ_size, wch->wc_head, wch->wc_tail);
 
 	WAPBL_PRINTF(WAPBL_PRINT_REPLAY,
-	    ("wapbl_replay: head=%"PRId64" tail=%"PRId64" off=%"PRId64
-	    " len=%"PRId64" used=%zu\n",
-	    wch->wc_head, wch->wc_tail, wch->wc_circ_off,
-	    wch->wc_circ_size, used));
+	    ("wapbl_replay: head=%lld tail=%lld off=%lld len=%lld used=%zu\n",
+	    (long long)wch->wc_head, (long long)wch->wc_tail,
+	    (long long)wch->wc_circ_off, (long long)wch->wc_circ_size, used));
 
 	wapbl_blkhash_init(wr, (used >> wch->wc_fs_dev_bshift));
 
@@ -2493,7 +2486,7 @@ wapbl_replay_read(struct wapbl_replay *wr, void *data, daddr_t blk, long len)
 			if (error)
 				return error;
 		}
-		data = (uint8_t *)data + fsblklen;
+		data = (u_int8_t *)data + fsblklen;
 		len -= fsblklen;
 		blk++;
 	}
