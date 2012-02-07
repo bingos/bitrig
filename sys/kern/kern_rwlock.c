@@ -284,6 +284,13 @@ rw_assert_unlocked(struct rwlock *rwl)
 	if (rwl->rwl_owner != 0L)
 		panic("%s: lock held", rwl->rwl_name);
 }
+
+void
+rw_assert_locked(struct rwlock *rwl)
+{
+	if (rwl->rwl_owner == 0L)
+		panic("%s: lock not held", rwl->rwl_name);
+}
 #endif
 
 /* recursive rwlocks; */

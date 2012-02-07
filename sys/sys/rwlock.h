@@ -89,10 +89,12 @@ void rw_exit_write(struct rwlock *);
 void rw_assert_wrlock(struct rwlock *);
 void rw_assert_rdlock(struct rwlock *);
 void rw_assert_unlocked(struct rwlock *);
+void rw_assert_locked(struct rwlock *);
 #else
 #define rw_assert_wrlock(rwl) ((void)0)
 #define rw_assert_rdlock(rwl) ((void)0)
 #define rw_assert_unlocked(rwl) ((void)0)
+#define rw_assert_locked(rwl) ((void)0)
 #endif
 
 int rw_enter(struct rwlock *, int);
