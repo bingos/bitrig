@@ -155,6 +155,7 @@ struct buf {
 	dev_t	b_dev;			/* Device associated with buffer. */
 	caddr_t	b_data;			/* associated data */
 	void	*b_saveaddr;		/* Original b_data for physio. */
+	void	*b_private;		/* private data for owner */
 
 	TAILQ_ENTRY(buf) b_valist;	/* LRU of va to reuse. */
 
