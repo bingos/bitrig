@@ -1601,8 +1601,6 @@ wapbl_register_deallocation(struct wapbl *wl, daddr_t blk, int len)
 	mutex_exit(&wl->wl_mtx);
 }
 
-/* XXX pedro: stopped here */
-
 void
 wapbl_inodetrk_init(struct wapbl *wl, u_int size)
 {
