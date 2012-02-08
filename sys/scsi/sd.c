@@ -938,8 +938,8 @@ sdioctl(dev_t dev, u_long cmd, caddr_t addr, int flag, struct proc *p)
 			error = EBADF;
 			goto exit;
 		}
-		if ((sd->flags & SDF_DIRTY) != 0 || *(int *)addr != 0)
-			error = sd_flush(sd, 0);
+		if ((sc->flags & SDF_DIRTY) != 0 || *(int *)addr != 0)
+			error = sd_flush(sc, 0);
 		goto exit;
 
 	default:
