@@ -1596,3 +1596,20 @@ disk_lookup(struct cfdriver *cd, int unit)
 
 	return (dv);
 }
+
+int
+getdisksize(struct vnode *vp, u_int64_t *numsecp, unsigned *secsizep)
+{
+	struct partinfo dpart;
+	struct dkwedge_info dkw;
+	struct disk *pdk;
+	int error;
+
+	error = VOP_IOCTL(vp, DIOCGPART, &dpart, FREAD, NOCRED);
+	if (error == 0) {
+		*secsizep = dpart.disklab->d_secsize;
+		*numsecp  = dpart.part->p_size;
+	}
+
+	return error;
+}

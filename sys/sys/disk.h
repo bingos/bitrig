@@ -169,4 +169,7 @@ struct device *disk_lookup(struct cfdriver *, int);
 char 	*disk_readlabel(struct disklabel *, dev_t, char *, size_t);
 
 int	disk_map(char *, char *, int, int);
+
+struct vnode;
+int	getdisksize(struct vnode *, u_int64_t *, unsigned *);
 #endif
