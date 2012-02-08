@@ -267,6 +267,9 @@ struct statfs {
  */
 LIST_HEAD(vnodelst, vnode);
 
+struct wapbl;
+struct wapbl_replay;
+
 struct mount {
 	CIRCLEQ_ENTRY(mount) mnt_list;		/* mount list */
 	const struct vfsops *mnt_op;		/* operations on fs */
@@ -279,6 +282,8 @@ struct mount {
 	int		mnt_maxsymlinklen;	/* max size of short symlink */
 	struct statfs	mnt_stat;		/* cache of filesystem stats */
 	void		*mnt_data;		/* private data */
+	struct wapbl	*mnt_wapbl;		/* log info */
+	struct wapbl_replay *mnt_wapbl_replay;	/* replay support */
 };
 
 /*

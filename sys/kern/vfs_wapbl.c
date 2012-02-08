@@ -46,10 +46,9 @@
 #include <sys/kernel.h>
 #include <sys/mutex.h>
 #include <sys/atomic.h>
+#include <sys/specdev.h>
 #include <sys/wapbl.h>
 #include <sys/wapbl_replay.h>
-
-#include <miscfs/specfs/specdev.h>
 
 int wapbl_flush_disk_cache = 1;
 int wapbl_verbose_commit = 1;

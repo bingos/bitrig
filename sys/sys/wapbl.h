@@ -32,10 +32,6 @@
 #ifndef _SYS_WAPBL_H
 #define	_SYS_WAPBL_H
 
-#include <sys/mutex.h>
-
-#include <miscfs/specfs/specdev.h>
-
 /* This header file describes the api and data structures for
  * write ahead physical block logging (WAPBL) support.
  */
@@ -75,12 +71,6 @@ extern int wapbl_debug_print;
 #else
 #define	WAPBL_PRINTF(mask, a)
 #endif
-
-/****************************************************************/
-
-#include <sys/queue.h>
-#include <sys/vnode.h>
-#include <sys/buf.h>
 
 #ifdef _KERNEL
 
@@ -163,11 +153,10 @@ void	wapbl_unregister_inode(struct wapbl *, ino_t, mode_t);
  */
 void	wapbl_register_deallocation(struct wapbl *, daddr_t, int);
 
-void	wapbl_jlock_assert(struct wapbl *wl);
-void	wapbl_junlock_assert(struct wapbl *wl);
+void	wapbl_jlock_assert(struct wapbl *);
+void	wapbl_junlock_assert(struct wapbl *);
 
-void	wapbl_print(struct wapbl *wl, int full, void (*pr)(const char *, ...)
-    __printflike(1, 2));
+void	wapbl_print(struct wapbl *, int, void (*)(const char *, ...));
 
 #if defined(WAPBL_DEBUG) || defined(DDB)
 void	wapbl_dump(struct wapbl *);

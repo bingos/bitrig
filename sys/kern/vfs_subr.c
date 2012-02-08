@@ -927,7 +927,7 @@ vclean(struct vnode *vp, int flags, struct proc *p)
 	if (flags & DOCLOSE) {
 		error = vinvalbuf(vp, V_SAVE, NOCRED, p, 0, 0);
 		if (error != 0 && wapbl_vphaswapbl(vp)) {
-			wapbl_discard(wapbl_vptomp(vp));
+			wapbl_discard(wapbl_vptomp(vp)->mnt_wapbl);
 			error = vinvalbuf(vp, 0, NOCRED, p, 0, 0);
 		}
 		KASSERT(error == 0);

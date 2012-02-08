@@ -663,7 +663,7 @@ bdwrite(struct buf *bp)
 	if (wapbl_vphaswapbl(bp->b_vp)) {
 		struct mount *mp = wapbl_vptomp(bp->b_vp);
 		if (bp->b_iodone != wapbl_biodone)
-			wapbl_add_buf(mp, bp);
+			wapbl_add_buf(mp->mnt_wapbl, bp);
 	}
 
 	/*
@@ -770,7 +770,7 @@ brelse(struct buf *bp)
 			if (wapbl_vphaswapbl(bp->b_vp)) {
 				struct mount *mp = wapbl_vptomp(bp->b_vp);
 				KASSERT(bp->b_iodone != wapbl_biodone);
-				wapbl_remove_buf(mp, bp);
+				wapbl_remove_buf(mp->mnt_wapbl, bp);
 			}
 		}
 		/*
@@ -1272,7 +1272,7 @@ bbusy(struct buf *bp, int wait)
 
 	s = splbio();
 
-	while (bp->b_flags & BUSY) {
+	while (bp->b_flags & B_BUSY) {
 		if (wait == 0) {
 			splx(s);
 			return (1);

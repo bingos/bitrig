@@ -54,6 +54,7 @@
 #include <sys/poll.h>
 #include <sys/filedesc.h>
 #include <sys/specdev.h>
+#include <sys/wapbl.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -476,7 +477,7 @@ vn_lock(struct vnode *vp, int flags, struct proc *p)
 
 #ifdef DIAGNOSTIC
 	if (wapbl_vphaswapbl(vp))
-		wapbl_junlock_assert(wapbl_vptomp(vp));
+		wapbl_junlock_assert(wapbl_vptomp(vp)->mnt_wapbl);
 #endif
 
 	if ((flags & LK_RECURSEFAIL) == 0)
