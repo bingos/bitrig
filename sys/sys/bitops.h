@@ -108,6 +108,7 @@ ffs64(uint64_t _n)
 	return _v;
 }
 #endif
+#endif /* notyet */
 
 /*
  * Find Last Set functions
@@ -183,7 +184,6 @@ fls64(uint64_t _n)
 	return _v;
 }
 #endif
-#endif /* notyet */
 
 /*
  * Integer logarithm, returns -1 on error. Inspired by the linux
