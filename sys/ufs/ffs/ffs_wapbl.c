@@ -29,8 +29,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define WAPBL_INTERNAL
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -40,20 +38,17 @@
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/errno.h>
-#include <sys/kauth.h>
 #include <sys/wapbl.h>
 
 #include <ufs/ufs/inode.h>
 #include <ufs/ufs/quota.h>
 #include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/ufs_bswap.h>
 #include <ufs/ufs/ufs_extern.h>
 #include <ufs/ufs/ufs_wapbl.h>
 
 #include <ufs/ffs/fs.h>
 #include <ufs/ffs/ffs_extern.h>
 
-#undef	WAPBL_DEBUG
 #ifdef WAPBL_DEBUG
 int ffs_wapbl_debug = 1;
 #define DPRINTF(fmt, args...)						\
@@ -70,14 +65,14 @@ do {									\
 
 int ffs_superblock_layout(struct fs *);
 int wapbl_log_position(struct mount *, struct fs *, struct vnode *,
-    daddr_t *, size_t *, size_t *, uint64_t *);
+    daddr_t *, size_t *, size_t *, u_int64_t *);
 int wapbl_create_infs_log(struct mount *, struct fs *, struct vnode *,
-    daddr_t *, size_t *, uint64_t *);
+    daddr_t *, size_t *, u_int64_t *);
 void wapbl_find_log_start(struct mount *, struct vnode *, off_t,
     daddr_t *, daddr_t *, size_t *);
 int wapbl_remove_log(struct mount *);
 int wapbl_allocate_log_file(struct mount *, struct vnode *,
-    daddr_t *, size_t *, uint64_t *);
+    daddr_t *, size_t *, u_int64_t *);
 
 /*
  * Return the super block layout format - UFS1 or UFS2.
@@ -91,7 +86,7 @@ int
 ffs_superblock_layout(struct fs *fs)
 {
 	if ((fs->fs_magic == FS_UFS1_MAGIC) &&
-	    ((fs->fs_old_flags & FS_FLAGS_UPDATED) == 0))
+	    ((fs->fs_ffs1_flags & FS_FLAGS_UPDATED) == 0))
 		return 1;
 	else
 		return 2;
@@ -120,16 +115,17 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		error = VFS_VGET(mp, wr->wr_inodes[i].wr_inumber, &vp);
 		if (error) {
 			printf("ffs_wapbl_replay_finish: "
-			    "unable to cleanup inode %" PRIu32 "\n",
-			    wr->wr_inodes[i].wr_inumber);
+			    "unable to cleanup inode %llu\n",
+			    (unsigned long long )wr->wr_inodes[i].wr_inumber);
 			continue;
 		}
 		ip = VTOI(vp);
 		KDASSERT(wr->wr_inodes[i].wr_inumber == ip->i_number);
 #ifdef WAPBL_DEBUG
 		printf("ffs_wapbl_replay_finish: "
-		    "cleaning inode %" PRIu64 " size=%" PRIu64 " mode=%o nlink=%d\n",
-		    ip->i_number, ip->i_size, ip->i_mode, ip->i_nlink);
+		    "cleaning inode %llu size=%llu mode=%o nlink=%d\n",
+		    (unsigned long long)ip->i_number,
+		    (unsigned long long)ip->i_size, ip->i_mode, ip->i_nlink);
 #endif
 		KASSERT(ip->i_nlink == 0);
 
@@ -169,7 +165,7 @@ ffs_wapbl_sync_metadata(struct mount *mp, daddr_t *deallocblks,
 		 * blkfree errors are unreported, might silently fail
 		 * if it cannot read the cylinder group block
 		 */
-		ffs_blkfree(fs, ump->um_devvp,
+		ffs_blkfree_wapbl(fs, ump->um_devvp,
 		    dbtofsb(fs, deallocblks[i]), dealloclens[i], -1);
 	}
 
@@ -194,8 +190,7 @@ ffs_wapbl_abort_sync_metadata(struct mount *mp, daddr_t *deallocblks,
 		 * blkfree succeeded above, then this shouldn't fail because
 		 * the buffer will be locked in the current transaction.
 		 */
-		ffs_blkalloc_ump(ump, dbtofsb(fs, deallocblks[i]),
-		    dealloclens[i]);
+		ffs_blkalloc(ump, dbtofsb(fs, deallocblks[i]), dealloclens[i]);
 	}
 }
 
@@ -230,7 +225,7 @@ wapbl_remove_log(struct mount *mp)
 
 	case UFS_WAPBL_JOURNALLOC_IN_FILESYSTEM:
 		log_ino = fs->fs_journallocs[UFS_WAPBL_INFS_INO];
-		DPRINTF("in-fs log, ino = %" PRId64 "\n",log_ino);
+		DPRINTF("in-fs log, ino = %lld\n", (long long)log_ino);
 
 		/* if no existing log inode, just clear all fields and bail */
 		if (log_ino == 0)
@@ -246,7 +241,7 @@ wapbl_remove_log(struct mount *mp)
 		KASSERT(log_ino == ip->i_number);
 		if ((ip->i_flags & SF_LOG) == 0) {
 			printf("ffs_wapbl: try to clear non-log inode "
-			    "%" PRId64 "\n", log_ino);
+			    "%lld\n", (long long)log_ino);
 			vput(vp);
 			/* clear out log info on error */
 			goto done;
@@ -295,7 +290,7 @@ ffs_wapbl_start(struct mount *mp)
 	daddr_t off;
 	size_t count;
 	size_t blksize;
-	uint64_t extradata;
+	u_int64_t extradata;
 	int error;
 
 	if (mp->mnt_wapbl == NULL) {
@@ -435,7 +430,7 @@ ffs_wapbl_replay_start(struct mount *mp, struct fs *fs, struct vnode *devvp)
 	daddr_t off;
 	size_t count;
 	size_t blksize;
-	uint64_t extradata;
+	u_int64_t extradata;
 
 	/*
 	 * WAPBL needs UFS2 format super block, if we got here with a
@@ -485,11 +480,11 @@ ffs_wapbl_replay_start(struct mount *mp, struct fs *fs, struct vnode *devvp)
  */
 int
 wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
-    daddr_t *startp, size_t *countp, size_t *blksizep, uint64_t *extradatap)
+    daddr_t *startp, size_t *countp, size_t *blksizep, u_int64_t *extradatap)
 {
 	struct ufsmount *ump = VFSTOUFS(mp);
 	daddr_t logstart, logend, desired_logsize;
-	uint64_t numsecs;
+	u_int64_t numsecs;
 	unsigned secsize;
 	int error, location;
 
@@ -592,7 +587,7 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
  */
 int
 wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
-    daddr_t *startp, size_t *countp, uint64_t *extradatap)
+    daddr_t *startp, size_t *countp, u_int64_t *extradatap)
 {
 	struct vnode *vp, *rvp;
 	struct inode *ip;
@@ -649,7 +644,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 
 int
 wapbl_allocate_log_file(struct mount *mp, struct vnode *vp,
-    daddr_t *startp, size_t *countp, uint64_t *extradatap)
+    daddr_t *startp, size_t *countp, u_int64_t *extradatap)
 {
 	struct ufsmount *ump = VFSTOUFS(mp);
 	struct fs *fs = ump->um_fs;
@@ -719,14 +714,11 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 	struct vnode *devvp = ump->um_devvp;
 	struct cg *cgp;
 	struct buf *bp;
-	uint8_t *blksfree;
+	u_int8_t *blksfree;
 	daddr_t blkno, best_addr, start_addr;
 	daddr_t desired_blks, min_desired_blks;
 	daddr_t freeblks, best_blks;
 	int bpcg, cg, error, fixedsize, indir_blks, n, s;
-#ifdef FFS_EI
-	const int needswap = UFS_FSNEEDSWAP(fs);
-#endif
 
 	if (logsize == 0) {
 		fixedsize = 0;	/* We can adjust the size if tight */
