@@ -56,6 +56,8 @@
 #include <sys/event.h>
 #include <sys/poll.h>
 #include <sys/specdev.h>
+#include <sys/wapbl.h>
+#include <sys/wapbl_replay.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -1579,15 +1581,17 @@ ufs_strategy(void *v)
 
 	mp = wapbl_vptomp(vp);
 	if (mp == NULL || mp->mnt_wapbl_replay == NULL ||
-	    !wapbl_replay_isopen(mp) ||
-	    !wapbl_replay_can_read(mp, bp->b_blkno, bp->b_bcount))
+	    !wapbl_replay_isopen(mp->mnt_wapbl_replay) ||
+	    !wapbl_replay_can_read(mp->mnt_wapbl_replay, bp->b_blkno,
+	    bp->b_bcount))
 		return (0);
 
 	error = biowait(bp);
 	if (error)
 		return (error);
 
-	error = wapbl_replay_read(mp, bp->b_data, bp->b_blkno, bp->b_bcount);
+	error = wapbl_replay_read(mp->mnt_wapbl_replay, bp->b_data,
+	    bp->b_blkno, bp->b_bcount);
 	if (error)
 		bp->b_flags |= B_INVAL;
 
