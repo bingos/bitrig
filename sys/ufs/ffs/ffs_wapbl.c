@@ -137,7 +137,7 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		 */
 		if (ip->i_mode == 0) {
 			UFS_WAPBL_BEGIN(mp);
-			ffs_vfree(vp, ip->i_number, wr->wr_inodes[i].wr_imode);
+			ffs_freefile(vp->v_mount, ip->i_number, wr->wr_inodes[i].wr_imode);
 			UFS_WAPBL_END(mp);
 		}
 		vput(vp);
@@ -454,6 +454,8 @@ ffs_wapbl_replay_start(struct mount *mp, struct fs *fs, struct vnode *devvp)
 
 	return 0;
 }
+
+/* XXX pedro: stopped here */
 
 /*
  * If the superblock doesn't already have a recorded journal location
