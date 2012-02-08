@@ -2160,3 +2160,95 @@ ffs_clusteracct(struct fs *fs, struct cg *cgp, daddr64_t blkno, int cnt)
 			break;
 	fs->fs_maxcluster[cgp->cg_cgx] = i;
 }
+
+int
+ffs_blkalloc(struct ufsmount *ump, daddr_t bno, long size)
+{
+	struct fs *fs = ump->um_fs;
+	struct cg *cgp;
+	struct buf *bp;
+	int32_t fragno, cgbno;
+	int i, error, cg, blk, frags, bbase;
+	u_int8_t *blksfree;
+
+	if ((u_int)size > fs->fs_bsize || fragoff(fs, size) != 0 ||
+	    fragnum(fs, bno) + numfrags(fs, size) > fs->fs_frag) {
+		printf("dev = 0x%x, bsize = %d, size = %ld, fs = %s\n",
+		    devvp->v_rdev, fs->fs_bsize, size, fs->fs_fsmnt);
+		panic("ffs_blkalloc: bad size");
+	}
+
+	cg = dtog(fs, bno);
+	if ((u_int)bno >= fs->fs_size)
+		panic("bad block %lld, ino %u", bno, inum);
+	if (!(bp = ffs_cgread(fs, devvp, cg)))
+		return;
+
+	cgp = (struct cg *)bp->b_data;
+	if (!cg_chkmagic(cgp)) {
+		brelse(bp, 0);
+		return EIO;
+	}
+	cgp->cg_ffs2_time = cgp->cg_time = time_second;
+	cgbno = dtogd(fs, bno);
+	blksfree = cg_blksfree(cgp);
+
+	if (size == fs->fs_bsize) {
+		fragno = fragstoblks(fs, cgbno);
+		if (!ffs_isblock(fs, blksfree, fragno)) {
+			brelse(bp, 0);
+			return EBUSY;
+		}
+		ffs_clrblock(fs, blksfree, fragno);
+		ffs_clusteracct(fs, cgp, fragno, -1);
+		cgp->cg_cs.cs_nbfree--;
+		fs->fs_cstotal.cs_nbfree--;
+		fs->fs_cs(fs, cg).cs_nbfree--;
+	} else {
+		bbase = cgbno - fragnum(fs, cgbno);
+
+		frags = numfrags(fs, size);
+		for (i = 0; i < frags; i++) {
+			if (isclr(blksfree, cgbno + i)) {
+				brelse(bp, 0);
+				return EBUSY;
+			}
+		}
+		/*
+		 * if a complete block is being split, account for it
+		 */
+		fragno = fragstoblks(fs, bbase);
+		if (ffs_isblock(fs, blksfree, fragno)) {
+			cgp->cg_cs.cs_nffree += fs->fs_frag;
+			fs->fs_cstotal.cs_nffree += fs->fs_frag;
+			fs->fs_cs(fs, cg).cs_nffree += fs->fs_frag;
+			ffs_clusteracct(fs, cgp, fragno, -1);
+			cgp->cg_cs.cs_nbfree--;
+			fs->fs_cstotal.cs_nbfree--;
+			fs->fs_cs(fs, cg).cs_nbfree--;
+		}
+		/*
+		 * decrement the counts associated with the old frags
+		 */
+		blk = blkmap(fs, blksfree, bbase);
+		ffs_fragacct(fs, blk, cgp->cg_frsum, -1);
+		/*
+		 * allocate the fragment
+		 */
+		for (i = 0; i < frags; i++) {
+			clrbit(blksfree, cgbno + i);
+		}
+		cgp->cg_cs.cs_nffree -= i;
+		fs->fs_cstotal.cs_nffree -= i;
+		fs->fs_cs(fs, cg).cs_nffree -= i;
+		/*
+		 * add back in counts associated with the new frags
+		 */
+		blk = blkmap(fs, blksfree, bbase);
+		ffs_fragacct(fs, blk, cgp->cg_frsum, 1);
+	}
+	fs->fs_fmod = 1;
+	ACTIVECG_CLR(fs, cg);
+	bdwrite(bp);
+	return 0;
+}
