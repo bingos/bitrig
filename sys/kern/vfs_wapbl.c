@@ -123,7 +123,6 @@ struct wapbl {
 
 	LIST_HEAD(, buf) wl_bufs; /* m:	Buffers in current transaction */
 
-	kcondvar_t wl_reclaimable_cv;	/* m (obviously) */
 	size_t wl_reclaimable_bytes; /* m:	Amount of space available for
 						reclamation by truncate */
 	int wl_error_count;	/* m:	# of wl_entries with errors */
@@ -311,7 +310,6 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 	wl = malloc(sizeof(*wl), M_WAPBL, M_WAITOK);
 	rw_init(&wl->wl_rwlock, "wapbllck");
 	rw_init(&wl->wl_mtx, "wapblmtx");
-	cv_init(&wl->wl_reclaimable_cv, "wapblrec");
 	LIST_INIT(&wl->wl_bufs);
 	SIMPLEQ_INIT(&wl->wl_entries);
 
@@ -600,7 +598,6 @@ wapbl_stop(struct wapbl *wl, int force)
 	free(wl->wl_dealloclens, M_WAPBL);
 	wapbl_inodetrk_free(wl);
 
-	cv_destroy(&wl->wl_reclaimable_cv);
 	mutex_destroy(&wl->wl_mtx);
 	rw_destroy(&wl->wl_rwlock);
 	free(wl, M_WAPBL);
@@ -1009,7 +1006,11 @@ wapbl_truncate(struct wapbl *wl, size_t minfree, int waitonly)
                     &wl->wl_reclaimable_bytes, wl, wl->wl_reclaimable_bytes,
 		    minfree));
 
-		cv_wait(&wl->wl_reclaimable_cv, &wl->wl_mtx);
+		rw_exit_write(&wl->wl_mtx);
+		error = tsleep(&wl->wl_reclaimable_bytes, PRIBIO+1, "wapblrec", 0);
+		if (error)
+			panic("wapbl_truncate: tsleep error=%d", error);
+		rw_enter_write(&wl->wl_mtx);
 	}
 	if (wl->wl_reclaimable_bytes < minfree) {
 		KASSERT(wl->wl_error_count);
@@ -1117,7 +1118,7 @@ wapbl_biodone(struct buf *bp)
 		rw_enter_write(&wl->wl_mtx);
 		if (wl->wl_error_count == 0) {
 			wl->wl_error_count++;
-			cv_broadcast(&wl->wl_reclaimable_cv);
+			wakeup(&wl->wl_reclaimable_bytes);
 		}
 		rw_exit_write(&wl->wl_mtx);
 	}
@@ -1165,7 +1166,7 @@ wapbl_biodone(struct buf *bp)
 			wl->wl_reclaimable_bytes += delta;
 			KASSERT(wl->wl_error_count >= errcnt);
 			wl->wl_error_count -= errcnt;
-			cv_broadcast(&wl->wl_reclaimable_cv);
+			wakeup(&wl->wl_reclaimable_bytes);
 		}
 	}
 
