@@ -337,6 +337,7 @@ struct fs {
  * moved to the new (FFS2) location for compatibility.
  */
 #define FS_FLAGS_UPDATED	0x80	/* file system has FFS2-like flags */
+#define FS_DOWAPBL		0x100	/* Write ahead physical block logging */
 
 /*
  * Rotational layout table format types
