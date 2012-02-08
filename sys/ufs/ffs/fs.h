@@ -268,7 +268,12 @@ struct fs {
 	int32_t	 fs_cpc;		/* cyl per cycle in postbl */
 /* this area is only allocated if fs_ffs1_flags & FS_FLAGS_UPDATED */
 	int32_t	 fs_maxbsize;           /* maximum blocking factor permitted */
-	int64_t	 fs_spareconf64[17];    /* old rotation block list head */
+	int8_t	 fs_journal_version;    /* journal format version */
+	int8_t	 fs_journal_location;   /* journal location type */
+	int8_t	 fs_journal_reserved[2];/* reserved for future use */
+	int32_t	 fs_journal_flags;      /* journal flags */
+	int64_t	 fs_journallocs[4];     /* location info for journal */
+	int64_t	 fs_spareconf64[12];    /* old rotation block list head */
 	int64_t	 fs_sblockloc;          /* offset of standard super block */
 	struct	csum_total fs_cstotal;  /* cylinder summary information */
 	int64_t	 fs_time;               /* time last written */
