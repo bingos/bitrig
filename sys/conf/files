@@ -712,6 +712,7 @@ file kern/vfs_syscalls.c
 file kern/vfs_vops.c
 file kern/vfs_vnops.c
 file kern/vfs_getcwd.c
+file kern/vfs_wapbl.c
 file kern/spec_vnops.c
 file msdosfs/msdosfs_conv.c		msdosfs
 file msdosfs/msdosfs_denode.c		msdosfs
