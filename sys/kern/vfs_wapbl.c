@@ -45,8 +45,10 @@
 #include <sys/mount.h>
 #include <sys/kernel.h>
 #include <sys/mutex.h>
-#include <sys/atomic.h>
+#include <sys/malloc.h>
+#include <sys/pool.h>
 #include <sys/specdev.h>
+#include <sys/dkio.h>
 #include <sys/wapbl.h>
 #include <sys/wapbl_replay.h>
 
@@ -154,6 +156,8 @@ int wapbl_debug_print = WAPBL_DEBUG_PRINT;
 struct wapbl *wapbl_debug_wl;
 #endif
 
+void wapbl_init(void);
+
 int wapbl_write_commit(struct wapbl *, off_t, off_t);
 int wapbl_write_blocks(struct wapbl *, off_t *);
 int wapbl_write_revocations(struct wapbl *, off_t *);
@@ -183,6 +187,25 @@ size_t wapbl_transaction_len(struct wapbl *);
 static inline size_t wapbl_transaction_inodes_len(struct wapbl *);
 
 int wapbl_replay_isopen1(struct wapbl_replay *);
+
+/* prototypes of internal functions */
+int wapbl_start_flush_inodes(struct wapbl *, struct wapbl_replay *);
+int wapbl_doio(void *, size_t, struct vnode *, daddr_t, int);
+int wapbl_circ_write(struct wapbl *, void *, size_t, off_t *);
+int wapbl_truncate(struct wapbl *, size_t, int);
+int wapbl_cache_sync(struct wapbl *, const char *);
+int wapbl_circ_read(struct wapbl_replay *, void *, size_t, off_t *);
+void wapbl_blkhash_init(struct wapbl_replay *, u_int);
+void wapbl_blkhash_free(struct wapbl_replay *);
+void wapbl_remove_buf_locked(struct wapbl *, struct buf *);
+void wapbl_blkhash_ins(struct wapbl_replay *, daddr_t, off_t);
+void wapbl_blkhash_rem(struct wapbl_replay *, daddr_t);
+void wapbl_blkhash_clear(struct wapbl_replay *);
+void wapbl_circ_advance(struct wapbl_replay *, size_t, off_t *);
+void wapbl_replay_process_blocks(struct wapbl_replay *, off_t *);
+void wapbl_replay_process_revocations(struct wapbl_replay *);
+void wapbl_replay_process_inodes(struct wapbl_replay *, off_t, off_t);
+struct wapbl_blk * wapbl_blkhash_get(struct wapbl_replay *, daddr_t);
 
 /*
  * This is useful for debugging.  If set, the log will
@@ -349,7 +372,7 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 	 */
 
 	/* XXX fix actual number of pages reserved per filesystem. */
-	wl->wl_bufbytes_max = MIN(wl->wl_circ_size, buf_memcalc() / 2);
+	wl->wl_bufbytes_max = MIN(wl->wl_circ_size, bufpages / 2);
 
 	/* Round wl_bufbytes_max to the largest power of two constraint */
 	wl->wl_bufbytes_max >>= PAGE_SHIFT;
@@ -361,7 +384,7 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 
 	/* XXX maybe use filesystem fragment size instead of 1024 */
 	/* XXX fix actual number of buffers reserved per filesystem. */
-	wl->wl_bufcount_max = (nbuf / 2) * 1024;
+	wl->wl_bufcount_max = ((bufpages << PAGE_SHIFT) / MAXPHYS / 2) * 1024;
 
 	/* XXX tie this into resource estimation */
 	wl->wl_dealloclim = wl->wl_bufbytes_max / mp->mnt_stat.f_bsize / 2;
@@ -597,8 +620,6 @@ wapbl_stop(struct wapbl *wl, int force)
 	free(wl->wl_dealloclens, M_WAPBL);
 	wapbl_inodetrk_free(wl);
 
-	mutex_destroy(&wl->wl_mtx);
-	rw_destroy(&wl->wl_rwlock);
 	free(wl, M_WAPBL);
 
 	return 0;
@@ -628,13 +649,14 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 	iobuf.b_data = data;
 	iobuf.b_bufsize = iobuf.b_resid = iobuf.b_bcount = len;
 	iobuf.b_blkno = pbn;
+	iobuf.b_vp = devvp;
 
 	WAPBL_PRINTF(WAPBL_PRINT_IO,
 	    ("wapbl_doio: %s %d bytes at block %lld on dev 0x%llx\n",
 	    (iobuf.b_flags & B_READ) ? "read" : "write", iobuf.b_bcount,
 	    (long long)iobuf.b_blkno, (long long)iobuf.b_dev));
 
-	VOP_STRATEGY(devvp, &iobuf);
+	VOP_STRATEGY(&iobuf);
 
 	error = biowait(&iobuf);
 
@@ -798,7 +820,7 @@ void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
 {
 
-	KASSERT(bp->b_cflags & BC_BUSY);
+	KASSERT(bp->b_flags & B_BUSY);
 	KASSERT(bp->b_vp);
 	splassert(IPL_BIO);
 
@@ -833,7 +855,7 @@ wapbl_remove_buf_locked(struct wapbl * wl, struct buf *bp)
 {
 
 	splassert(IPL_BIO);
-	KASSERT(mutex_owned(&wl->wl_mtx));
+	rw_assert_wrlock(&wl->wl_mtx);
 	KASSERT(bp->b_flags & B_BUSY);
 	wapbl_jlock_assert(wl);
 
@@ -984,7 +1006,7 @@ wapbl_truncate(struct wapbl *wl, size_t minfree, int waitonly)
 	int error = 0;
 
 	KASSERT(minfree <= (wl->wl_circ_size - wl->wl_reserved_bytes));
-	KASSERT(rw_write_held(&wl->wl_rwlock));
+	rw_assert_wrlock(&wl->wl_rwlock);
 
 	rw_enter_write(&wl->wl_mtx);
 
@@ -1445,7 +1467,7 @@ wapbl_junlock_assert(struct wapbl *wl)
 void
 wapbl_print(struct wapbl *wl,
 		int full,
-		void (*pr)(const char *, ...))
+		int (*pr)(const char *, ...))
 {
 	struct buf *bp;
 	struct wapbl_entry *we;
@@ -1608,7 +1630,7 @@ wapbl_inodetrk_get(struct wapbl *wl, ino_t ino)
 	struct wapbl_ino_head *wih;
 	struct wapbl_ino *wi;
 
-	KASSERT(mutex_owned(&wl->wl_mtx));
+	rw_assert_wrlock(&wl->wl_mtx);
 
 	wih = &wl->wl_inohash[ino & wl->wl_inohashmask];
 	LIST_FOREACH(wi, wih, wi_hash) {
@@ -1715,7 +1737,7 @@ wapbl_transaction_len(struct wapbl *wl)
 int
 wapbl_cache_sync(struct wapbl *wl, const char *msg)
 {
-	const bool verbose = wapbl_verbose_commit >= 2;
+	const int verbose = wapbl_verbose_commit >= 2;
 	struct bintime start_time;
 	int force = 1;
 	int error;
@@ -1832,7 +1854,7 @@ wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 	int error;
 	size_t padding;
 
-	KASSERT(rw_write_held(&wl->wl_rwlock));
+	rw_assert_wrlock(&wl->wl_rwlock);
 
 	bph = (blocklen - offsetof(struct wapbl_wc_blocklist, wc_blocks)) /
 	    sizeof(((struct wapbl_wc_blocklist *)0)->wc_blocks[0]);
