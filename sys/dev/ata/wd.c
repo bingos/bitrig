@@ -827,7 +827,7 @@ wdioctl(dev_t dev, u_long xfer, caddr_t addr, int flag, struct proc *p)
 		goto exit;
 
 	case DIOCCACHESYNC:
-		error = wd_flushcache(wd, AT_WAIT);
+		wd_flushcache(wd, AT_WAIT);
 		goto exit;
 
 #ifdef notyet
