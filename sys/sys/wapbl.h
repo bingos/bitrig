@@ -156,7 +156,7 @@ void	wapbl_register_deallocation(struct wapbl *, daddr_t, int);
 void	wapbl_jlock_assert(struct wapbl *);
 void	wapbl_junlock_assert(struct wapbl *);
 
-void	wapbl_print(struct wapbl *, int, void (*)(const char *, ...));
+void	wapbl_print(struct wapbl *, int, int (*)(const char *, ...));
 
 #if defined(WAPBL_DEBUG) || defined(DDB)
 void	wapbl_dump(struct wapbl *);
@@ -199,10 +199,8 @@ wapbl_vphaswapbl(struct vnode *vp)
 
 #endif /* _KERNEL */
 
-/****************************************************************/
 /* Replay support */
 
-#ifdef WAPBL_INTERNAL
 struct wapbl_replay {
 	struct vnode *wr_logvp;
 	struct vnode *wr_devvp;
@@ -234,13 +232,6 @@ struct wapbl_replay {
 /* Supply this to provide i/o support */
 int wapbl_write(void *, size_t, struct vnode *, daddr_t);
 int wapbl_read(void *, size_t, struct vnode *, daddr_t);
-
-/****************************************************************/
-#else
-struct wapbl_replay;
-#endif /* WAPBL_INTERNAL */
-
-/****************************************************************/
 
 int	wapbl_replay_start(struct wapbl_replay **, struct vnode *,
 	daddr_t, size_t, size_t);
