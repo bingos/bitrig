@@ -1567,3 +1567,34 @@ ffs_sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp,
 	}
 	/* NOTREACHED */
 }
+
+/* XXX pedro: this resembles ffs_sbupdate() a lot */
+int
+ffs_cgupdate(struct ufsmount *mp, int waitfor)
+{
+	struct fs *fs = mp->um_fs;
+	struct buf *bp;
+	int blks;
+	void *space;
+	int i, size, error = 0, allerror = 0;
+
+	allerror = ffs_sbupdate(mp, waitfor);
+	blks = howmany(fs->fs_cssize, fs->fs_fsize);
+	space = fs->fs_csp;
+	for (i = 0; i < blks; i += fs->fs_frag) {
+		size = fs->fs_bsize;
+		if (i + fs->fs_frag > blks)
+			size = (blks - i) * fs->fs_fsize;
+		bp = getblk(mp->um_devvp, fsbtodb(fs, fs->fs_csaddr + i),
+		    size, 0, 0);
+		memcpy(bp->b_data, space, (u_int)size);
+		space = (char *)space + size;
+		if (waitfor == MNT_WAIT)
+			error = bwrite(bp);
+		else
+			bawrite(bp);
+	}
+	if (!allerror && error)
+		allerror = error;
+	return (allerror);
+}
