@@ -455,8 +455,6 @@ ffs_wapbl_replay_start(struct mount *mp, struct fs *fs, struct vnode *devvp)
 	return 0;
 }
 
-/* XXX pedro: stopped here */
-
 /*
  * If the superblock doesn't already have a recorded journal location
  * then we allocate the journal in one of two positions:
@@ -473,12 +471,6 @@ ffs_wapbl_replay_start(struct mount *mp, struct fs *fs, struct vnode *devvp)
  *
  *    XXX In the future if we allow for non-contiguous journal files we
  *    can tighten the above restrictions.
- *
- * XXX
- * These seems like a lot of duplication both here and in some of
- * the userland tools (fsck_ffs, dumpfs, tunefs) with similar 
- * "switch (fs_journal_location)" constructs.  Can we centralise
- * this sort of code somehow/somewhere?
  */
 int
 wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
@@ -497,8 +489,9 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 			*startp = fs->fs_journallocs[UFS_WAPBL_EPART_ADDR];
 			*countp = fs->fs_journallocs[UFS_WAPBL_EPART_COUNT];
 			*blksizep = fs->fs_journallocs[UFS_WAPBL_EPART_BLKSZ];
-			DPRINTF(" start = %" PRId64 ", size = %zu, "
-			    "blksize = %zu\n", *startp, *countp, *blksizep);
+			DPRINTF(" start = %lld, size = %zu, "
+			    "blksize = %zu\n", (long long)*startp, *countp,
+			    *blksizep);
 			return 0;
 
 		case UFS_WAPBL_JOURNALLOC_IN_FILESYSTEM:
@@ -506,8 +499,9 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 			*startp = fs->fs_journallocs[UFS_WAPBL_INFS_ADDR];
 			*countp = fs->fs_journallocs[UFS_WAPBL_INFS_COUNT];
 			*blksizep = fs->fs_journallocs[UFS_WAPBL_INFS_BLKSZ];
-			DPRINTF(" start = %" PRId64 ", size = %zu, "
-			    "blksize = %zu\n", *startp, *countp, *blksizep);
+			DPRINTF(" start = %lld, size = %zu, "
+			    "blksize = %zu\n", (long long)*startp, *countp,
+			    *blksizep);
 			return 0;
 
 		default:
@@ -519,11 +513,12 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 
 	desired_logsize =
 	    lfragtosize(fs, fs->fs_size) / UFS_WAPBL_JOURNAL_SCALE;
-	DPRINTF("desired log size = %" PRId64 " kB\n", desired_logsize / 1024);
+	DPRINTF("desired log size = %lldkB\n",
+	    (long long)desired_logsize / 1024);
 	desired_logsize = max(desired_logsize, UFS_WAPBL_MIN_JOURNAL_SIZE);
 	desired_logsize = min(desired_logsize, UFS_WAPBL_MAX_JOURNAL_SIZE);
-	DPRINTF("adjusted desired log size = %" PRId64 " kB\n",
-	    desired_logsize / 1024);
+	DPRINTF("adjusted desired log size = %lldkB\n",
+	    (long long)desired_logsize / 1024);
 
 	/* Is there space after after filesystem on partition for log? */
 	logstart = fsbtodb(fs, fs->fs_size);
@@ -552,15 +547,15 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 		fs->fs_journallocs[UFS_WAPBL_EPART_BLKSZ] = *blksizep;
 		fs->fs_journallocs[UFS_WAPBL_EPART_UNUSED] = *extradatap;
 	} else {
-		DPRINTF("end-of-partition has only %" PRId64 " free\n",
-		    logend - logstart);
+		DPRINTF("end-of-partition has only %lld free\n",
+		    (long long)logend - logstart);
 
 		location = UFS_WAPBL_JOURNALLOC_IN_FILESYSTEM;
 		*blksizep = secsize;
 
 		error = wapbl_create_infs_log(mp, fs, devvp,
 		                  startp, countp, extradatap);
-		ffs_sync(mp, MNT_WAIT, FSCRED);
+		ffs_sync(mp, MNT_WAIT, FSCRED, curpoc);
 
 		/* convert to physical block numbers */
 		*startp = dbtob(*startp) / secsize;
@@ -583,6 +578,8 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 
 	return error;
 }
+
+/* XXX pedro: stopped here */
 
 /*
  * Try to create a journal log inside the filesystem.
