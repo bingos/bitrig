@@ -38,10 +38,11 @@
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/errno.h>
+#include <sys/specdev.h>
 #include <sys/wapbl.h>
 
-#include <ufs/ufs/inode.h>
 #include <ufs/ufs/quota.h>
+#include <ufs/ufs/inode.h>
 #include <ufs/ufs/ufsmount.h>
 #include <ufs/ufs/ufs_extern.h>
 #include <ufs/ufs/ufs_wapbl.h>
@@ -73,6 +74,7 @@ void wapbl_find_log_start(struct mount *, struct vnode *, off_t,
 int wapbl_remove_log(struct mount *);
 int wapbl_allocate_log_file(struct mount *, struct vnode *,
     daddr_t *, size_t *, u_int64_t *);
+int ufs_gop_alloc(struct vnode *, off_t, off_t, int, struct ucred *);
 
 /*
  * Return the super block layout format - UFS1 or UFS2.
@@ -127,7 +129,7 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		    (unsigned long long)ip->i_number,
 		    (unsigned long long)ip->i_size, ip->i_mode, ip->i_nlink);
 #endif
-		KASSERT(ip->i_nlink == 0);
+		KASSERT(DIP(ip, nlink) == 0);
 
 		/*
 		 * The journal may have left partially allocated inodes in mode
@@ -135,9 +137,10 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		 * allocation in ffs_nodeallocg and when the node is properly
 		 * initialized in ufs_makeinode.  If so, just dallocate them.
 		 */
-		if (ip->i_mode == 0) {
-			UFS_WAPBL_BEGIN(mp);
-			ffs_freefile(vp->v_mount, ip->i_number, wr->wr_inodes[i].wr_imode);
+		if (DIP(ip, mode) == 0) {
+			(void)UFS_WAPBL_BEGIN(mp);
+			ffs_freefile(ip, ip->i_number,
+			    wr->wr_inodes[i].wr_imode);
 			UFS_WAPBL_END(mp);
 		}
 		vput(vp);
@@ -239,7 +242,7 @@ wapbl_remove_log(struct mount *mp)
 		}
 		ip = VTOI(vp);
 		KASSERT(log_ino == ip->i_number);
-		if ((ip->i_flags & SF_LOG) == 0) {
+		if ((DIP(ip, flags) & SF_LOG) == 0) {
 			printf("ffs_wapbl: try to clear non-log inode "
 			    "%lld\n", (long long)log_ino);
 			vput(vp);
@@ -251,7 +254,6 @@ wapbl_remove_log(struct mount *mp)
 		 * remove the log inode by setting its link count back
 		 * to zero and bail.
 		 */
-		ip->i_nlink = 0;
 		DIP_ASSIGN(ip, nlink, 0);
 		vput(vp);
 
@@ -325,14 +327,12 @@ ffs_wapbl_start(struct mount *mp)
 			if (error)
 				return error;
 
-			mp->mnt_wapbl_op = &wapbl_ops;
-
 #ifdef WAPBL_DEBUG
 			printf("%s: enabling logging\n", fs->fs_fsmnt);
 #endif
 
 			if ((fs->fs_flags & FS_DOWAPBL) == 0) {
-				UFS_WAPBL_BEGIN(mp);
+				(void)UFS_WAPBL_BEGIN(mp);
 				fs->fs_flags |= FS_DOWAPBL;
 				error = ffs_sbupdate(ump, MNT_WAIT);
 				if (error) {
@@ -450,8 +450,6 @@ ffs_wapbl_replay_start(struct mount *mp, struct fs *fs, struct vnode *devvp)
 	if (error)
 		return error;
 
-	mp->mnt_wapbl_op = &wapbl_ops;
-
 	return 0;
 }
 
@@ -555,7 +553,7 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 
 		error = wapbl_create_infs_log(mp, fs, devvp,
 		                  startp, countp, extradatap);
-		ffs_sync(mp, MNT_WAIT, FSCRED, curpoc);
+		ffs_sync(mp, MNT_WAIT, FSCRED, curproc);
 
 		/* convert to physical block numbers */
 		*startp = dbtob(*startp) / secsize;
@@ -579,8 +577,6 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	return error;
 }
 
-/* XXX pedro: stopped here */
-
 /*
  * Try to create a journal log inside the filesystem.
  */
@@ -595,11 +591,11 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	if ((error = VFS_ROOT(mp, &rvp)) != 0)
 		return error;
 
-	error = UFS_VALLOC(rvp, 0 | S_IFREG, NOCRED, &vp);
+	error = ffs_inode_alloc(VTOI(rvp), 0 | S_IFREG, NOCRED, &vp);
 	if (mp->mnt_flag & MNT_UPDATE) {
 		vput(rvp);
 	} else {
-		VOP_UNLOCK(rvp);
+		VOP_UNLOCK(rvp, 0, curproc);
 		vgone(rvp);
 	}
 	if (error != 0)
@@ -608,13 +604,10 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	vp->v_type = VREG;
 	ip = VTOI(vp);
 	ip->i_flag |= IN_ACCESS | IN_CHANGE | IN_UPDATE;
-	ip->i_mode = 0 | IFREG;
-	DIP_ASSIGN(ip, mode, ip->i_mode);
-	ip->i_flags = SF_LOG;
-	DIP_ASSIGN(ip, flags, ip->i_flags);
-	ip->i_nlink = 1;
+	DIP_ASSIGN(ip, mode, 0 | IFREG);
+	DIP_ASSIGN(ip, flags, SF_LOG);
 	DIP_ASSIGN(ip, nlink, 1);
-	ffs_update(vp, NULL, NULL, UPDATE_WAIT);
+	ffs_update(ip, NULL, NULL, MNT_WAIT);
 
 	if ((error = wapbl_allocate_log_file(mp, vp,
 	                 startp, countp, extradatap)) != 0) {
@@ -623,9 +616,8 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 		 * remove the inode by setting its link count back to
 		 * zero and bail.
 		 */
-		ip->i_nlink = 0;
 		DIP_ASSIGN(ip, nlink, 0);
-		VOP_UNLOCK(vp);
+		VOP_UNLOCK(vp, 0, curproc);
 		vgone(vp);
 
 		return error;
@@ -635,10 +627,53 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	 * Now that we have the place-holder inode for the journal,
 	 * we don't need the vnode ever again.
 	 */
-	VOP_UNLOCK(vp);
+	VOP_UNLOCK(vp, 0, curproc);
 	vgone(vp);
 
 	return 0;
+}
+
+/*
+ * Allocate len bytes at offset off.
+ */
+int
+ufs_gop_alloc(struct vnode *vp, off_t off, off_t len, int flags,
+    struct ucred *cred)
+{
+        struct inode *ip = VTOI(vp);
+        int error, delta, bshift, bsize;
+
+        error = 0;
+        bshift = ip->i_fs->fs_bshift;
+        bsize = 1 << bshift;
+
+        delta = off & (bsize - 1);
+        off -= delta;
+        len += delta;
+
+        while (len > 0) {
+                bsize = MIN(bsize, len);
+
+                error = UFS_BUF_ALLOC(ip, off, bsize, cred, flags, NULL);
+                if (error) {
+                        goto out;
+                }
+
+                /*
+                 * increase file size now, UFS_BALLOC() requires that
+                 * EOF be up-to-date before each call.
+                 */
+
+                if (DIP(ip, size) < off + bsize)
+			DIP_ASSIGN(ip, size, off + bsize);
+
+                off += bsize;
+                len -= bsize;
+        }
+
+out:
+	UFS_WAPBL_UPDATE(vp, NULL, NULL, 0);
+	return error;
 }
 
 int
@@ -647,6 +682,7 @@ wapbl_allocate_log_file(struct mount *mp, struct vnode *vp,
 {
 	struct ufsmount *ump = VFSTOUFS(mp);
 	struct fs *fs = ump->um_fs;
+	struct inode *ip = VTOI(vp);
 	daddr_t addr, indir_addr;
 	off_t logsize;
 	size_t size;
@@ -658,16 +694,16 @@ wapbl_allocate_log_file(struct mount *mp, struct vnode *vp,
 	    fs->fs_journal_location == UFS_WAPBL_JOURNALLOC_IN_FILESYSTEM)
 		logsize = fs->fs_journallocs[UFS_WAPBL_INFS_COUNT];
 
-	if (vp->v_size > 0) {
-		printf("%s: file size (%" PRId64 ") non zero\n", __func__,
-		    vp->v_size);
+	if (DIP(ip, size) > 0) {
+		printf("%s: file size (%lld) non zero\n", __func__,
+		    (long long)DIP(ip, size));
 		return EEXIST;
 	}
 	wapbl_find_log_start(mp, vp, logsize, &addr, &indir_addr, &size);
 	if (addr == 0) {
 		printf("%s: log not allocated, largest extent is "
-		    "%" PRId64 "MB\n", __func__,
-		    lblktosize(fs, size) / (1024 * 1024));
+		    "%lldMB\n", __func__,
+		    (long long)lblktosize(fs, size) / (1024 * 1024));
 		return ENOSPC;
 	}
 
@@ -676,7 +712,7 @@ wapbl_allocate_log_file(struct mount *mp, struct vnode *vp,
 	VTOI(vp)->i_ffs_first_data_blk = addr;
 	VTOI(vp)->i_ffs_first_indir_blk = indir_addr;
 
-	error = GOP_ALLOC(vp, 0, logsize, B_CONTIG, FSCRED);
+	error = ufs_gop_alloc(vp, 0, logsize, FFS_ALLOC_CONTIG, FSCRED);
 	if (error) {
 		printf("%s: GOP_ALLOC error %d\n", __func__, error);
 		return error;
@@ -723,17 +759,17 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		fixedsize = 0;	/* We can adjust the size if tight */
 		logsize = lfragtosize(fs, fs->fs_dsize) /
 		    UFS_WAPBL_JOURNAL_SCALE;
-		DPRINTF("suggested log size = %" PRId64 "\n", logsize);
+		DPRINTF("suggested log size = %lld\n", (long long)logsize);
 		logsize = max(logsize, UFS_WAPBL_MIN_JOURNAL_SIZE);
 		logsize = min(logsize, UFS_WAPBL_MAX_JOURNAL_SIZE);
-		DPRINTF("adjusted log size = %" PRId64 "\n", logsize);
+		DPRINTF("adjusted log size = %lld\n", (long long)logsize);
 	} else {
 		fixedsize = 1;
-		DPRINTF("fixed log size = %" PRId64 "\n", logsize);
+		DPRINTF("fixed log size = %lld\n", (long long)logsize);
 	}
 
 	desired_blks = logsize / fs->fs_bsize;
-	DPRINTF("desired blocks = %" PRId64 "\n", desired_blks);
+	DPRINTF("desired blocks = %lld\n", (long long)desired_blks);
 
 	/* add in number of indirect blocks needed */
 	indir_blks = 0;
@@ -765,8 +801,8 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		}
 		desired_blks += indir_blks;
 	}
-	DPRINTF("desired blocks = %" PRId64 " (including indirect)\n",
-	    desired_blks);
+	DPRINTF("desired blocks = %lld (including indirect)\n",
+	    (long long)desired_blks);
 
 	/*
 	 * If a specific size wasn't requested, allow for a smaller log
@@ -779,9 +815,9 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 	/* Look at number of blocks per CG.  If it's too small, bail early. */
 	bpcg = fragstoblks(fs, fs->fs_fpg);
 	if (min_desired_blks > bpcg) {
-		printf("ffs_wapbl: cylinder group size of %" PRId64 " MB "
+		printf("ffs_wapbl: cylinder group size of %lldMB "
 		    " is not big enough for journal\n",
-		    lblktosize(fs, bpcg) / (1024 * 1024));
+		    (long long)lblktosize(fs, bpcg) / (1024 * 1024));
 		goto bad;
 	}
 
@@ -804,14 +840,14 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 	    s++, n = -n, cg += n * s) {
 		DPRINTF("check cg %d of %d\n", cg, fs->fs_ncg);
 		error = bread(devvp, fsbtodb(fs, cgtod(fs, cg)),
-		    fs->fs_cgsize, FSCRED, 0, &bp);
+		    fs->fs_cgsize, &bp);
 		cgp = (struct cg *)bp->b_data;
-		if (error || !cg_chkmagic(cgp, UFS_FSNEEDSWAP(fs))) {
-			brelse(bp, 0);
+		if (error || !cg_chkmagic(cgp)) {
+			brelse(bp);
 			continue;
 		}
 
-		blksfree = cg_blksfree(cgp, needswap);
+		blksfree = cg_blksfree(cgp);
 
 		for (blkno = 0; blkno < bpcg;) {
 			/* look for next free block */
@@ -836,17 +872,19 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 				    cgbase(fs, cg);
 
 				if (freeblks >= desired_blks) {
-					DPRINTF("found len %" PRId64
-					    " at offset %" PRId64 " in gc\n",
-					    freeblks, start_addr);
+					DPRINTF("found len %lld"
+					    " at offset %lld in gc\n",
+					    (long long)freeblks,
+					    (long long)start_addr);
 					break;
 				}
 			}
 		}
-		brelse(bp, 0);
+		brelse(bp);
 	}
-	DPRINTF("best found len = %" PRId64 ", wanted %" PRId64
-	    " at addr %" PRId64 "\n", best_blks, desired_blks, best_addr);
+	DPRINTF("best found len = %lld, wanted %lld "
+	    " at addr %lld\n", (long long)best_blks,
+	    (long long)desired_blks, (long long)best_addr);
 
 	if (best_blks < min_desired_blks) {
 		*addr = 0;
