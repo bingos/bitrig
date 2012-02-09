@@ -76,6 +76,12 @@
 	{ "dirhash_mem", CTLTYPE_INT }, \
 }
 
+/*
+ * Block allocation flags.
+ */
+#define FFS_ALLOC_CONTIG	0x1	/* Allocate blocks contiguously. */
+#define FFS_ALLOC_METAONLY	0x2	/* Allocate metadata block. */
+
 struct buf;
 struct fid;
 struct fs;
@@ -99,7 +105,7 @@ extern struct vops	ffs_specvops;
 extern struct vops	ffs_fifovops;
 
 /* ffs_alloc.c */
-int ffs_alloc(struct inode *, daddr64_t, daddr64_t , int, struct ucred *,
+int ffs_alloc(struct inode *, daddr64_t, daddr64_t , int, int, struct ucred *,
 		   daddr64_t *);
 int ffs_realloccg(struct inode *, daddr64_t, daddr64_t, int, int ,
 		       struct ucred *, struct buf **, daddr64_t *);
@@ -108,9 +114,9 @@ int ffs_inode_alloc(struct inode *, mode_t, struct ucred *, struct vnode **);
 int ffs_inode_free(struct inode *, ino_t, mode_t);
 int ffs_freefile(struct inode *, ino_t, mode_t);
 
-int32_t ffs1_blkpref(struct inode *, daddr64_t, int, int32_t *);
+int32_t ffs1_blkpref(struct inode *, daddr64_t, int, int, int32_t *);
 #ifdef FFS2
-int64_t ffs2_blkpref(struct inode *, daddr64_t, int, int64_t *);
+int64_t ffs2_blkpref(struct inode *, daddr64_t, int, int, int64_t *);
 #endif
 int ffs_blkalloc(struct ufsmount *, daddr_t, long);
 void ffs_blkfree_wapbl(struct fs *, struct vnode*, daddr64_t, long, ino_t);
