@@ -672,7 +672,7 @@ ufs_gop_alloc(struct vnode *vp, off_t off, off_t len, int flags,
         }
 
 out:
-	UFS_WAPBL_UPDATE(vp, NULL, NULL, 0);
+	UFS_WAPBL_UPDATE(vp, ip, 0);
 	return error;
 }
 
