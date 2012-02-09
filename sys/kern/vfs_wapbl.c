@@ -725,8 +725,6 @@ wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 	return 0;
 }
 
-/* XXX pedro: we need this? */
-#ifdef notyet 
 int
 wapbl_begin(struct wapbl *wl, const char *file, int line)
 {
@@ -803,7 +801,7 @@ wapbl_end(struct wapbl *wl)
 		 * only a partial transaction in the log and allow the
 		 * remaining to flush without the protection of the journal.
 		 */
-		panic("wapbl_end: current transaction too big to flush\n");
+		panic("wapbl_end: current transaction too big to flush");
 	}
 #endif
 
@@ -814,7 +812,6 @@ wapbl_end(struct wapbl *wl)
 
 	rw_exit(&wl->wl_rwlock);
 }
-#endif /* notyet */
 
 void
 wapbl_add_buf(struct wapbl *wl, struct buf * bp)
