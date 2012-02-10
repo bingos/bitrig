@@ -101,8 +101,8 @@ ufs_inactive(void *v)
                          */
                         if (vp->v_mount->mnt_wapbl) {
                                 u_int64_t incr = MNINDIR(ip->i_ump) <<
-                                    MBSHIFT(ump); /* Power of 2 */
-                                u_int64_t base = NDADDR << MBSHIFT(ump);
+                                    MBSHIFT(ip->i_ump); /* Power of 2 */
+                                u_int64_t base = NDADDR << MBSHIFT(ip->i_ump);
                                 while (!error && DIP(ip, size) > base + incr) {
                                         /*
                                          * round down to next full indirect
@@ -185,6 +185,8 @@ ufs_reclaim(struct vnode *vp, struct proc *p)
 		vprint("ufs_reclaim: pushing active", vp);
 #endif
 
+	ip = VTOI(vp);
+
 	/* XXX pedro: see netbsd r1.45 */
 	if (!UFS_WAPBL_BEGIN(vp->v_mount)) {
 		UFS_UPDATE(ip, 0);
@@ -195,7 +197,6 @@ ufs_reclaim(struct vnode *vp, struct proc *p)
 	/*
 	 * Remove the inode from its hash chain.
 	 */
-	ip = VTOI(vp);
 	ufs_ihashrem(ip);
 	/*
 	 * Purge old data structures associated with the inode.
