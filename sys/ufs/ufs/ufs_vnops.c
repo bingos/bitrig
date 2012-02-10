@@ -414,7 +414,7 @@ ufs_setattr(void *v)
 				u_int64_t nsize = base +
 				    ((DIP(ip, size) - base - 1) &
 				    ~(incr - 1));
-				error = UFS_TRUNCATE(vp, nsize, 0,
+				error = UFS_TRUNCATE(ip, nsize, 0,
 				    cred);
 				if (error == 0) {
 					UFS_WAPBL_END(vp->v_mount);
