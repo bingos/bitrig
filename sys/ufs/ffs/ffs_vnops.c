@@ -285,7 +285,7 @@ ffs_read(void *v)
 			error = UFS_WAPBL_BEGIN(vp->v_mount);
 			if (error)
 				return (error);
-			error = UFS_UPDATE(vp, ip, MNT_WAIT);
+			error = UFS_UPDATE(ip, MNT_WAIT);
 			UFS_WAPBL_END(vp->v_mount);
 		}
 	}
