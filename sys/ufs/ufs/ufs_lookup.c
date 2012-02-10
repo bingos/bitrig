@@ -47,6 +47,8 @@
 #include <sys/mount.h>
 #include <sys/proc.h>
 #include <sys/vnode.h>
+#include <sys/specdev.h>
+#include <sys/wapbl.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -58,6 +60,7 @@
 #endif
 #include <ufs/ufs/ufsmount.h>
 #include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufs_wapbl.h>
 
 extern	struct nchstats nchstats;
 
@@ -449,6 +452,7 @@ found:
 		ufs_dirbad(dp, dp->i_offset, "i_ffs_size too small");
 		DIP_ASSIGN(dp, size, dp->i_offset + DIRSIZ(FSFMT(vdp), ep));
 		dp->i_flag |= IN_CHANGE | IN_UPDATE;
+		UFS_WAPBL_UPDATE(vdp, dp, MNT_WAIT);
 	}
 	brelse(bp);
 
@@ -708,6 +712,8 @@ ufs_direnter(struct vnode *dvp, struct vnode *tvp, struct direct *dirp,
 	int error, ret, blkoff, loc, spacefree, flags;
   	char *dirbuf;
 
+	UFS_WAPBL_JLOCK_ASSERT(dvp->v_mount);
+
  	error = 0;
  	cr = cnp->cn_cred;
  	p = cnp->cn_proc;
@@ -809,8 +815,15 @@ ufs_direnter(struct vnode *dvp, struct vnode *tvp, struct direct *dirp,
 	 *
 	 * N.B. - THIS IS AN ARTIFACT OF 4.2 AND SHOULD NEVER HAPPEN.
 	 */
-	if (dp->i_offset + dp->i_count > DIP(dp, size))
+	if (dp->i_offset + dp->i_count > DIP(dp, size)) {
+#ifdef DIAGNOSTIC
+		printf("ufs_direnter: reached 4.2-only block, "
+		    "not supposed to happen\n");
+#endif
 		DIP_ASSIGN(dp, size, dp->i_offset + dp->i_count);
+		dp->i_flag |= IN_CHANGE | IN_UPDATE;
+		UFS_WAPBL_UPDATE(dvp, dp, MNT_WAIT);
+	}
 	/*
 	 * Get the block containing the space for the new directory entry.
 	 */
@@ -932,6 +945,7 @@ ufs_direnter(struct vnode *dvp, struct vnode *tvp, struct direct *dirp,
 		if (tvp != NULL)
 			vn_lock(tvp, LK_EXCLUSIVE | LK_RETRY, p);
 	}
+	UFS_WAPBL_UPDATE(dvp, dp, MNT_WAIT);
 	return (error);
 }
 
@@ -954,6 +968,8 @@ ufs_dirremove(struct vnode *dvp, struct inode *ip, int flags, int isrmdir)
 	struct direct *ep;
 	struct buf *bp;
 	int error;
+
+	UFS_WAPBL_JLOCK_ASSERT(dvp->v_mount);
 
 	dp = VTOI(dvp);
 
@@ -1004,6 +1020,7 @@ ufs_dirremove(struct vnode *dvp, struct inode *ip, int flags, int isrmdir)
 			ip->i_effnlink--;
 			DIP_ADD(ip, nlink, -1);
 			ip->i_flag |= IN_CHANGE;
+			UFS_WAPBL_UPDATE(ITOV(ip), ip, 0);
 		}
 		if (DOINGASYNC(dvp) && dp->i_count != 0) {
 			bdwrite(bp);
@@ -1012,6 +1029,7 @@ ufs_dirremove(struct vnode *dvp, struct inode *ip, int flags, int isrmdir)
 			error = bwrite(bp);
 	}
 	dp->i_flag |= IN_CHANGE | IN_UPDATE;
+	UFS_WAPBL_UPDATE(dvp, dp, MNT_WAIT);
 	return (error);
 }
 
@@ -1043,6 +1061,7 @@ ufs_dirrewrite(struct inode *dp, struct inode *oip, ino_t newinum, int newtype,
  	} else {
 		DIP_ADD(oip, nlink, -1);
 		oip->i_flag |= IN_CHANGE;
+		UFS_WAPBL_UPDATE(ITOV(oip), oip, MNT_WAIT);
 		if (DOINGASYNC(vdp)) {
 			bdwrite(bp);
 			error = 0;
@@ -1051,6 +1070,7 @@ ufs_dirrewrite(struct inode *dp, struct inode *oip, ino_t newinum, int newtype,
 		}
  	}
 	dp->i_flag |= IN_CHANGE | IN_UPDATE;
+	UFS_WAPBL_UPDATE(vdp, VTOI(vdp), MNT_WAIT);
 	return (error);
 }
 
