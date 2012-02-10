@@ -934,9 +934,9 @@ start:
 			splx(s);
 #if DIAGNOSTIC
 			/* XXX pedro */
-			if (bp->b_bcount != size)
-				printf("getblk: bcount=%lld, size=%lld\n",
-				    (long long)bp->b_bcount, (long long)size);
+			if (bp->b_bufsize < size)
+				printf("getblk: bufsize=%lld, size=%lld\n",
+				    (long long)bp->b_bufsize, (long long)size);
 #endif
 			return (bp);
 		}
