@@ -58,6 +58,7 @@ struct ufsmount {
 
 	struct	vnode *um_quotas[MAXQUOTAS];	/* pointer to quota files */
 	struct	ucred *um_cred[MAXQUOTAS];	/* quota file access cred */
+	int32_t um_bshift;			/* block shift */
 	u_long	um_nindir;			/* indirect ptrs per block */
 	u_long	um_bptrtodb;			/* indir ptr to disk block */
 	u_long	um_seqinc;			/* inc between seq blocks */
@@ -89,5 +90,6 @@ struct ufsmount {
  * Used by ufs_bmap.
  */
 #define MNINDIR(ump)			((ump)->um_nindir)
+#define MBSHIFT(ump)			((ump)->um_bshift)
 #define	blkptrtodb(ump, b)		((b) << (ump)->um_bptrtodb)
 #define	is_sequential(ump, a, b)	((b) == (a) + ump->um_seqinc)

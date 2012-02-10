@@ -842,6 +842,7 @@ ffs_mountfs(struct vnode *devvp, struct mount *mp, struct proc *p)
 	ump->um_mountp = mp;
 	ump->um_dev = dev;
 	ump->um_devvp = devvp;
+	ump->um_bshift = fs->fs_bshift;
 	ump->um_nindir = fs->fs_nindir;
 	ump->um_bptrtodb = fs->fs_fsbtodb;
 	ump->um_seqinc = fs->fs_frag;
