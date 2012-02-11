@@ -459,6 +459,82 @@ ffs_write(void *v)
 	return (error);
 }
 
+#ifdef WAPBL
+int ffs_fsync_wapbl_dev(void *);
+int ffs_fsync_wapbl(void *);
+
+int
+ffs_fsync_wapbl_dev(void *v)
+{
+	struct vop_fsync_args *ap = v;
+	struct vnode *vp = ap->a_vp;
+	struct mount *mp = vp->v_mount;
+	int error;
+
+	error = spec_fsync(v);
+	if (error)
+		return (error);
+
+	error = UFS_WAPBL_BEGIN(mp);
+	if (error)
+		return (error);
+
+	error = ffs_update(VTOI(vp), NULL, NULL, ap->a_waitfor);
+	UFS_WAPBL_END(mp);
+
+	return (error);
+}
+
+int
+ffs_fsync_wapbl(void *v)
+{
+	struct vop_fsync_args *ap = v;
+	struct vnode *vp = ap->a_vp;
+	struct mount *mp = vp->v_mount;
+	struct buf *bp;
+	int s, error;
+
+	if (vp->v_type == VBLK || vp->v_type == VCHR)
+		return (ffs_fsync_wapbl_dev(v));
+
+	KASSERT(vp->v_type == VREG);
+
+	s = splbio();
+	bp = LIST_FIRST(&vp->v_dirtyblkhd);
+	while (bp != NULL) {
+		struct buf *nbp = LIST_NEXT(bp, b_vnbufs);
+		if (bp->b_flags & B_BUSY) {
+			bp = nbp;
+			continue; /* buffer is already being written */
+		}
+#ifdef DIAGNOSTIC
+		if ((bp->b_flags & B_DELWRI) == 0)
+			panic("ffs_fsync_wapbl: not dirty");
+		if (bp->b_lblkno < 0)
+			panic("ffs_fsync_wapbl: found metadata");
+#endif
+		bremfree(bp);
+		buf_acquire(bp);
+		bawrite(bp);
+		bp = nbp;
+	}
+	if (ap->a_waitfor == MNT_WAIT)
+		vwaitforio(vp, 0, "fsynclog", 0);
+	splx(s);
+
+	error = UFS_WAPBL_BEGIN(mp);
+	if (error)
+		return (error);
+
+	error = ffs_update(VTOI(vp), NULL, NULL, ap->a_waitfor);
+	UFS_WAPBL_END(mp);
+	if (error)
+		return (error);
+
+	return (wapbl_flush(mp->mnt_wapbl, 0));
+}
+#endif /* WAPBL */
+
 /*
  * Synch an open file.
  */
@@ -469,6 +545,11 @@ ffs_fsync(void *v)
 	struct vnode *vp = ap->a_vp;
 	struct buf *bp, *nbp;
 	int s, error, passes, skipmeta;
+
+#ifdef WAPBL
+	if (vp->v_mount->mnt_wapbl)
+		return (ffs_fsync_wapbl(v));
+#endif
 
 	if (vp->v_type == VBLK &&
 	    vp->v_specmountpoint != NULL &&
