@@ -718,14 +718,6 @@ ffs_mountfs(struct vnode *devvp, struct mount *mp, struct proc *p)
 		fs = (struct fs *) bp->b_data;
 		sbloc = sbtry[i];
 
-#if 0
-		if (fs->fs_magic == FS_UFS2_MAGIC) {
-			printf("ffs_mountfs(): Sorry, no UFS2 support (yet)\n");
-			error = EFTYPE;
-			goto out;
-		}
-#endif
-
 		/*
 		 * Do not look for an FFS1 file system at SBLOCK_UFS2. Doing so
 		 * will find the wrong super-block for file systems with 64k
@@ -746,19 +738,6 @@ ffs_mountfs(struct vnode *devvp, struct mount *mp, struct proc *p)
 	fs->fs_fmod = 0;
 	fs->fs_flags &= ~FS_UNCLEAN;
 	if (fs->fs_clean == 0) {
-#if 0
-		/*
-		 * It is safe to mount an unclean file system
-		 * if it was previously mounted with softdep
-		 * but we may lose space and must
-		 * sometimes run fsck manually.
-		 */
-		if (fs->fs_flags & FS_DOSOFTDEP)
-			printf(
-"WARNING: %s was not properly unmounted\n",
-			    fs->fs_fsmnt);
-		else
-#endif
 		if (ronly || (mp->mnt_flag & MNT_FORCE)) {
 			printf(
 "WARNING: %s was not properly unmounted\n",
@@ -867,17 +846,6 @@ ffs_mountfs(struct vnode *devvp, struct mount *mp, struct proc *p)
 		sizeof(fs->fs_fsmnt) - 1,	/* max size*/
 		&strsize);			/* real size*/
 	bzero(fs->fs_fsmnt + strsize, sizeof(fs->fs_fsmnt) - strsize);
-
-#if 0
-	if( mp->mnt_flag & MNT_ROOTFS) {
-		/*
-		 * Root mount; update timestamp in mount structure.
-		 * this will be used by the common root mount code
-		 * to update the system clock.
-		 */
-		mp->mnt_time = fs->fs_time;
-	}
-#endif
 
 	/*
 	 * XXX
