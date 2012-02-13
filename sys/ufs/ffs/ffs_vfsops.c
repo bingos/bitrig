@@ -738,6 +738,8 @@ sbagain:
 		goto out;
 	}
 
+	ffs1_compat_read(fs, ump, sbloc);
+
 #ifdef WAPBL
 	if ((mp->mnt_wapbl_replay == 0) && (fs->fs_flags & FS_DOWAPBL)) {
 		error = ffs_wapbl_replay_start(mp, fs, devvp);
@@ -817,8 +819,6 @@ sbagain:
 	bp = NULL;
 	fs = ump->um_fs;
 
-	ffs1_compat_read(fs, ump, sbloc);
-
 	if (fs->fs_clean == 0)
 		fs->fs_flags |= FS_UNCLEAN;
 	fs->fs_ronly = ronly;
@@ -873,6 +873,14 @@ sbagain:
 	if (ronly)
 		fs->fs_contigdirs = NULL;
 	else {
+#ifdef WAPBL
+		ffs_statfs(mp, &mp->mnt_stat, p);
+		error = ffs_wapbl_start(mp);
+		if (error) {
+			free(fs->fs_csp, M_UFSMNT);
+			goto out;
+		}
+#endif /* WAPBL */
 		fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
 		    M_UFSMNT, M_WAITOK|M_ZERO);
 	}
