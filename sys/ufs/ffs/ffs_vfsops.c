@@ -933,7 +933,7 @@ ffs1_compat_read(struct fs *fs, struct ufsmount *ump, daddr64_t sbloc)
 	if (fs->fs_ffs1_flags & FS_FLAGS_UPDATED)
 		return; /* Already updated */
 #endif
-	fs->fs_flags = fs->fs_ffs1_flags;
+	fs->fs_flags = (u_int8_t)fs->fs_ffs1_flags;
 	fs->fs_sblockloc = sbloc;
 	fs->fs_maxbsize = fs->fs_bsize;
 	fs->fs_time = fs->fs_ffs1_time;
