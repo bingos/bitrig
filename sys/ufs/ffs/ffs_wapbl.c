@@ -32,6 +32,7 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
+#include <sys/proc.h>
 #include <sys/vnode.h>
 #include <sys/mount.h>
 #include <sys/file.h>
@@ -127,7 +128,8 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		printf("ffs_wapbl_replay_finish: "
 		    "cleaning inode %llu size=%llu mode=%o nlink=%d\n",
 		    (unsigned long long)ip->i_number,
-		    (unsigned long long)ip->i_size, ip->i_mode, ip->i_nlink);
+		    (unsigned long long)DIP(ip, size), DIP(ip, mode),
+		    DIP(ip, nlink));
 #endif
 		KASSERT(DIP(ip, nlink) == 0);
 
@@ -255,6 +257,7 @@ wapbl_remove_log(struct mount *mp)
 		 * to zero and bail.
 		 */
 		DIP_ASSIGN(ip, nlink, 0);
+		ip->i_effnlink = 0;
 		vput(vp);
 
 	case UFS_WAPBL_JOURNALLOC_END_PARTITION:
@@ -607,6 +610,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	DIP_ASSIGN(ip, mode, 0 | IFREG);
 	DIP_ASSIGN(ip, flags, SF_LOG);
 	DIP_ASSIGN(ip, nlink, 1);
+	ip->i_effnlink = 1;
 	ffs_update(ip, NULL, NULL, MNT_WAIT);
 
 	if ((error = wapbl_allocate_log_file(mp, vp,
@@ -617,6 +621,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 		 * zero and bail.
 		 */
 		DIP_ASSIGN(ip, nlink, 0);
+		ip->i_effnlink = 0;
 		VOP_UNLOCK(vp, 0, curproc);
 		vgone(vp);
 
@@ -712,7 +717,8 @@ wapbl_allocate_log_file(struct mount *mp, struct vnode *vp,
 	VTOI(vp)->i_ffs_first_data_blk = addr;
 	VTOI(vp)->i_ffs_first_indir_blk = indir_addr;
 
-	error = ufs_gop_alloc(vp, 0, logsize, FFS_ALLOC_CONTIG, FSCRED);
+	error = ufs_gop_alloc(vp, 0, logsize, FFS_ALLOC_CONTIG,
+	    curproc->p_ucred);
 	if (error) {
 		printf("%s: GOP_ALLOC error %d\n", __func__, error);
 		return error;
