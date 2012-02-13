@@ -52,6 +52,8 @@
 #include <sys/dkio.h>
 #include <sys/disk.h>
 #include <sys/specdev.h>
+#include <sys/wapbl.h>
+#include <sys/wapbl_replay.h>
 
 #include <dev/rndvar.h>
 
@@ -701,6 +703,7 @@ ffs_mountfs(struct vnode *devvp, struct mount *mp, struct proc *p)
 	bp = NULL;
 	ump = NULL;
 
+sbagain:
 	/*
 	 * Try reading the super-block in each of its possible locations.
 	 */
@@ -735,6 +738,42 @@ ffs_mountfs(struct vnode *devvp, struct mount *mp, struct proc *p)
 		goto out;
 	}
 
+#ifdef WAPBL
+	if ((mp->mnt_wapbl_replay == 0) && (fs->fs_flags & FS_DOWAPBL)) {
+		error = ffs_wapbl_replay_start(mp, fs, devvp);
+		if (error && (mp->mnt_flag & MNT_FORCE) == 0)
+			goto out;
+		if (error == 0) {
+			if (ronly == 0) {
+				printf("%s: replaying log to disk\n",
+					mp->mnt_stat.f_mntfromname);
+				error =
+				    wapbl_replay_write(mp->mnt_wapbl_replay,
+				        devvp);
+				if (error)
+					goto out;
+				wapbl_replay_stop(mp->mnt_wapbl_replay);
+				fs->fs_clean = FS_WASCLEAN;
+			} else {
+				printf("%s: replaying log to memory\n",
+					mp->mnt_stat.f_mntfromname);
+			}
+
+			/* Force a re-read of the superblock */
+			bp->b_flags |= B_NOCACHE | B_INVAL;
+			brelse(bp);
+			bp = NULL;
+			fs = NULL;
+			goto sbagain;
+		}
+	}
+#else /* !WAPBL */
+	if ((fs->fs_flags & FS_DOWAPBL) && (mp->mnt_flag & MNT_FORCE) == 0) {
+		printf("%s: no log support\n", mp->mnt_stat.f_mntfromname);
+		error = EPERM;
+		goto out;
+	}
+#endif /* WAPBL */
 	fs->fs_fmod = 0;
 	fs->fs_flags &= ~FS_UNCLEAN;
 	if (fs->fs_clean == 0) {
