@@ -644,12 +644,15 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 		pstats->p_ru.ru_inblock++;
 	}
 
+	bzero(&iobuf, sizeof(iobuf));
+	iobuf.b_vnbufs.le_next = NOLIST;
 	iobuf.b_flags = flags | B_BUSY;
 	iobuf.b_dev = devvp->v_rdev;
 	iobuf.b_data = data;
 	iobuf.b_bufsize = iobuf.b_resid = iobuf.b_bcount = len;
 	iobuf.b_blkno = pbn;
 	iobuf.b_vp = devvp;
+	LIST_INIT(&iobuf.b_dep);
 
 	WAPBL_PRINTF(WAPBL_PRINT_IO,
 	    ("wapbl_doio: %s %d bytes at block %lld on dev 0x%llx\n",
