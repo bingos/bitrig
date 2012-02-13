@@ -36,14 +36,13 @@
  * write ahead physical block logging (WAPBL) support.
  */
 
+#define WAPBL_DEBUG
 #ifdef WAPBL_DEBUG
 #ifndef WAPBL_DEBUG_PRINT
 #define	WAPBL_DEBUG_PRINT (WAPBL_PRINT_REPLAY | WAPBL_PRINT_OPEN)
 #endif
 
-#if 0
 #define	WAPBL_DEBUG_BUFBYTES
-#endif
 
 #endif
 
@@ -66,7 +65,7 @@ enum {
 	WAPBL_PRINT_BIODONE = 0x2000,
 };
 
-#define	WAPBL_PRINTF(mask, a) if (wapbl_debug_print & (mask)) printf  a
+#define	WAPBL_PRINTF(mask, a) if (wapbl_debug_print & (mask) || 1) printf  a
 extern int wapbl_debug_print;
 #else
 #define	WAPBL_PRINTF(mask, a)
