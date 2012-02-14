@@ -1087,6 +1087,8 @@ ffs1_blkpref(struct inode *ip, daddr64_t lbn, int indx, int flags,
 	struct fs *fs;
 	int cg, avgbfree, startcg;
 
+	fs = ip->i_fs;
+
 	/*
 	 * If allocating a contiguous file with B_CONTIG, use
 	 * the hints in the inode extentions to return the desired
@@ -1106,8 +1108,6 @@ ffs1_blkpref(struct inode *ip, daddr64_t lbn, int indx, int flags,
 		else
 			return ip->i_ffs_first_data_blk + blkstofrags(fs, lbn);
 	}
-
-	fs = ip->i_fs;
 
 	if (indx % fs->fs_maxbpg == 0 || bap[indx - 1] == 0) {
 		if (lbn < NDADDR + NINDIR(fs)) {
@@ -1153,6 +1153,8 @@ ffs2_blkpref(struct inode *ip, daddr64_t lbn, int indx, int flags,
 	struct fs *fs;
 	int cg, avgbfree, startcg;
 
+	fs = ip->i_fs;
+
 	/*
 	 * If allocating a contiguous file with B_CONTIG, use
 	 * the hints in the inode extentions to return the desired
@@ -1172,8 +1174,6 @@ ffs2_blkpref(struct inode *ip, daddr64_t lbn, int indx, int flags,
 		else
 			return ip->i_ffs_first_data_blk + blkstofrags(fs, lbn);
 	}
-
-	fs = ip->i_fs;
 
 	if (indx % fs->fs_maxbpg == 0 || bap[indx - 1] == 0) {
 		if (lbn < NDADDR + NINDIR(fs)) {
