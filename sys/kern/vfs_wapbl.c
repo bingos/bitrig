@@ -329,7 +329,7 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 		return error;
 	}
 
-	wl = malloc(sizeof(*wl), M_WAPBL, M_WAITOK);
+	wl = malloc(sizeof(*wl), M_WAPBL, M_WAITOK | M_ZERO);
 	rw_init(&wl->wl_rwlock, "wapbllck");
 	rw_init(&wl->wl_mtx, "wapblmtx");
 	LIST_INIT(&wl->wl_bufs);
@@ -390,9 +390,9 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 	wl->wl_dealloclim = wl->wl_bufbytes_max / mp->mnt_stat.f_bsize / 2;
 	
 	wl->wl_deallocblks = malloc(sizeof(*wl->wl_deallocblks) *
-	    wl->wl_dealloclim, M_WAPBL, M_WAITOK);
+	    wl->wl_dealloclim, M_WAPBL, M_WAITOK | M_ZERO);
 	wl->wl_dealloclens = malloc(sizeof(*wl->wl_dealloclens) *
-	    wl->wl_dealloclim, M_WAPBL, M_WAITOK);
+	    wl->wl_dealloclim, M_WAPBL, M_WAITOK | M_ZERO);
 
 	wapbl_inodetrk_init(wl, WAPBL_INODETRK_SIZE);
 
@@ -400,7 +400,7 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 	{
 		struct wapbl_wc_header *wc;
 		size_t len = 1 << wl->wl_log_dev_bshift;
-		wc = malloc(len, M_WAPBL, M_WAITOK);
+		wc = malloc(len, M_WAPBL, M_WAITOK | M_ZERO);
 		wc->wc_type = WAPBL_WC_HEADER;
 		wc->wc_len = len;
 		wc->wc_circ_off = wl->wl_circ_off;
@@ -409,7 +409,7 @@ wapbl_start(struct wapbl **wlp, struct mount *mp, struct vnode *vp,
 		wc->wc_log_dev_bshift = wl->wl_log_dev_bshift;
 		wc->wc_fs_dev_bshift = wl->wl_fs_dev_bshift;
 		wl->wl_wc_header = wc;
-		wl->wl_wc_scratch = malloc(len, M_WAPBL, M_WAITOK);
+		wl->wl_wc_scratch = malloc(len, M_WAPBL, M_WAITOK | M_ZERO);
 	}
 
 	/*
@@ -1314,7 +1314,7 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 		goto out2;
 
 	s = splhigh();
-	we = pool_get(&wapbl_entry_pool, PR_WAITOK);
+	we = pool_get(&wapbl_entry_pool, PR_WAITOK | PR_ZERO);
 	splx(s);
 
 #ifdef WAPBL_DEBUG_BUFBYTES
@@ -1648,7 +1648,7 @@ wapbl_register_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 	int s;
 
 	s = splhigh();
-	wi = pool_get(&wapbl_ino_pool, PR_WAITOK);
+	wi = pool_get(&wapbl_ino_pool, PR_WAITOK | PR_ZERO);
 	splx(s);
 
 	rw_enter_write(&wl->wl_mtx);
@@ -1899,7 +1899,6 @@ wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 		} else {
 			padding = 0;
 		}
-
 		WAPBL_PRINTF(WAPBL_PRINT_WRITE,
 		    ("wapbl_write_blocks: len = %u (padding %zu) off = %lld\n",
 		    wc->wc_len, padding, (long long)off));
@@ -1919,8 +1918,7 @@ wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 		if (padding) {
 			void *zero;
 			
-			zero = malloc(padding, M_WAPBL, M_WAITOK);
-			memset(zero, 0, padding);
+			zero = malloc(padding, M_WAPBL, M_WAITOK | M_ZERO);
 			error = wapbl_circ_write(wl, zero, padding, &off);
 			free(zero, M_WAPBL);
 			if (error)
@@ -2068,7 +2066,7 @@ wapbl_blkhash_ins(struct wapbl_replay *wr, daddr_t blk, off_t off)
 		KASSERT(wb->wb_blk == blk);
 		wb->wb_off = off;
 	} else {
-		wb = malloc(sizeof(*wb), M_WAPBL, M_WAITOK);
+		wb = malloc(sizeof(*wb), M_WAPBL, M_WAITOK | M_ZERO);
 		wb->wb_blk = blk;
 		wb->wb_off = off;
 		wbh = &wr->wr_blkhash[blk & wr->wr_blkhashmask];
@@ -2196,7 +2194,7 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 		return error;
 	}
 
-	scratch = malloc(MAXBSIZE, M_WAPBL, M_WAITOK);
+	scratch = malloc(MAXBSIZE, M_WAPBL, M_WAITOK | M_ZERO);
 
 	pbn = logpbn;
 	pbn = btodb(pbn << log_dev_bshift);
@@ -2217,7 +2215,7 @@ wapbl_replay_start(struct wapbl_replay **wrp, struct vnode *vp,
 	if (wch2->wc_generation > wch->wc_generation)
 		wch = wch2;
 
-	wr = malloc(sizeof(*wr), M_WAPBL, M_WAITOK);
+	wr = malloc(sizeof(*wr), M_WAPBL, M_WAITOK | M_ZERO);
 
 	wr->wr_logvp = vp;
 	wr->wr_devvp = devvp;
@@ -2357,7 +2355,7 @@ wapbl_replay_process_inodes(struct wapbl_replay *wr, off_t oldoff, off_t newoff)
 		return;
 
 	new_inodes = malloc((wr->wr_inodescnt + wc->wc_inocnt) *
-	    sizeof(wr->wr_inodes[0]), M_WAPBL, M_WAITOK);
+	    sizeof(wr->wr_inodes[0]), M_WAPBL, M_WAITOK | M_ZERO);
 	if (wr->wr_inodes != NULL) {
 		memcpy(new_inodes, wr->wr_inodes, oldsize);
 		free(wr->wr_inodes, M_WAPBL);
@@ -2431,7 +2429,7 @@ wapbl_replay_write(struct wapbl_replay *wr, struct vnode *fsdevvp)
 
 	KDASSERT(wapbl_replay_isopen(wr));
 
-	scratch = malloc(MAXBSIZE, M_WAPBL, M_WAITOK);
+	scratch = malloc(MAXBSIZE, M_WAPBL, M_WAITOK | M_ZERO);
 
 	for (i = 0; i <= wr->wr_blkhashmask; ++i) {
 		LIST_FOREACH(wb, &wr->wr_blkhash[i], wb_hash) {
