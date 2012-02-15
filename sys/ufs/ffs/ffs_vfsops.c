@@ -873,6 +873,8 @@ sbagain:
 	if (ronly)
 		fs->fs_contigdirs = NULL;
 	else {
+		fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
+		    M_UFSMNT, M_WAITOK|M_ZERO);
 #ifdef WAPBL
 		ffs_statfs(mp, &mp->mnt_stat, p);
 		error = ffs_wapbl_start(mp);
@@ -881,8 +883,6 @@ sbagain:
 			goto out;
 		}
 #endif /* WAPBL */
-		fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
-		    M_UFSMNT, M_WAITOK|M_ZERO);
 	}
 
 	/*
@@ -976,10 +976,8 @@ ffs1_compat_read(struct fs *fs, struct ufsmount *ump, daddr64_t sbloc)
 {
 	if (fs->fs_magic == FS_UFS2_MAGIC)
 		return; /* UFS2 */
-#if 0
 	if (fs->fs_ffs1_flags & FS_FLAGS_UPDATED)
 		return; /* Already updated */
-#endif
 	fs->fs_flags = (u_int8_t)fs->fs_ffs1_flags;
 	fs->fs_sblockloc = sbloc;
 	fs->fs_maxbsize = fs->fs_bsize;
