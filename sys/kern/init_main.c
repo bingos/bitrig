@@ -100,6 +100,10 @@
 extern void nfs_init(void);
 #endif
 
+#if defined(WAPBL)
+extern void wapbl_init(void);
+#endif
+
 #include "mpath.h"
 #include "vscsi.h"
 #include "softraid.h"
@@ -356,6 +360,9 @@ main(void *framep)
 	/* Initialize the file systems. */
 #if defined(NFSSERVER) || defined(NFSCLIENT)
 	nfs_init();			/* initialize server/shared data */
+#endif
+#ifdef WAPBL
+	wapbl_init();
 #endif
 	vfsinit();
 
