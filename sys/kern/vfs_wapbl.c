@@ -1460,7 +1460,7 @@ void
 wapbl_junlock_assert(struct wapbl *wl)
 {
 
-	rw_assert_unlocked(&wl->wl_rwlock);
+	KASSERT(RWLOCK_OWNER(&wl->wl_rwlock) != curproc);
 }
 
 /* locks missing */
