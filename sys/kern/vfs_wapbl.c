@@ -1373,8 +1373,9 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 		}
 		bp->b_iodone = wapbl_biodone;
 		bp->b_private = we;
-		bremfree(bp);
+		s = splbio();
 		wapbl_remove_buf_locked(wl, bp);
+		splx(s);
 		rw_exit_write(&wl->wl_mtx);
 		bawrite(bp);
 		rw_enter_write(&wl->wl_mtx);
