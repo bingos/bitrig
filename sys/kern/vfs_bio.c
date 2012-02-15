@@ -661,9 +661,11 @@ bdwrite(struct buf *bp)
 	int s;
 
 	if (wapbl_vphaswapbl(bp->b_vp)) {
+		s = splbio();
 		struct mount *mp = wapbl_vptomp(bp->b_vp);
 		if (bp->b_iodone != wapbl_biodone)
 			wapbl_add_buf(mp->mnt_wapbl, bp);
+		splx(s);
 	}
 
 	/*
