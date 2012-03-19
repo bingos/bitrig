@@ -548,8 +548,8 @@ void	acpiprt_route_interrupt(int bus, int dev, int pin);
 #endif
 
 void *
-pci_intr_establish(pci_chipset_tag_t pc, pci_intr_handle_t ih, int level,
-    int (*func)(void *), void *arg, const char *what)
+pci_intr_establish_flags(pci_chipset_tag_t pc, pci_intr_handle_t ih, int level,
+    int (*func)(void *), void *arg, const char *what, int flags)
 {
 	int pin, irq;
 	int bus, dev;
@@ -584,7 +584,8 @@ pci_intr_establish(pci_chipset_tag_t pc, pci_intr_handle_t ih, int level,
 	}
 #endif
 
-	return intr_establish(irq, pic, pin, IST_LEVEL, level, func, arg, what);
+	return intr_establish(irq, pic, pin, IST_LEVEL, level, func, arg, what,
+	    flags);
 }
 
 void

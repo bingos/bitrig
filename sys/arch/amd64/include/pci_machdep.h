@@ -84,8 +84,12 @@ void		pci_conf_write(pci_chipset_tag_t, pcitag_t, int,
 int		pci_intr_map_msi(struct pci_attach_args *, pci_intr_handle_t *);
 int		pci_intr_map(struct pci_attach_args *, pci_intr_handle_t *);
 const char	*pci_intr_string(pci_chipset_tag_t, pci_intr_handle_t);
-void		*pci_intr_establish(pci_chipset_tag_t, pci_intr_handle_t,
-		    int, int (*)(void *), void *, const char *);
+void		*pci_intr_establish_flags(pci_chipset_tag_t, pci_intr_handle_t,
+		    int, int (*)(void *), void *, const char *, int);
+#define		pci_intr_establish(t, h, l, f, a, w)		\
+	pci_intr_establish_flags(t, h, l, f, a, w, 0)
+#define		pci_intr_establish_mpsafe(t, h, l, f, a, w)	\
+	pci_intr_establish_flags(t, h, l, f, a, w, INTR_ESTABLISH_MPSAFE)
 void		pci_intr_disestablish(pci_chipset_tag_t, void *);
 void		pci_decompose_tag(pci_chipset_tag_t, pcitag_t,
 		    int *, int *, int *);

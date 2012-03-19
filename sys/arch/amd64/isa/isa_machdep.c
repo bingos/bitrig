@@ -322,7 +322,7 @@ isa_intr_establish(isa_chipset_tag_t ic, int irq, int type, int level,
 	KASSERT(pic);
 
 	return intr_establish(irq, pic, pin, type, level, ih_fun,
-	    ih_arg, ih_what);
+	    ih_arg, ih_what, 0);
 }
 
 /*

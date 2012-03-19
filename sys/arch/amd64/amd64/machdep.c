@@ -1698,7 +1698,7 @@ need_resched(struct cpu_info *ci)
 
 /*
  * Allocate an IDT vector slot within the given range.
- * XXX needs locking to avoid MP allocation races.
+ * - only allocated from interrupt code, which is already locked
  */
 
 int
@@ -1706,7 +1706,6 @@ idt_vec_alloc(int low, int high)
 {
 	int vec;
 
-	simple_lock(&idt_lock);
 	for (vec = low; vec <= high; vec++) {
 		if (idt_allocmap[vec] == 0) {
 			idt_allocmap[vec] = 1;
@@ -1714,7 +1713,6 @@ idt_vec_alloc(int low, int high)
 			return vec;
 		}
 	}
-	simple_unlock(&idt_lock);
 	return 0;
 }
 
@@ -1732,10 +1730,8 @@ idt_vec_set(int vec, void (*function)(void))
 void
 idt_vec_free(int vec)
 {
-	simple_lock(&idt_lock);
 	unsetgate(&idt[vec]);
 	idt_allocmap[vec] = 0;
-	simple_unlock(&idt_lock);
 }
 
 #ifdef DIAGNOSTIC

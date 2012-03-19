@@ -205,6 +205,8 @@ acpi_cpu_flush(struct acpi_softc *sc, int state)
 int
 acpi_sleep_machdep(struct acpi_softc *sc, int state)
 {
+	extern struct mutex intr_lock;
+
 	if (sc->sc_facs == NULL) {
 		printf("%s: acpi_sleep_machdep: no FACS\n", DEVNAME(sc));
 		return (ENXIO);
@@ -252,7 +254,9 @@ acpi_sleep_machdep(struct acpi_softc *sc, int state)
 #if NISA > 0
 	i8259_default_setup();
 #endif
+	mtx_enter(&intr_lock);
 	intr_calculatemasks(curcpu());
+	mtx_leave(&intr_lock);
 
 #if NLAPIC > 0
 	lapic_enable();
