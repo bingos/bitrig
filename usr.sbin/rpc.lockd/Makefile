@@ -20,6 +20,12 @@ nlm_prot_svc.c: ${RPCSRC} nlm_prot.h
 nlm_prot.h: ${RPCSRC}
 	${RPCGEN} -h -o ${.TARGET} ${RPCSRC}
 
+handles.o: nlm_prot.h
+lockd.o: nlm_prot.h
+procs.o: nlm_prot.h
+# XXX
+#lockd_lock.o:#include <rpcsvc/nlm_prot.h>
+
 test: test.c
 	cc -o test test.c -lrpcsvc
 

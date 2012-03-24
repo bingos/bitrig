@@ -108,10 +108,11 @@ stamp_isakmp_num: genconstants.sh isakmp_num.cst
 	/bin/sh ${.CURDIR}/genconstants.sh ${.CURDIR}/isakmp_num
 	@touch $@
 
-${PROG} beforedepend: ${GENERATED}
+beforedepend: ${GENERATED}
 
 CLEANFILES += stamp_exchange_num stamp_ipsec_fld \
 	stamp_ipsec_num stamp_isakmp_fld stamp_isakmp_num
 
 .include <bsd.prog.mk>
 .include <bsd.subdir.mk>
+${OBJS}: ${GENERATED}

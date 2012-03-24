@@ -33,5 +33,6 @@ install:
 	@echo -n
 
 beforedepend: gram.c toke.c
+alias.o: gram.h
 
 .include <bsd.lib.mk>

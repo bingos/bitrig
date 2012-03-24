@@ -23,3 +23,4 @@ maketab: ytab.h maketab.c
 	${HOSTCC} ${HOSTCFLAGS} ${.CURDIR}/maketab.c -o $@
 
 .include <bsd.prog.mk>
+${OBJS}: ytab.h

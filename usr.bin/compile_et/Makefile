@@ -12,5 +12,6 @@ error_table.h error_table.c:	error_table.y
 
 beforedepend:	et_lex.lex.c
 error_table.o:	et_lex.lex.c
+compile_et.o:	error_table.h
 
 .include <bsd.prog.mk>

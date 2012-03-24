@@ -51,3 +51,4 @@ CLEANFILES+=	ktutil-commands.c slc slc-lex.o \
 		ktutil-commands.h slc-gram.o stamp_grammar
 
 .include <bsd.prog.mk>
+${OBJS}: ktutil-commands.h

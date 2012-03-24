@@ -5,7 +5,7 @@ PROG=		iked
 SRCS=		ca.c chap_ms.c config.c control.c crypto.c dh.c \
 		eap.c iked.c ikev1.c ikev2.c ikev2_msg.c ikev2_pld.c \
 		log.c pfkey.c policy.c proc.c timer.c util.c imsg_util.c
-SRCS+=		${.OBJDIR}/eap_map.c ${.OBJDIR}/ikev2_map.c
+SRCS+=		eap_map.c ikev2_map.c
 SRCS+=		parse.y
 MAN=		iked.conf.5 iked.8
 #NOMAN=		yes

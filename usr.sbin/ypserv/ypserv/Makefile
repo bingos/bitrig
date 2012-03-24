@@ -21,6 +21,9 @@ CFLAGS+=-DDAEMON -DOPTDB -I${.CURDIR}/../common -I.
 all:	ypserv
 beforedepend:	${HDRS}
 ypv1.c: ypv1.h
+ypserv.o: ypv1.h
+ypserv_proc.o: ypv1.h
+
 
 
 ypv1.c: ypv1.x

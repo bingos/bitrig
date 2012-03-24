@@ -52,3 +52,4 @@ CLEANFILES+=	kadmin-commands.c slc lc-lex.o kadmin-commands.h \
 		slc-lex.o slc-gram.o
 
 .include <bsd.prog.mk>
+${OBJS}: kadmin-commands.h

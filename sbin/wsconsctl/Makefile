@@ -8,6 +8,7 @@ CPPFLAGS+=	-I${.CURDIR} -I.
 CLEANFILES+=	keysym.h y.tab.h
 
 beforedepend: keysym.h
+keysym.o: keysym.h
 
 keysym.h: mkkeysym.sh ${DESTDIR}/usr/include/dev/wscons/wsksymdef.h
 	sh ${.CURDIR}/mkkeysym.sh \

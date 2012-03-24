@@ -13,6 +13,7 @@ LINKS=	${BINDIR}/tset ${BINDIR}/reset
 MLINKS=	tset.1 reset.1
 
 beforedepend: termsort.c
+dump_entry.o: termsort.c
 
 termsort.c: ${TIC}/MKtermsort.sh
 	sh ${TIC}/MKtermsort.sh awk ${CURSES}/Caps > ${.TARGET}
