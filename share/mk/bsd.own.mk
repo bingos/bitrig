@@ -33,7 +33,8 @@ ELF_TOOLCHAIN?=	yes
 
 GCC2_ARCH=m68k m88k vax
 #GCC3_ARCH=sh
-GCC4_ARCH=alpha amd64 arm avr32 hppa hppa64 i386 ia64 mips64 mips64el powerpc sparc sparc64
+GCC4_ARCH=alpha arm avr32 hppa hppa64 i386 ia64 mips64 mips64el powerpc sparc sparc64
+CLANG_ARCH=amd64
 BINUTILS217_ARCH=avr32 hppa64 ia64
 
 .for _arch in ${MACHINE_ARCH}
@@ -42,6 +43,8 @@ USE_GCC3?=no
 COMPILER_VERSION?=gcc2
 .elif !empty(GCC4_ARCH:M${_arch})
 COMPILER_VERSION?=gcc4
+.elif !empty(CLANG_ARCH:M${_arch})
+COMPILER_VERSION?=clang
 .else
 USE_GCC3?=yes
 COMPILER_VERSION?=gcc3

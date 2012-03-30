@@ -31,25 +31,33 @@ SHLIB_MINOR=${minor}
 	@echo "${COMPILE.c} ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.c} ${.IMPSRC}  -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .c.go:
 	@echo "${COMPILE.c} -g ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.c} -g ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${TARGET:R}\).${TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .c.po:
 	@echo "${COMPILE.c} -p ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.c} -p ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .c.so:
 	@echo "${COMPILE.c} ${PICFLAG} -DPIC ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.c} ${PICFLAG} -DPIC ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .c.ln:
 	${LINT} ${LINTFLAGS} ${CFLAGS:M-[IDU]*} ${CPPFLAGS:M-[IDU]*} -i ${.IMPSRC}
@@ -58,25 +66,33 @@ SHLIB_MINOR=${minor}
 	@echo "${COMPILE.cc} ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .cc.go .C.go .cxx.go:
 	@echo "${COMPILE.cc} -g ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} -g ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .cc.po .C.po .cxx.po:
 	@echo "${COMPILE.cc} -p ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} -p ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d
 
 .cc.so .C.so .cxx.so:
 	@echo "${COMPILE.cc} ${PICFLAG} -DPIC ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} ${PICFLAG} -DPIC ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
-	@rm -f ${.TARGET}.o
+	@sed -e 's/\(${.TARGET:R}\).${.TARGET:E}.o/\1.o \1.so \1.go \1.po/' \
+	    < ${.TARGET}.d > ${.IMPSRC:R}.d
+	@rm -f ${.TARGET}.o ${.TARGET}.d 
 
 # Fortran 77
 .f.o:
@@ -224,18 +240,6 @@ clean: _SUBDIRUSE
 .endif
 
 cleandir: _SUBDIRUSE clean
-
-.if defined(SRCS)
-afterdepend: .depend
-	@(TMP=`mktemp -q /tmp/_dependXXXXXXXXXX`; \
-	if [ $$? -ne 0 ]; then \
-		echo "$$0: cannot create temp file, exiting..."; \
-		exit 1; \
-	fi; \
-	sed -e 's/^\([^\.]*\).o[ ]*:/\1.o \1.po \1.so:/' \
-	      < .depend > $$TMP; \
-	mv $$TMP .depend)
-.endif
 
 .if !target(install)
 .if !target(beforeinstall)
