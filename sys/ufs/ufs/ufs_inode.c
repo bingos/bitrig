@@ -45,11 +45,14 @@
 #include <sys/kernel.h>
 #include <sys/malloc.h>
 #include <sys/namei.h>
+#include <sys/specdev.h>
+#include <sys/wapbl.h>
 
 #include <ufs/ufs/quota.h>
 #include <ufs/ufs/inode.h>
 #include <ufs/ufs/ufsmount.h>
 #include <ufs/ufs/ufs_extern.h>
+#include <ufs/ufs/ufs_wapbl.h>
 #ifdef UFS_DIRHASH
 #include <ufs/ufs/dir.h>
 #include <ufs/ufs/dirhash.h>
@@ -67,12 +70,15 @@ ufs_inactive(void *v)
 	struct proc *p = curproc;
 	mode_t mode;
 	int error = 0;
+	int logged = 0;
 #ifdef DIAGNOSTIC
 	extern int prtactive;
 
 	if (prtactive && vp->v_usecount != 0)
 		vprint("ufs_inactive: pushing active", vp);
 #endif
+
+	UFS_WAPBL_JUNLOCK_ASSERT(vp->v_mount);
 
 	/*
 	 * Ignore inodes related to stale file handles.
@@ -81,9 +87,41 @@ ufs_inactive(void *v)
 		goto out;
 
 	if (DIP(ip, nlink) <= 0 && (vp->v_mount->mnt_flag & MNT_RDONLY) == 0) {
-		if (getinoquota(ip) == 0)
-			(void)ufs_quota_free_inode(ip, NOCRED);
-
+		/* XXX pedro: this seems to be in the wrong place */
+		if (getinoquota(ip) == 0) /* XXX */
+			(void)ufs_quota_free_inode(ip, NOCRED); /* XXX */
+		error = UFS_WAPBL_BEGIN(vp->v_mount);
+		if (error)
+			goto out;
+		logged = 1;
+                if (DIP(ip, size) != 0) {
+                        /*
+                         * When journaling, only truncate one indirect block
+                         * at a time
+                         */
+                        if (vp->v_mount->mnt_wapbl) {
+                                u_int64_t incr = MNINDIR(ip->i_ump) <<
+                                    MBSHIFT(ump); /* Power of 2 */
+                                u_int64_t base = NDADDR << MBSHIFT(ump);
+                                while (!error && DIP(ip, size) > base + incr) {
+                                        /*
+                                         * round down to next full indirect
+                                         * block boundary.
+                                         */
+                                        u_int64_t nsize = base +
+                                            ((DIP(ip, size) - base - 1) &
+                                            ~(incr - 1));
+                                        error = UFS_TRUNCATE(ip, nsize, 0,
+                                            NOCRED);
+                                        if (error)
+                                                break;
+                                        UFS_WAPBL_END(vp->v_mount);
+                                        error = UFS_WAPBL_BEGIN(vp->v_mount);
+                                        if (error)
+                                                goto out;
+                                }
+                        }
+		}
 		error = UFS_TRUNCATE(ip, (off_t)0, 0, NOCRED);
 
 		DIP_ASSIGN(ip, rdev, 0);
@@ -110,8 +148,16 @@ ufs_inactive(void *v)
 	}
 
 	if (ip->i_flag & (IN_ACCESS | IN_CHANGE | IN_MODIFIED | IN_UPDATE)) {
+		if (!logged++) {
+			int err;
+			err = UFS_WAPBL_BEGIN(vp->v_mount);
+			if (error)
+				goto out;
+		}
 		UFS_UPDATE(ip, 0);
 	}
+	if (logged)
+		UFS_WAPBL_END(vp->v_mount);
 out:
 	VOP_UNLOCK(vp, 0);
 
@@ -138,6 +184,13 @@ ufs_reclaim(struct vnode *vp, struct proc *p)
 	if (prtactive && vp->v_usecount != 0)
 		vprint("ufs_reclaim: pushing active", vp);
 #endif
+
+	/* XXX pedro: see netbsd r1.45 */
+	if (!UFS_WAPBL_BEGIN(vp->v_mount)) {
+		UFS_UPDATE(ip, 0);
+		UFS_WAPBL_END(vp->v_mount);
+	}
+	UFS_UPDATE(ip, 0);
 
 	/*
 	 * Remove the inode from its hash chain.
