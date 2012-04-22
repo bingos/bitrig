@@ -598,7 +598,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	if (mp->mnt_flag & MNT_UPDATE) {
 		vput(rvp);
 	} else {
-		VOP_UNLOCK(rvp, 0, curproc);
+		VOP_UNLOCK(rvp, 0);
 		vgone(rvp);
 	}
 	if (error != 0)
@@ -622,7 +622,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 		 */
 		DIP_ASSIGN(ip, nlink, 0);
 		ip->i_effnlink = 0;
-		VOP_UNLOCK(vp, 0, curproc);
+		VOP_UNLOCK(vp, 0);
 		vgone(vp);
 
 		return error;
@@ -632,7 +632,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	 * Now that we have the place-holder inode for the journal,
 	 * we don't need the vnode ever again.
 	 */
-	VOP_UNLOCK(vp, 0, curproc);
+	VOP_UNLOCK(vp, 0);
 	vgone(vp);
 
 	return 0;

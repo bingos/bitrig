@@ -81,7 +81,7 @@
 #include <sys/specdev.h>
 #include <sys/wapbl.h>
 
-#include <miscfs/fifofs/fifo.h>
+#include <sys/fifovnops.h>
 
 #include <ufs/ufs/quota.h>
 #include <ufs/ufs/inode.h>

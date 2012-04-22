@@ -628,20 +628,17 @@ wapbl_stop(struct wapbl *wl, int force)
 int
 wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 {
-	struct pstats *pstats;
 	struct buf iobuf;
 	int error;
 
 	KASSERT((flags & ~(B_WRITE | B_READ)) == 0);
 	KASSERT(devvp->v_type == VBLK);
 
-	pstats = curproc->p_stats;
-
 	if ((flags & B_READ) == 0) {
 		devvp->v_numoutput++;
-		pstats->p_ru.ru_oublock++;
+		curproc->p_ru.ru_oublock++;
 	} else {
-		pstats->p_ru.ru_inblock++;
+		curproc->p_ru.ru_inblock++;
 	}
 
 	bzero(&iobuf, sizeof(iobuf));
@@ -1750,7 +1747,7 @@ wapbl_cache_sync(struct wapbl *wl, const char *msg)
 		bintime(&start_time);
 	}
 	error = VOP_IOCTL(wl->wl_devvp, DIOCCACHESYNC, &force,
-	    FWRITE, FSCRED, curproc);
+	    FWRITE, FSCRED);
 	if (error) {
 		WAPBL_PRINTF(WAPBL_PRINT_ERROR,
 		    ("wapbl_cache_sync: DIOCCACHESYNC on dev 0x%x "

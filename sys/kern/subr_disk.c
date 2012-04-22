@@ -1603,7 +1603,7 @@ getdisksize(struct vnode *vp, u_int64_t *numsecp, unsigned *secsizep)
 	struct partinfo dpart;
 	int error;
 
-	error = VOP_IOCTL(vp, DIOCGPART, &dpart, FREAD, NOCRED, curproc);
+	error = VOP_IOCTL(vp, DIOCGPART, &dpart, FREAD, NOCRED);
 	if (error == 0) {
 		*secsizep = dpart.disklab->d_secsize;
 		*numsecp  = dpart.part->p_size;

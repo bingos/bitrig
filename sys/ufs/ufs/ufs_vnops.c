@@ -885,7 +885,7 @@ abortit:
 
 	error = UFS_WAPBL_BEGIN(fdvp->v_mount);
 	if (error) {
-		VOP_UNLOCK(fvp, 0, p);
+		VOP_UNLOCK(fvp, 0);
 		goto bad;
 	}
 	logged = 1;
