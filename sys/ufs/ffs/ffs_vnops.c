@@ -279,6 +279,13 @@ ffs_read(void *v)
 	if (!(vp->v_mount->mnt_flag & MNT_NOATIME) ||
 	    (ip->i_flag & (IN_CHANGE | IN_UPDATE))) {
 		ip->i_flag |= IN_ACCESS;
+		if ((ap->a_ioflag & IO_SYNC) == IO_SYNC) {
+			error = UFS_WAPBL_BEGIN(vp->v_mount);
+			if (error)
+				return (error);
+			error = UFS_UPDATE(vp, ip, MNT_WAIT);
+			UFS_WAPBL_END(vp->v_mount);
+		}
 	}
 	return (error);
 }
@@ -350,6 +357,12 @@ ffs_write(void *v)
 	    p->p_rlimit[RLIMIT_FSIZE].rlim_cur) {
 		psignal(p, SIGXFSZ);
 		return (EFBIG);
+	}
+
+	if ((ioflag & IO_JOURNALLOCKED) == 0) {
+		error = UFS_WAPBL_BEGIN(vp->v_mount);
+		if (error)
+			return (error);
 	}
 
 	resid = uio->uio_resid;
@@ -435,7 +448,12 @@ ffs_write(void *v)
 				 */
 				VOP_FSYNC(vp, NULL, MNT_WAIT);
 			}
-	}
+	} else
+		UFS_WAPBL_UPDATE(vp, ip, 0);
+
+	if ((ioflag & IO_JOURNALLOCKED) == 0)
+		UFS_WAPBL_END(vp->v_mount);
+
 	return (error);
 }
 
