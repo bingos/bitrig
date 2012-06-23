@@ -558,7 +558,7 @@ pci_intr_establish_flags(pci_chipset_tag_t pc, pci_intr_handle_t ih, int level,
 
 	if (ih.line & APIC_INT_VIA_MSG) {
 		return intr_establish(-1, &msi_pic, tag, IST_PULSE, level,
-		    func, arg, what);
+		    func, arg, what, flags);
 	}
 
 	pci_decompose_tag(pc, ih.tag, &bus, &dev, NULL);
