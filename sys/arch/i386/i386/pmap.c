@@ -1062,7 +1062,6 @@ pmap_alloc_pvpage(struct pmap *pmap, int mode)
 	struct vm_page *pg;
 	struct pv_page *pvpage;
 	struct pv_entry *pv;
-	int s;
 
 	/*
 	 * if we need_entry and we've got unused pv_pages, allocate from there
@@ -1093,12 +1092,10 @@ pmap_alloc_pvpage(struct pmap *pmap, int mode)
 	 * if not, try to allocate one.
 	 */
 
-	s = splvm();   /* must protect kmem_map with splvm! */
 	if (pv_cachedva == 0) {
 		pv_cachedva = (vaddr_t)km_alloc(NBPG, &kv_intrsafe, &kp_none,
 		    &kd_trylock);
 	}
-	splx(s);
 	if (pv_cachedva == 0)
 		return (NULL);
 
@@ -1253,12 +1250,10 @@ pmap_free_pvs(struct pmap *pmap, struct pv_entry *pvs)
 void
 pmap_free_pvpage(void)
 {
-	int s;
 	struct vm_map *map;
 	struct uvm_map_deadq dead_entries;
 	struct pv_page *pvp;
 
-	s = splvm(); /* protect kmem_map */
 	pvp = TAILQ_FIRST(&pv_unusedpgs);
 
 	/*
@@ -1290,7 +1285,6 @@ pmap_free_pvpage(void)
 		/* no more initpage, we've freed it */
 		pv_initpage = NULL;
 
-	splx(s);
 }
 
 /*
