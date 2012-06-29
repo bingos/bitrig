@@ -199,7 +199,7 @@
  * locking data structures
  */
 
-struct simplelock pvalloc_lock;
+struct mutex pvalloc_lock;
 struct mutex pmaps_lock;
 
 #define PMAP_MAP_TO_HEAD_LOCK()		/* null */
@@ -899,7 +899,7 @@ pmap_bootstrap(vaddr_t kva_start)
 	 * init the static-global locks and global lists.
 	 */
 
-	simple_lock_init(&pvalloc_lock);
+	mtx_init(&pvalloc_lock, IPL_NONE);
 	mtx_init(&pmaps_lock, IPL_NONE);
 	LIST_INIT(&pmaps);
 	TAILQ_INIT(&pv_freepages);
@@ -1009,7 +1009,7 @@ pmap_alloc_pv(struct pmap *pmap, int mode)
 	struct pv_page *pvpage;
 	struct pv_entry *pv;
 
-	simple_lock(&pvalloc_lock);
+	mtx_enter(&pvalloc_lock);
 
 	if (!TAILQ_EMPTY(&pv_freepages)) {
 		pvpage = TAILQ_FIRST(&pv_freepages);
@@ -1042,7 +1042,7 @@ pmap_alloc_pv(struct pmap *pmap, int mode)
 			(void) pmap_alloc_pvpage(pmap, ALLOCPV_NONEED);
 	}
 
-	simple_unlock(&pvalloc_lock);
+	mtx_leave(&pvalloc_lock);
 	return(pv);
 }
 
@@ -1063,6 +1063,7 @@ pmap_alloc_pvpage(struct pmap *pmap, int mode)
 	struct pv_page *pvpage;
 	struct pv_entry *pv;
 
+	MUTEX_ASSERT_LOCKED(&pvalloc_lock);
 	/*
 	 * if we need_entry and we've got unused pv_pages, allocate from there
 	 */
@@ -1132,6 +1133,8 @@ pmap_add_pvpage(struct pv_page *pvp, boolean_t need_entry)
 {
 	int tofree, lcv;
 
+	MUTEX_ASSERT_LOCKED(&pvalloc_lock);
+
 	/* do we need to return one? */
 	tofree = (need_entry) ? PVE_PER_PVPAGE - 1 : PVE_PER_PVPAGE;
 
@@ -1162,6 +1165,8 @@ void
 pmap_free_pv_doit(struct pv_entry *pv)
 {
 	struct pv_page *pvp;
+
+	MUTEX_ASSERT_LOCKED(&pvalloc_lock);
 
 	pvp = (struct pv_page*)trunc_page((vaddr_t)pv);
 	pv_nfpvents++;
@@ -1195,7 +1200,7 @@ pmap_free_pv_doit(struct pv_entry *pv)
 void
 pmap_free_pv(struct pmap *pmap, struct pv_entry *pv)
 {
-	simple_lock(&pvalloc_lock);
+	mtx_enter(&pvalloc_lock);
 	pmap_free_pv_doit(pv);
 
 	/*
@@ -1206,7 +1211,7 @@ pmap_free_pv(struct pmap *pmap, struct pv_entry *pv)
 	    pmap != pmap_kernel())
 		pmap_free_pvpage();
 
-	simple_unlock(&pvalloc_lock);
+	mtx_leave(&pvalloc_lock);
 }
 
 /*
@@ -1220,7 +1225,7 @@ pmap_free_pvs(struct pmap *pmap, struct pv_entry *pvs)
 {
 	struct pv_entry *nextpv;
 
-	simple_lock(&pvalloc_lock);
+	mtx_enter(&pvalloc_lock);
 
 	for ( /* null */ ; pvs != NULL ; pvs = nextpv) {
 		nextpv = pvs->pv_next;
@@ -1235,7 +1240,7 @@ pmap_free_pvs(struct pmap *pmap, struct pv_entry *pvs)
 	    pmap != pmap_kernel())
 		pmap_free_pvpage();
 
-	simple_unlock(&pvalloc_lock);
+	mtx_leave(&pvalloc_lock);
 }
 
 
@@ -1253,6 +1258,8 @@ pmap_free_pvpage(void)
 	struct vm_map *map;
 	struct uvm_map_deadq dead_entries;
 	struct pv_page *pvp;
+
+	MUTEX_ASSERT_LOCKED(&pvalloc_lock);
 
 	pvp = TAILQ_FIRST(&pv_unusedpgs);
 
