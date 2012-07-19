@@ -22,7 +22,7 @@ FILES=	a.out.h ar.h assert.h bitstring.h blf.h bm.h bsd_auth.h \
 	stdbool.h stddef.h stdio.h stdlib.h \
 	string.h strings.h struct.h sysexits.h tar.h tgmath.h \
 	time.h ttyent.h tzfile.h unistd.h utime.h utmp.h vis.h \
-	wchar.h wctype.h
+	wchar.h wctype.h xlocale.h
 
 FILES+=	link.h link_aout.h link_elf.h
 
@@ -33,7 +33,7 @@ FILES+= ieeefp.h
 MFILES=	frame.h
 LFILES=	fcntl.h syslog.h termios.h stdarg.h stdint.h varargs.h
 
-DIRS=	arpa protocols rpc rpcsvc
+DIRS=	arpa protocols rpc rpcsvc xlocale
 LDIRS=	altq crypto ddb dev isofs msdosfs net netinet netinet6 \
 	netmpls netnatm net80211 netbt nfs scsi sys ufs uvm
 
