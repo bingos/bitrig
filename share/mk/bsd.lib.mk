@@ -25,7 +25,7 @@ SHLIB_MINOR=${minor}
 # .so used for PIC object files.
 # .m for objective c files.
 .SUFFIXES:
-.SUFFIXES: .out .o .go .po .so .S .s .c .cc .C .cxx .f .y .l .m4 .m
+.SUFFIXES: .out .o .go .po .so .S .s .c .cc .C .cxx .cpp .f .y .l .m4 .m
 
 .c.o:
 	@echo "${COMPILE.c} ${.IMPSRC} -o ${.TARGET}"
@@ -51,25 +51,25 @@ SHLIB_MINOR=${minor}
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
 	@rm -f ${.TARGET}.o
 
-.cc.o .C.o .cxx.o:
+.cc.o .C.o .cxx.o .cpp.o:
 	@echo "${COMPILE.cc} ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
 	@rm -f ${.TARGET}.o
 
-.cc.go .C.go .cxx.go:
+.cc.go .C.go .cxx.go .cpp.go:
 	@echo "${COMPILE.cc} -g ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} -g ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
 	@rm -f ${.TARGET}.o
 
-.cc.po .C.po .cxx.po:
+.cc.po .C.po .cxx.po .cpp.po:
 	@echo "${COMPILE.cc} -p ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} -p ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
 	@rm -f ${.TARGET}.o
 
-.cc.so .C.so .cxx.so:
+.cc.so .C.so .cxx.so .cpp.so:
 	@echo "${COMPILE.cc} ${PICFLAG} -DPIC ${.IMPSRC} -o ${.TARGET}"
 	@${COMPILE.cc} ${PICFLAG} -DPIC ${.IMPSRC} -o ${.TARGET}.o
 	@${LD} -X -r ${.TARGET}.o -o ${.TARGET}
