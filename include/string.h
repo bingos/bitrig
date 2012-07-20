@@ -123,7 +123,11 @@ size_t	 strlcpy(char *, const char *, size_t)
 void	 strmode(int, char *);
 char	*strsep(char **, const char *);
 int	 timingsafe_bcmp(const void *, const void *, size_t);
-#endif 
+#endif
+
+#if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)
+#include <xlocale/_string.h>
+#endif
 __END_DECLS
 
 #endif /* _STRING_H_ */

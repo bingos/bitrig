@@ -150,6 +150,10 @@ time_t timelocal(struct tm *);
 time_t timegm(struct tm *);
 time_t timeoff(struct tm *, const long);
 #endif
+
+#if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)
+#include <xlocale/_time.h>
+#endif
 __END_DECLS
 
 #endif /* !_TIME_H_ */

@@ -202,6 +202,12 @@ __END_DECLS
  * Functions defined in ANSI C standard.
  */
 __BEGIN_DECLS
+#ifdef _XLOCALE_H_
+#include <xlocale/_stdio.h>
+#endif
+/*
+ * Functions defined in ANSI C standard.
+ */
 void	 clearerr(FILE *);
 int	 fclose(FILE *);
 int	 feof(FILE *);

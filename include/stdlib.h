@@ -97,6 +97,10 @@ extern size_t	__mb_cur_max;
 #endif
 
 __BEGIN_DECLS
+#ifdef _XLOCALE_H_
+#include <xlocale/_stdlib.h>
+#endif
+
 __dead void	 abort(void);
 int	 abs(int);
 int	 atexit(void (*)(void));

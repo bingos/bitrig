@@ -204,6 +204,10 @@ int wscanf(const wchar_t * __restrict, ...);
 #define getwchar() getwc(stdin)
 #define putwc(wc, f) fputwc((wc), (f))
 #define putwchar(wc) putwc((wc), stdout)
+
+#if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)
+#include <xlocale/_wchar.h>
+#endif
 __END_DECLS
 
 #endif /* !_WCHAR_H_ */

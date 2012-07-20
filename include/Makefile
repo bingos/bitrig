@@ -10,14 +10,14 @@
 .include <bsd.own.mk>
 
 # Missing: mp.h
-FILES=	a.out.h ar.h assert.h bitstring.h blf.h bm.h bsd_auth.h \
+FILES=	_ctype.h a.out.h ar.h assert.h bitstring.h blf.h bm.h bsd_auth.h \
 	complex.h cpio.h ctype.h curses.h db.h dbm.h des.h dirent.h disktab.h \
 	dlfcn.h elf_abi.h err.h errno.h fenv.h float.h fnmatch.h fstab.h fts.h \
 	ftw.h getopt.h glob.h grp.h ifaddrs.h inttypes.h iso646.h kvm.h \
 	langinfo.h libgen.h limits.h locale.h login_cap.h malloc.h math.h md4.h \
 	md5.h memory.h mpool.h ndbm.h netdb.h netgroup.h nlist.h nl_types.h \
 	ohash.h paths.h poll.h pwd.h ranlib.h re_comp.h \
-	readpassphrase.h regex.h resolv.h rmd160.h search.h setjmp.h \
+	readpassphrase.h regex.h resolv.h rmd160.h runetype.h search.h setjmp.h \
 	sgtty.h sha1.h sha2.h signal.h sndio.h spawn.h stab.h \
 	stdbool.h stddef.h stdio.h stdlib.h \
 	string.h strings.h struct.h sysexits.h tar.h tgmath.h \
