@@ -82,11 +82,6 @@ typedef struct {
 
 #define	RAND_MAX	0x7fffffff
 
-extern size_t	__mb_cur_max;
-#define	MB_CUR_MAX	__mb_cur_max
-
-#include <sys/cdefs.h>
-
 /*
  * Some header files may define an abs macro.
  * If defined, undef it to prevent a syntax error and issue a warning.
@@ -100,6 +95,9 @@ __BEGIN_DECLS
 #ifdef _XLOCALE_H_
 #include <xlocale/_stdlib.h>
 #endif
+extern int __mb_cur_max;
+extern int ___mb_cur_max(void);
+#define MB_CUR_MAX      (___mb_cur_max())
 
 __dead void	 abort(void);
 int	 abs(int);

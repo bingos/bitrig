@@ -41,7 +41,7 @@ __FBSDID("$FreeBSD$");
 #include "lnumeric.h"
 #include "lmessages.h"
 #include "lmonetary.h"
-/* #include "../stdtime/timelocal.h" */
+#include "time/timelocal.h"
 
 #define _REL(BASE) ((int)item-BASE)
 
