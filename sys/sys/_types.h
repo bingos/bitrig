@@ -59,6 +59,7 @@ typedef	__uint32_t	__useconds_t;	/* microseconds */
 typedef	__int32_t	__suseconds_t;	/* microseconds (signed) */
 typedef __uint64_t	__fsblkcnt_t;	/* file system block count */
 typedef __uint64_t	__fsfilcnt_t;	/* file system file count */
+typedef int		__nl_item;
 
 /*
  * Unusual type definitions.
