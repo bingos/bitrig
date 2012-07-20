@@ -35,6 +35,8 @@
 #include <sys/cdefs.h>
 #include <machine/_types.h>
 
+#include <_ctype.h>
+
 #ifndef	_WINT_T_DEFINED_
 #define	_WINT_T_DEFINED_
 typedef	__wint_t    wint_t;
