@@ -514,7 +514,7 @@ extern void memcpy_D2A ANSI((void*, const void*, size_t));
 #define	dtoa		__dtoa
 #define	gdtoa		__gdtoa
 #define	freedtoa	__freedtoa
-#define	strtodg		__strtodg
+//#define	strtodg		__strtodg
 #define	g_ddfmt		__g_ddfmt
 #define	g_dfmt		__g_dfmt
 #define	g_ffmt		__g_ffmt

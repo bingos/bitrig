@@ -154,14 +154,18 @@ MLINKS+=memchr.3 memrchr.3
 MLINKS+=stpcpy.3 stpncpy.3
 MLINKS+=strchr.3 index.3
 MLINKS+=strrchr.3 rindex.3
-MLINKS+=strcasecmp.3 strncasecmp.3
+MLINKS+=strcasecmp.3 strncasecmp.3 \
+	strcasecmp.3 strcasecmp_l.3 \
+	strcasecmp.3 strncasecmp_l.3
 MLINKS+=strcat.3 strncat.3
 MLINKS+=strcmp.3 strncmp.3
 MLINKS+=strcpy.3 strncpy.3
 MLINKS+=strdup.3 strndup.3
 MLINKS+=strlcpy.3 strlcat.3
 MLINKS+=strlen.3 strnlen.3
-MLINKS+=strstr.3 strcasestr.3
+MLINKS+=strstr.3 strcasestr.3 \
+	strstr.3 strnstr.3 \
+	strstr.3 strcasestr_l.3
 MLINKS+=strtok.3 strtok_r.3
 MLINKS+=strerror.3 strerror_r.3
 MLINKS+=wcscasecmp.3 wcsncasecmp.3

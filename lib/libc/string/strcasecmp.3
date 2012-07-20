@@ -1,5 +1,3 @@
-.\"	$OpenBSD: strcasecmp.3,v 1.11 2011/07/25 00:38:52 schwarze Exp $
-.\"
 .\" Copyright (c) 1990, 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -13,7 +11,7 @@
 .\" 2. Redistributions in binary form must reproduce the above copyright
 .\"    notice, this list of conditions and the following disclaimer in the
 .\"    documentation and/or other materials provided with the distribution.
-.\" 3. Neither the name of the University nor the names of its contributors
+.\" 4. Neither the name of the University nor the names of its contributors
 .\"    may be used to endorse or promote products derived from this software
 .\"    without specific prior written permission.
 .\"
@@ -30,31 +28,58 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)strcasecmp.3	8.1 (Berkeley) 6/9/93
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: July 25 2011 $
+.Dd June 9, 1993
 .Dt STRCASECMP 3
 .Os
 .Sh NAME
 .Nm strcasecmp ,
 .Nm strncasecmp
 .Nd compare strings, ignoring case
+.Sh LIBRARY
+.Lb libc
 .Sh SYNOPSIS
-.Fd #include <string.h>
+.In strings.h
 .Ft int
 .Fn strcasecmp "const char *s1" "const char *s2"
 .Ft int
 .Fn strncasecmp "const char *s1" "const char *s2" "size_t len"
+.In string.h
+.In xlocale.h
+.Ft int
+.Fn strcasecmp_l "const char *s1" "const char *s2" "locale_t loc"
+.Ft int
+.Fn strncasecmp_l "const char *s1" "const char *s2" "site_t len" "locale_t loc"
 .Sh DESCRIPTION
 The
 .Fn strcasecmp
 and
 .Fn strncasecmp
-functions compare the NUL-terminated strings
+functions
+compare the null-terminated strings
 .Fa s1
 and
-.Fa s2
-and return an integer greater than, equal to, or less than 0,
-according to whether
+.Fa s2 .
+.Pp
+The
+.Fn strncasecmp
+function compares at most
+.Fa len
+characters.
+The
+.Fn strcasecmp_l
+and
+.Fn strncasecmp_l
+functions do the same as their non-locale versions above, but take an
+explicit locale rather than using the current locale.
+.Sh RETURN VALUES
+The functions
+.Fn strcasecmp
+and
+.Fn strncasecmp
+return an integer greater than, equal to, or less than 0,
+depending on whether
 .Fa s1
 is lexicographically greater than, equal to, or less than
 .Fa s2
@@ -64,29 +89,30 @@ The comparison is done using unsigned characters, so that
 .Sq Li \e200
 is greater than
 .Ql \e0 .
-.Pp
-.Fn strncasecmp
-compares at most
-.Fa len
-characters.
+The functions
+.Fn strcasecmp_l
+and
+.Fn strncasecmp_l
+do the same but take explicit locales.
 .Sh SEE ALSO
 .Xr bcmp 3 ,
 .Xr memcmp 3 ,
 .Xr strcmp 3 ,
 .Xr strcoll 3 ,
 .Xr strxfrm 3 ,
+.Xr tolower 3 ,
 .Xr wcscasecmp 3
-.Sh STANDARDS
-The
-.Fn strcasecmp
-and
-.Fn strncasecmp
-functions conform to
-.St -p1003.1-2008 .
 .Sh HISTORY
 The
 .Fn strcasecmp
 and
 .Fn strncasecmp
 functions first appeared in
-.Bx 4.3 Tahoe .
+.Bx 4.4 .
+Their prototypes existed previously in
+.In string.h
+before they were moved to
+.In strings.h
+for
+.St -p1003.1-2001
+compliance.

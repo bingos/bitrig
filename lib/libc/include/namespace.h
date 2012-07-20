@@ -16,3 +16,8 @@
 #define vwarnx		_vwarnx
 #define warn		_warn
 #define warnx		_warnx
+
+#define fstat		_fstat
+#define read		_read
+#define open		_open
+#define close		_close
