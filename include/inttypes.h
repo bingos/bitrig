@@ -252,6 +252,9 @@ typedef struct {
 } imaxdiv_t;
 
 __BEGIN_DECLS
+#ifdef _XLOCALE_H_
+#include <xlocale/_inttypes.h>
+#endif
 intmax_t	imaxabs(intmax_t);
 imaxdiv_t	imaxdiv(intmax_t, intmax_t);
 intmax_t	strtoimax(const char *, char **, int);

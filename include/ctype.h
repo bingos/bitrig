@@ -1,14 +1,14 @@
-/*	$OpenBSD: ctype.h,v 1.22 2010/10/01 20:10:24 guenther Exp $	*/
-/*	$NetBSD: ctype.h,v 1.14 1994/10/26 00:55:47 cgd Exp $	*/
-
 /*
- * Copyright (c) 1989 The Regents of the University of California.
- * All rights reserved.
+ * Copyright (c) 1989, 1993
+ *	The Regents of the University of California.  All rights reserved.
  * (c) UNIX System Laboratories, Inc.
  * All or some portions of this file are derived from material licensed
  * to the University of California by American Telephone and Telegraph
  * Co. or Unix System Laboratories, Inc. and are reproduced herein with
  * the permission of UNIX System Laboratories, Inc.
+ *
+ * This code is derived from software contributed to Berkeley by
+ * Paul Borman at Krystal Technologies.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,30 +34,18 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)ctype.h	5.3 (Berkeley) 4/3/91
+ *	@(#)ctype.h	8.4 (Berkeley) 1/21/94
+ *      $FreeBSD$
  */
 
 #ifndef _CTYPE_H_
-#define _CTYPE_H_
+#define	_CTYPE_H_
 
 #include <sys/cdefs.h>
-
-#define	_U	0x01
-#define	_L	0x02
-#define	_N	0x04
-#define	_S	0x08
-#define	_P	0x10
-#define	_C	0x20
-#define	_X	0x40
-#define	_B	0x80
+#include <sys/_types.h>
+#include <_ctype.h>
 
 __BEGIN_DECLS
-
-extern const char	*_ctype_;
-extern const short	*_tolower_tab_;
-extern const short	*_toupper_tab_;
-
-#if defined(__GNUC__) || defined(_ANSI_LIBRARY) || defined(lint)
 int	isalnum(int);
 int	isalpha(int);
 int	iscntrl(int);
@@ -72,123 +60,76 @@ int	isxdigit(int);
 int	tolower(int);
 int	toupper(int);
 
-#if __BSD_VISIBLE || __ISO_C_VISIBLE >= 1999 || __POSIX_VISIBLE > 200112 \
-    || __XPG_VISIBLE > 600
+#if __XSI_VISIBLE
+int	isascii(int);
+int	toascii(int);
+#endif
+
+#if __ISO_C_VISIBLE >= 1999
 int	isblank(int);
 #endif
 
-#if __BSD_VISIBLE || __XPG_VISIBLE
-int	isascii(int);
-int	toascii(int);
-int	_tolower(int);
-int	_toupper(int);
-#endif /* __BSD_VISIBLE || __XPG_VISIBLE */
-
-#endif /* __GNUC__ || _ANSI_LIBRARY || lint */
-
-#if !defined(_ANSI_LIBRARY) && !defined(lint)
-
-__only_inline int isalnum(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & (_U|_L|_N)));
-}
-
-__only_inline int isalpha(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & (_U|_L)));
-}
-
-__only_inline int iscntrl(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & _C));
-}
-
-__only_inline int isdigit(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & _N));
-}
-
-__only_inline int isgraph(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & (_P|_U|_L|_N)));
-}
-
-__only_inline int islower(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & _L));
-}
-
-__only_inline int isprint(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & (_P|_U|_L|_N|_B)));
-}
-
-__only_inline int ispunct(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & _P));
-}
-
-__only_inline int isspace(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & _S));
-}
-
-__only_inline int isupper(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & _U));
-}
-
-__only_inline int isxdigit(int c)
-{
-	return (c == -1 ? 0 : ((_ctype_ + 1)[(unsigned char)c] & (_N|_X)));
-}
-
-__only_inline int tolower(int c)
-{
-	if ((unsigned int)c > 255)
-		return (c);
-	return ((_tolower_tab_ + 1)[c]);
-}
-
-__only_inline int toupper(int c)
-{
-	if ((unsigned int)c > 255)
-		return (c);
-	return ((_toupper_tab_ + 1)[c]);
-}
-
-#if __BSD_VISIBLE || __ISO_C_VISIBLE >= 1999 || __POSIX_VISIBLE > 200112 \
-    || __XPG_VISIBLE > 600
-__only_inline int isblank(int c)
-{
-	return (c == ' ' || c == '\t');
-}
+#if __BSD_VISIBLE
+int	digittoint(int);
+int	ishexnumber(int);
+int	isideogram(int);
+int	isnumber(int);
+int	isphonogram(int);
+int	isrune(int);
+int	isspecial(int);
 #endif
 
-#if __BSD_VISIBLE || __XPG_VISIBLE
-__only_inline int isascii(int c)
-{
-	return ((unsigned int)c <= 0177);
-}
-
-__only_inline int toascii(int c)
-{
-	return (c & 0177);
-}
-
-__only_inline int _tolower(int c)
-{
-	return (c - 'A' + 'a');
-}
-
-__only_inline int _toupper(int c)
-{
-	return (c - 'a' + 'A');
-}
-#endif /* __BSD_VISIBLE || __XPG_VISIBLE */
-
-#endif /* !_ANSI_LIBRARY && !lint */
-
+#if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)
+#include <xlocale/_ctype.h>
+#endif
 __END_DECLS
+
+#ifndef __cplusplus
+#define	isalnum(c)	__sbistype((c), _CTYPE_A|_CTYPE_D)
+#define	isalpha(c)	__sbistype((c), _CTYPE_A)
+#define	iscntrl(c)	__sbistype((c), _CTYPE_C)
+#define	isdigit(c)	__isctype((c), _CTYPE_D) /* ANSI -- locale independent */
+#define	isgraph(c)	__sbistype((c), _CTYPE_G)
+#define	islower(c)	__sbistype((c), _CTYPE_L)
+#define	isprint(c)	__sbistype((c), _CTYPE_R)
+#define	ispunct(c)	__sbistype((c), _CTYPE_P)
+#define	isspace(c)	__sbistype((c), _CTYPE_S)
+#define	isupper(c)	__sbistype((c), _CTYPE_U)
+#define	isxdigit(c)	__isctype((c), _CTYPE_X) /* ANSI -- locale independent */
+#define	tolower(c)	__sbtolower(c)
+#define	toupper(c)	__sbtoupper(c)
+#endif /* !__cplusplus */
+
+#if __XSI_VISIBLE
+/*
+ * POSIX.1-2001 specifies _tolower() and _toupper() to be macros equivalent to
+ * tolower() and toupper() respectively, minus extra checking to ensure that
+ * the argument is a lower or uppercase letter respectively.  We've chosen to
+ * implement these macros with the same error checking as tolower() and
+ * toupper() since this doesn't violate the specification itself, only its
+ * intent.  We purposely leave _tolower() and _toupper() undocumented to
+ * discourage their use.
+ *
+ * XXX isascii() and toascii() should similarly be undocumented.
+ */
+#define	_tolower(c)	__sbtolower(c)
+#define	_toupper(c)	__sbtoupper(c)
+#define	isascii(c)	(((c) & ~0x7F) == 0)
+#define	toascii(c)	((c) & 0x7F)
+#endif
+
+#if __ISO_C_VISIBLE >= 1999 && !defined(__cplusplus)
+#define	isblank(c)	__sbistype((c), _CTYPE_B)
+#endif
+
+#if __BSD_VISIBLE
+#define	digittoint(c)	__sbmaskrune((c), 0xFF)
+#define	ishexnumber(c)	__sbistype((c), _CTYPE_X)
+#define	isideogram(c)	__sbistype((c), _CTYPE_I)
+#define	isnumber(c)	__sbistype((c), _CTYPE_D)
+#define	isphonogram(c)	__sbistype((c), _CTYPE_Q)
+#define	isrune(c)	__sbistype((c), 0xFFFFFF00L)
+#define	isspecial(c)	__sbistype((c), _CTYPE_T)
+#endif
 
 #endif /* !_CTYPE_H_ */

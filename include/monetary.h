@@ -1,9 +1,6 @@
 /*-
- * Copyright (c) 2011, 2012 The FreeBSD Foundation
+ * Copyright (c) 2001 Alexey Zelkin <phantom@FreeBSD.org>
  * All rights reserved.
- *
- * This software was developed by David Chisnall under sponsorship from
- * the FreeBSD Foundation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,17 +26,27 @@
  * $FreeBSD$
  */
 
-#ifndef _LOCALE_T_DEFINED
-#define _LOCALE_T_DEFINED
-typedef struct	_xlocale *locale_t;
+#ifndef _MONETARY_H_
+#define	_MONETARY_H_
+
+#include <sys/cdefs.h>
+#include <sys/_types.h>
+
+#ifndef _SIZE_T_DECLARED
+typedef	__size_t	size_t;
+#define	_SIZE_T_DECLARED
 #endif
 
-#if __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_)
-#ifndef _XLOCALE_MONETARY_H
-#define _XLOCALE_MONETARY_H
+#ifndef _SSIZE_T_DECLARED
+typedef	__ssize_t	ssize_t;
+#define	_SSIZE_T_DECLARED
+#endif
 
-ssize_t strfmon_l(char *, size_t, locale_t, const char *, ...)
-    __strfmonlike(4, 5);
+__BEGIN_DECLS
+#ifdef _XLOCALE_H_
+#include <xlocale/_monetary.h>
+#endif
+ssize_t	strfmon(char * __restrict, size_t, const char * __restrict, ...);
+__END_DECLS
 
-#endif /* _XLOCALE_MONETARY_H */
-#endif /* __POSIX_VISIBLE >= 200809 || defined(_XLOCALE_H_) */
+#endif /* !_MONETARY_H_ */

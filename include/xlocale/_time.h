@@ -42,14 +42,8 @@ typedef struct	_xlocale *locale_t;
 #ifndef _XLOCALE_LOCALE1_H
 #define _XLOCALE_LOCALE1_H
 
-/* 
- * The below function had __strftimelike(3, 0) afterward--this is a
- * compiler-optimization macro that FreeBSD used. It is removed here
- * for simplicity of introducing FreeBSD's locale to Bitrig.
- * - Andrew Morgan (atmorgan)
- */
 size_t	 strftime_l(char * __restrict, size_t, const char * __restrict,
-	    const struct tm * __restrict, locale_t);
+	    const struct tm * __restrict, locale_t) __strftimelike(3, 0);
 
 #endif /* _XLOCALE_LOCALE1_H */
 
