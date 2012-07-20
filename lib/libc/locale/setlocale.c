@@ -52,7 +52,7 @@ __FBSDID("$FreeBSD$");
 #include "lmessages.h"	/* for __messages_load_locale() */
 #include "setlocale.h"
 #include "ldpart.h"
-// #include "../stdtime/timelocal.h" /* for __time_load_locale() */
+#include "time/timelocal.h" /* for __time_load_locale() */
 
 /*
  * Category names for getenv()
