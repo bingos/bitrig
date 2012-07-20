@@ -13,7 +13,7 @@ LIB=c
 LINTFLAGS=-z
 CLEANFILES+=tags
 #CFLAGS+=-Werror
-CFLAGS+=-D__NO_TLS
+CFLAGS+=-D__NO_TLS -D__FBSDID\(x\)=""
 
 LIBCSRCDIR=${.CURDIR}
 .include "${LIBCSRCDIR}/Makefile.inc"
