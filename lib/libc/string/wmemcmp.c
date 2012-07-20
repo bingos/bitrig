@@ -1,6 +1,3 @@
-/*	$OpenBSD: wmemcmp.c,v 1.4 2005/08/08 08:05:37 espie Exp $	*/
-/*	$NetBSD: wmemcmp.c,v 1.3 2003/04/06 18:33:23 tshiozak Exp $	*/
-
 /*-
  * Copyright (c)1999 Citrus Project,
  * All rights reserved.
@@ -29,8 +26,15 @@
  *	citrus Id: wmemcmp.c,v 1.2 2000/12/20 14:08:31 itojun Exp
  */
 
+#include <sys/cdefs.h>
+#if 0
+#if defined(LIBC_SCCS) && !defined(lint)
+__RCSID("$NetBSD: wmemcmp.c,v 1.1 2000/12/23 23:14:37 itojun Exp $");
+#endif /* LIBC_SCCS and not lint */
+#endif
+__FBSDID("$FreeBSD$");
+
 #include <wchar.h>
-#include <runetype.h>
 
 int
 wmemcmp(const wchar_t *s1, const wchar_t *s2, size_t n)
@@ -40,8 +44,7 @@ wmemcmp(const wchar_t *s1, const wchar_t *s2, size_t n)
 	for (i = 0; i < n; i++) {
 		if (*s1 != *s2) {
 			/* wchar might be unsigned */
-			return *(const rune_t *)s1 >
-			       *(const rune_t *)s2 ? 1 : -1;
+			return *s1 > *s2 ? 1 : -1; 
 		}
 		s1++;
 		s2++;

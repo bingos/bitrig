@@ -1,6 +1,3 @@
-/*	$OpenBSD: wcsncmp.c,v 1.4 2005/08/08 08:05:37 espie Exp $	*/
-/*	$NetBSD: wcsncmp.c,v 1.5 2003/08/07 16:43:54 agc Exp $	*/
-
 /*
  * Copyright (c) 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -13,7 +10,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -30,8 +27,16 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
+#if 0
+#if defined(LIBC_SCCS) && !defined(lint)
+static char sccsid[] = "@(#)strncmp.c	8.1 (Berkeley) 6/4/93";
+__RCSID("$NetBSD: wcsncmp.c,v 1.3 2001/01/05 12:13:13 itojun Exp $");
+#endif /* LIBC_SCCS and not lint */
+#endif
+__FBSDID("$FreeBSD$");
+
 #include <wchar.h>
-#include <runetype.h>
 
 int
 wcsncmp(const wchar_t *s1, const wchar_t *s2, size_t n)
@@ -42,8 +47,8 @@ wcsncmp(const wchar_t *s1, const wchar_t *s2, size_t n)
 	do {
 		if (*s1 != *s2++) {
 			/* XXX assumes wchar_t = int */
-			return (*(const rune_t *)s1 -
-			    *(const rune_t *)--s2);
+			return (*(const unsigned int *)s1 -
+			    *(const unsigned int *)--s2);
 		}
 		if (*s1++ == 0)
 			break;
