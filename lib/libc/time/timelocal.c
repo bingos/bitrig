@@ -35,7 +35,7 @@ __FBSDID("$FreeBSD$");
 
 #include <stddef.h>
 
-#include "ldpart.h"
+#include "locale/ldpart.h"
 #include "timelocal.h"
 
 struct xlocale_time {
