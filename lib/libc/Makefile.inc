@@ -7,7 +7,7 @@
 all:
 	@echo "need to define LIBCSRCDIR" >&2; exit 1
 .endif
-CFLAGS+= -D__NO_TLS
+
 CFLAGS+= -I${LIBCSRCDIR}/include -D__NO_TLS
 
 # Include link-time warnings about unsafe API uses (ie. strcpy)
