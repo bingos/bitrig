@@ -30,7 +30,7 @@
  */
 
 #include <wchar.h>
-#include "locale/runetype.h"
+#include <runetype.h>
 
 int
 wmemcmp(const wchar_t *s1, const wchar_t *s2, size_t n)

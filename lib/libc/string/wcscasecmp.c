@@ -27,7 +27,7 @@
 
 #include <wchar.h>
 #include <wctype.h>
-#include "locale/runetype.h"
+#include <runetype.h>
 
 int
 wcscasecmp(const wchar_t *s1, const wchar_t *s2)

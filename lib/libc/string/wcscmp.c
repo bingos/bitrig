@@ -34,7 +34,7 @@
  */
 
 #include <wchar.h>
-#include "locale/runetype.h"
+#include <runetype.h>
 
 /*
  * Compare strings.
