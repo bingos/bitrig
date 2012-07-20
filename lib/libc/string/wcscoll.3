@@ -30,54 +30,79 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)strcoll.3	8.1 (Berkeley) 6/4/93
+.\" FreeBSD: src/lib/libc/string/strcoll.3,v 1.11 2001/10/01 16:09:00 ru Exp
 .\" $FreeBSD$
 .\"
-.Dd June 4, 1993
-.Dt STRCOLL 3
+.Dd October 4, 2002
+.Dt WCSCOLL 3
 .Os
 .Sh NAME
-.Nm strcoll
-.Nd compare strings according to current collation
+.Nm wcscoll
+.Nd compare wide strings according to current collation
 .Sh LIBRARY
 .Lb libc
 .Sh SYNOPSIS
-.In string.h
+.In wchar.h
 .Ft int
-.Fn strcoll "const char *s1" "const char *s2"
-.Ft int
-.Fn strcoll_l "const char *s1" "const char *s2" "locale_t loc"
+.Fn wcscoll "const wchar_t *s1" "const wchar_t *s2"
 .Sh DESCRIPTION
 The
-.Fn strcoll
-function
-lexicographically compares the null-terminated strings
+.Fn wcscoll
+function compares the null-terminated strings
 .Fa s1
 and
 .Fa s2
-according to the current locale collation
-and returns an integer greater than, equal to, or less than 0,
-depending on whether
+according to the current locale collation order.
+In the
+.Dq Li C
+locale,
+.Fn wcscoll
+is equivalent to
+.Fn wcscmp .
+.Sh RETURN VALUES
+The
+.Fn wcscoll
+function
+returns an integer greater than, equal to, or less than 0,
+if
 .Fa s1
 is greater than, equal to, or less than
 .Fa s2 .
-If information about the current locale collation is not available,
-the value of
-.Fn strcmp s1 s2
-is returned.
+.Pp
+No return value is reserved to indicate errors;
+callers should set
+.Va errno
+to 0 before calling
+.Fn wcscoll .
+If it is non-zero upon return from
+.Fn wcscoll ,
+an error has occurred.
+.Sh ERRORS
 The
-.Fn strcoll_l
-function uses an explicit locale argument rather than the system locale.
+.Fn wcscoll
+function will fail if:
+.Bl -tag -width Er
+.It Bq Er EILSEQ
+An invalid wide character code was specified.
+.It Bq Er ENOMEM
+Cannot allocate enough memory for temporary buffers.
+.El
 .Sh SEE ALSO
 .Xr setlocale 3 ,
-.Xr strcmp 3 ,
-.Xr strxfrm 3 ,
-.Xr wcscoll 3
+.Xr strcoll 3 ,
+.Xr wcscmp 3 ,
+.Xr wcsxfrm 3
 .Sh STANDARDS
 The
-.Fn strcoll
-function conforms to
-.St -isoC .
-The
-.Fn strcoll_l
-function conforms to
-.St -p1003.1-2008 .
+.Fn wcscoll
+function
+conforms to
+.St -isoC-99 .
+.Sh BUGS
+The current implementation of
+.Fn wcscoll
+only works in single-byte
+.Dv LC_CTYPE
+locales, and falls back to using
+.Fn wcscmp
+in locales with extended character sets.

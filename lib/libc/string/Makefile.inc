@@ -7,7 +7,7 @@ SRCS+=	bm.c memccpy.c memrchr.c stpcpy.c stpncpy.c \
 	strcasecmp.c strcasestr.c strcoll.c strdup.c \
 	strerror.c strerror_r.c strlcat.c strmode.c strndup.c strnlen.c \
 	strsignal.c strtok.c strxfrm.c \
-	wcscat.c wcschr.c wcscmp.c wcscpy.c wcscspn.c wcslcat.c wcslcpy.c \
+	wcscat.c wcschr.c wcscmp.c wcscoll.c wcscpy.c wcscspn.c wcslcat.c wcslcpy.c \
 	wcslen.c wcsncat.c wcsncmp.c wcsncpy.c wcspbrk.c wcsrchr.c wcsspn.c \
 	wcsstr.c wcstok.c wcswcs.c wcswidth.c wmemchr.c wmemcmp.c wmemcpy.c \
 	wmemmove.c wmemset.c wcsdup.c \
@@ -146,7 +146,7 @@ MAN+=	bm.3 bcmp.3 bcopy.3 bstring.3 bzero.3 ffs.3 memccpy.3 memchr.3 \
 	string.3 strlen.3 strmode.3 strdup.3 strpbrk.3 strrchr.3 strsep.3 \
 	strsignal.3 strspn.3 strstr.3 strtok.3 strxfrm.3 swab.3 strlcpy.3 \
 	wcscasecmp.3 wcscat.3 wcschr.3 wcscmp.3 wcscpy.3 wcscspn.3 wcsdup.3 \
-	wcslcpy.3 wcslen.3 wcspbrk.3 wcsrchr.3 wcsspn.3 wcsstr.3 wcstok.3 \
+	wcscoll.3 wcslcpy.3 wcslen.3 wcspbrk.3 wcsrchr.3 wcsspn.3 wcsstr.3 wcstok.3 \
 	wcswidth.3 wmemchr.3 wmemcmp.3 wmemcpy.3 wmemmove.3 wmemset.3
 
 MLINKS+=bm.3 bm_comp.3 bm.3 bm_exec.3 bm.3 bm_free.3
@@ -170,3 +170,4 @@ MLINKS+=wcscmp.3 wcsncmp.3
 MLINKS+=wcscpy.3 wcsncpy.3
 MLINKS+=wcslcpy.3 wcslcat.3
 MLINKS+=bcmp.3 timingsafe_bcmp.3
+MLINKS+=strcoll.3 strcoll_l.3

@@ -1,7 +1,11 @@
-/* $OpenBSD: strtoll.c,v 1.6 2005/11/10 10:00:17 espie Exp $ */
 /*-
- * Copyright (c) 1992 The Regents of the University of California.
+ * Copyright (c) 1992, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Copyright (c) 2011 The FreeBSD Foundation
  * All rights reserved.
+ * Portions of this software were developed by David Chisnall
+ * under sponsorship from the FreeBSD Foundation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,7 +15,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -28,26 +32,34 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/types.h>
+#if defined(LIBC_SCCS) && !defined(lint)
+static char sccsid[] = "@(#)strtoq.c	8.1 (Berkeley) 6/4/93";
+#endif /* LIBC_SCCS and not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
 
-#include <ctype.h>
-#include <errno.h>
 #include <limits.h>
+#include <errno.h>
+#include <ctype.h>
 #include <stdlib.h>
+#include "locale/xlocale_private.h"
 
 /*
- * Convert a string to a long long.
+ * Convert a string to a long long integer.
  *
- * Ignores `locale' stuff.  Assumes that the upper and lower case
+ * Assumes that the upper and lower case
  * alphabets and digits are each contiguous.
  */
 long long
-strtoll(const char *nptr, char **endptr, int base)
+strtoll_l(const char * __restrict nptr, char ** __restrict endptr, int base,
+		locale_t locale)
 {
 	const char *s;
-	long long acc, cutoff;
-	int c;
+	unsigned long long acc;
+	char c;
+	unsigned long long cutoff;
 	int neg, any, cutlim;
+	FIX_LOCALE(locale);
 
 	/*
 	 * Skip white space and pick up leading +/- sign if any.
@@ -56,8 +68,8 @@ strtoll(const char *nptr, char **endptr, int base)
 	 */
 	s = nptr;
 	do {
-		c = (unsigned char) *s++;
-	} while (isspace(c));
+		c = *s++;
+	} while (isspace_l((unsigned char)c, locale));
 	if (c == '-') {
 		neg = 1;
 		c = *s++;
@@ -67,13 +79,19 @@ strtoll(const char *nptr, char **endptr, int base)
 			c = *s++;
 	}
 	if ((base == 0 || base == 16) &&
-	    c == '0' && (*s == 'x' || *s == 'X')) {
+	    c == '0' && (*s == 'x' || *s == 'X') &&
+	    ((s[1] >= '0' && s[1] <= '9') ||
+	    (s[1] >= 'A' && s[1] <= 'F') ||
+	    (s[1] >= 'a' && s[1] <= 'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;
 	}
 	if (base == 0)
 		base = c == '0' ? 8 : 10;
+	acc = any = 0;
+	if (base < 2 || base > 36)
+		goto noconv;
 
 	/*
 	 * Compute the cutoff value between legal numbers and illegal
@@ -82,7 +100,7 @@ strtoll(const char *nptr, char **endptr, int base)
 	 * followed by a legal input character, is too big.  One that
 	 * is equal to this value may be valid or not; the limit
 	 * between valid and invalid numbers is then based on the last
-	 * digit.  For instance, if the range for long longs is
+	 * digit.  For instance, if the range for quads is
 	 * [-9223372036854775808..9223372036854775807] and the input base
 	 * is 10, cutoff will be set to 922337203685477580 and cutlim to
 	 * either 7 (neg==0) or 8 (neg==1), meaning that if we have
@@ -90,64 +108,46 @@ strtoll(const char *nptr, char **endptr, int base)
 	 * next digit is > 7 (or 8), the number is too big, and we will
 	 * return a range error.
 	 *
-	 * Set any if any `digits' consumed; make it negative to indicate
+	 * Set 'any' if any `digits' consumed; make it negative to indicate
 	 * overflow.
 	 */
-	cutoff = neg ? LLONG_MIN : LLONG_MAX;
+	cutoff = neg ? (unsigned long long)-(LLONG_MIN + LLONG_MAX) + LLONG_MAX
+	    : LLONG_MAX;
 	cutlim = cutoff % base;
 	cutoff /= base;
-	if (neg) {
-		if (cutlim > 0) {
-			cutlim -= base;
-			cutoff += 1;
-		}
-		cutlim = -cutlim;
-	}
-	for (acc = 0, any = 0;; c = (unsigned char) *s++) {
-		if (isdigit(c))
+	for ( ; ; c = *s++) {
+		if (c >= '0' && c <= '9')
 			c -= '0';
-		else if (isalpha(c))
-			c -= isupper(c) ? 'A' - 10 : 'a' - 10;
+		else if (c >= 'A' && c <= 'Z')
+			c -= 'A' - 10;
+		else if (c >= 'a' && c <= 'z')
+			c -= 'a' - 10;
 		else
 			break;
 		if (c >= base)
 			break;
-		if (any < 0)
-			continue;
-		if (neg) {
-			if (acc < cutoff || (acc == cutoff && c > cutlim)) {
-				any = -1;
-				acc = LLONG_MIN;
-				errno = ERANGE;
-			} else {
-				any = 1;
-				acc *= base;
-				acc -= c;
-			}
-		} else {
-			if (acc > cutoff || (acc == cutoff && c > cutlim)) {
-				any = -1;
-				acc = LLONG_MAX;
-				errno = ERANGE;
-			} else {
-				any = 1;
-				acc *= base;
-				acc += c;
-			}
+		if (any < 0 || acc > cutoff || (acc == cutoff && c > cutlim))
+			any = -1;
+		else {
+			any = 1;
+			acc *= base;
+			acc += c;
 		}
 	}
-	if (endptr != 0)
-		*endptr = (char *) (any ? s - 1 : nptr);
+	if (any < 0) {
+		acc = neg ? LLONG_MIN : LLONG_MAX;
+		errno = ERANGE;
+	} else if (!any) {
+noconv:
+		errno = EINVAL;
+	} else if (neg)
+		acc = -acc;
+	if (endptr != NULL)
+		*endptr = (char *)(any ? s - 1 : nptr);
 	return (acc);
 }
-
-#ifdef __weak_alias
-__weak_alias(strtoq, strtoll);
-#else
-quad_t
-strtoq(const char *nptr, char **endptr, int base)
+long long
+strtoll(const char * __restrict nptr, char ** __restrict endptr, int base)
 {
-
-        return ((quad_t)strtoll(nptr, endptr, base));
+	return strtoll_l(nptr, endptr, base, __get_locale());
 }
-#endif

@@ -29,6 +29,8 @@ THIS SOFTWARE.
 /* Please send bug reports to David M. Gay (dmg at acm dot org,
  * with " at " changed at "@" and " dot " changed to ".").	*/
 
+/* $FreeBSD$ */
+
 #include "gdtoaimp.h"
 #ifndef NO_FENV_H
 #include <fenv.h>
@@ -80,11 +82,11 @@ sulp
 #endif /*}*/
 
  double
-strtod
+strtod_l
 #ifdef KR_headers
-	(s00, se) CONST char *s00; char **se;
+	(s00, se, loc) CONST char *s00; char **se; locale_t loc
 #else
-	(CONST char *s00, char **se)
+	(CONST char *s00, char **se, locale_t loc)
 #endif
 {
 #ifdef Avoid_Underflow
@@ -97,7 +99,7 @@ strtod
 	Long L;
 	U adj, aadj1, rv, rv0;
 	ULong y, z;
-	Bigint *bb = NULL, *bb1, *bd = NULL, *bd0 = NULL, *bs = NULL, *delta = NULL;
+	Bigint *bb, *bb1, *bd, *bd0, *bs, *delta;
 #ifdef Avoid_Underflow
 	ULong Lsb, Lsb1;
 #endif
@@ -106,16 +108,16 @@ strtod
 #endif
 #ifdef USE_LOCALE /*{{*/
 #ifdef NO_LOCALE_CACHE
-	char *decimalpoint = localeconv()->decimal_point;
+	char *decimalpoint = localeconv_l(loc)->decimal_point;
 	int dplen = strlen(decimalpoint);
 #else
 	char *decimalpoint;
 	static char *decimalpoint_cache;
 	static int dplen;
 	if (!(s0 = decimalpoint_cache)) {
-		s0 = localeconv()->decimal_point;
+		s0 = localeconv_l(loc)->decimal_point;
 		if ((decimalpoint_cache = (char*)MALLOC(strlen(s0) + 1))) {
-			strlcpy(decimalpoint_cache, s0, strlen(s0) + 1);
+			strcpy(decimalpoint_cache, s0);
 			s0 = decimalpoint_cache;
 			}
 		dplen = strlen(s0);
@@ -180,8 +182,6 @@ strtod
 #define fpi1 fpi
 #endif
 			switch((i = gethex(&s, &fpi1, &exp, &bb, sign)) & STRTOG_Retmask) {
-			  case STRTOG_NoMemory:
-				goto ovfl;
 			  case STRTOG_NoNumber:
 				s = s00;
 				sign = 0;
@@ -317,7 +317,7 @@ strtod
 					if (*s == '(' /*)*/
 					 && hexnan(&s, &fpinan, bits)
 							== STRTOG_NaNbits) {
-						word0(&rv) = 0x7ff00000 | bits[1];
+						word0(&rv) = 0x7ff80000 | bits[1];
 						word1(&rv) = bits[0];
 						}
 					else {
@@ -355,6 +355,7 @@ strtod
 #endif
 		dval(&rv) = tens[k - 9] * dval(&rv) + z;
 		}
+	bd0 = 0;
 	if (nd <= DBL_DIG
 #ifndef RND_PRODQUOT
 #ifndef Honor_FLT_ROUNDS
@@ -574,20 +575,12 @@ strtod
 	/* Put digits into bd: true value = bd * 10^e */
 
 	bd0 = s2b(s0, nd0, nd, y, dplen);
-	if (bd0 == NULL)
-		goto ovfl;
 
 	for(;;) {
 		bd = Balloc(bd0->k);
-		if (bd == NULL)
-			goto ovfl;
 		Bcopy(bd, bd0);
 		bb = d2b(dval(&rv), &bbe, &bbbits);	/* rv = bb * 2^bbe */
-		if (bb == NULL)
-			goto ovfl;
 		bs = i2b(1);
-		if (bs == NULL)
-			goto ovfl;
 
 		if (e >= 0) {
 			bb2 = bb5 = 0;
@@ -651,37 +644,19 @@ strtod
 			}
 		if (bb5 > 0) {
 			bs = pow5mult(bs, bb5);
-			if (bs == NULL)
-				goto ovfl;
 			bb1 = mult(bs, bb);
-			if (bb1 == NULL)
-				goto ovfl;
 			Bfree(bb);
 			bb = bb1;
 			}
-		if (bb2 > 0) {
+		if (bb2 > 0)
 			bb = lshift(bb, bb2);
-			if (bb == NULL)
-				goto ovfl;
-			}
-		if (bd5 > 0) {
+		if (bd5 > 0)
 			bd = pow5mult(bd, bd5);
-			if (bd == NULL)
-				goto ovfl;
-			}
-		if (bd2 > 0) {
+		if (bd2 > 0)
 			bd = lshift(bd, bd2);
-			if (bd == NULL)
-				goto ovfl;
-			}
-		if (bs2 > 0) {
+		if (bs2 > 0)
 			bs = lshift(bs, bs2);
-			if (bs == NULL)
-				goto ovfl;
-			}
 		delta = diff(bb, bd);
-		if (delta == NULL)
-			goto ovfl;
 		dsign = delta->sign;
 		delta->sign = 0;
 		i = cmp(delta, bs);
@@ -714,8 +689,6 @@ strtod
 #endif
 						  {
 						  delta = lshift(delta,Log2P);
-						  if (delta == NULL)
-							goto ovfl;
 						  if (cmp(delta, bs) <= 0)
 							dval(&adj) = -0.5;
 						  }
@@ -808,8 +781,6 @@ strtod
 				break;
 				}
 			delta = lshift(delta,Log2P);
-			if (delta == NULL)
-				goto ovfl;
 			if (cmp(delta, bs) > 0)
 				goto drop_down;
 			break;
@@ -995,7 +966,7 @@ strtod
 				dval(&rv0) = dval(&rv);
 				word0(&rv) += P*Exp_msk1;
 				dval(&adj) = dval(&aadj1) * ulp(&rv);
-				dval(&rv) += dval(&adj);
+				dval(&rv) += adj;
 #ifdef IBM
 				if ((word0(&rv) & Exp_mask) <  P*Exp_msk1)
 #else
@@ -1014,7 +985,7 @@ strtod
 				}
 			else {
 				dval(&adj) = dval(&aadj1) * ulp(&rv);
-				dval(&rv) += dval(&adj);
+				dval(&rv) += adj;
 				}
 #else /*Sudden_Underflow*/
 			/* Compute dval(&adj) so that the IEEE rounding rules will
@@ -1102,4 +1073,15 @@ strtod
 		*se = (char *)s;
 	return sign ? -dval(&rv) : dval(&rv);
 	}
+
+ double
+strtod
+#ifdef KR_headers
+	(s00, se, loc) CONST char *s00; char **se; locale_t
+#else
+	(CONST char *s00, char **se)
+#endif
+{
+	return strtod_l(s00, se, __get_locale());
+}
 

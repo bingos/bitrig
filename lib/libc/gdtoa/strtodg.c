@@ -80,8 +80,6 @@ increment(Bigint *b)
 	{
 		if (b->wds >= b->maxwds) {
 			b1 = Balloc(b->k+1);
-			if (b1 == NULL)
-				return (NULL);
 			Bcopy(b1,b);
 			Bfree(b);
 			b = b1;
@@ -156,8 +154,6 @@ set_ones(Bigint *b, int n)
 	if (b->k < k) {
 		Bfree(b);
 		b = Balloc(k);
-		if (b == NULL)
-			return (NULL);
 		}
 	k = n >> kshift;
 	if (n &= kmask)
@@ -187,10 +183,6 @@ rvOK
 
 	carry = rv = 0;
 	b = d2b(dval(d), &e, &bdif);
-	if (b == NULL) {
-		*irv = STRTOG_NoMemory;
-		return (1);
-	}
 	bdif -= nb = fpi->nbits;
 	e += bdif;
 	if (bdif <= 0) {
@@ -243,10 +235,6 @@ rvOK
 		if (carry) {
 			inex = STRTOG_Inexhi;
 			b = increment(b);
-			if (b == NULL) {
-				*irv = STRTOG_NoMemory;
-				return (1);
-				}
 			if ( (j = nb & kmask) !=0)
 				j = ULbits - j;
 			if (hi0bits(b->x[b->wds - 1]) != j) {
@@ -257,13 +245,8 @@ rvOK
 				}
 			}
 		}
-	else if (bdif < 0) {
+	else if (bdif < 0)
 		b = lshift(b, -bdif);
-		if (b == NULL) {
-			*irv = STRTOG_NoMemory;
-			return (1);
-			}
-		}
 	if (e < fpi->emin) {
 		k = fpi->emin - e;
 		e = fpi->emin;
@@ -283,10 +266,6 @@ rvOK
 			*irv = STRTOG_Denormal;
 			if (carry) {
 				b = increment(b);
-				if (b == NULL) {
-					*irv = STRTOG_NoMemory;
-					return (1);
-					}
 				inex = STRTOG_Inexhi | STRTOG_Underflow;
 				}
 			else if (lostbits)
@@ -334,12 +313,12 @@ mantbits(U *d)
 	}
 
  int
-strtodg
+strtodg_l
 #ifdef KR_headers
-	(s00, se, fpi, exp, bits)
-	CONST char *s00; char **se; FPI *fpi; Long *exp; ULong *bits;
+	(s00, se, fpi, exp, bits, loc)
+	CONST char *s00; char **se; FPI *fpi; Long *exp; ULong *bits; locale_t loc;
 #else
-	(CONST char *s00, char **se, FPI *fpi, Long *exp, ULong *bits)
+	(CONST char *s00, char **se, FPI *fpi, Long *exp, ULong *bits, locale_t loc)
 #endif
 {
 	int abe, abits, asub;
@@ -355,16 +334,16 @@ strtodg
 	Bigint *ab, *bb, *bb1, *bd, *bd0, *bs, *delta, *rvb, *rvb0;
 #ifdef USE_LOCALE /*{{*/
 #ifdef NO_LOCALE_CACHE
-	char *decimalpoint = localeconv()->decimal_point;
+	char *decimalpoint = localeconv_l(loc)->decimal_point;
 	int dplen = strlen(decimalpoint);
 #else
 	char *decimalpoint;
 	static char *decimalpoint_cache;
 	static int dplen;
 	if (!(s0 = decimalpoint_cache)) {
-		s0 = localeconv()->decimal_point;
+		s0 = localeconv_l(loc)->decimal_point;
 		if ((decimalpoint_cache = (char*)MALLOC(strlen(s0) + 1))) {
-			strlcpy(decimalpoint_cache, s0, strlen(s0) + 1);
+			strcpy(decimalpoint_cache, s0);
 			s0 = decimalpoint_cache;
 			}
 		dplen = strlen(s0);
@@ -410,8 +389,6 @@ strtodg
 		  case 'x':
 		  case 'X':
 			irv = gethex(&s, fpi, exp, &rvb, sign);
-			if (irv == STRTOG_NoMemory)
-				return (STRTOG_NoMemory);
 			if (irv == STRTOG_NoNumber) {
 				s = s00;
 				sign = 0;
@@ -577,11 +554,8 @@ strtodg
 	bd0 = 0;
 	if (nbits <= P && nd <= DBL_DIG) {
 		if (!e) {
-			if (rvOK(&rv, fpi, exp, bits, 1, rd, &irv)) {
-				if (irv == STRTOG_NoMemory)
-					return (STRTOG_NoMemory);
+			if (rvOK(&rv, fpi, exp, bits, 1, rd, &irv))
 				goto ret;
-				}
 			}
 		else if (e > 0) {
 			if (e <= Ten_pmax) {
@@ -590,11 +564,8 @@ strtodg
 #else
 				i = fivesbits[e] + mantbits(&rv) <= P;
 				/* rv = */ rounded_product(dval(&rv), tens[e]);
-				if (rvOK(&rv, fpi, exp, bits, i, rd, &irv)) {
-					if (irv == STRTOG_NoMemory)
-						return (STRTOG_NoMemory);
+				if (rvOK(&rv, fpi, exp, bits, i, rd, &irv))
 					goto ret;
-					}
 				e1 -= e;
 				goto rv_notOK;
 #endif
@@ -623,22 +594,16 @@ strtodg
 #else
 				/* rv = */ rounded_product(dval(&rv), tens[e2]);
 #endif
-				if (rvOK(&rv, fpi, exp, bits, 0, rd, &irv)) {
-					if (irv == STRTOG_NoMemory)
-						return (STRTOG_NoMemory);
+				if (rvOK(&rv, fpi, exp, bits, 0, rd, &irv))
 					goto ret;
-					}
 				e1 -= e2;
 				}
 			}
 #ifndef Inaccurate_Divide
 		else if (e >= -Ten_pmax) {
 			/* rv = */ rounded_quotient(dval(&rv), tens[-e]);
-			if (rvOK(&rv, fpi, exp, bits, 0, rd, &irv)) {
-				if (irv == STRTOG_NoMemory)
-					return (STRTOG_NoMemory);
+			if (rvOK(&rv, fpi, exp, bits, 0, rd, &irv))
 				goto ret;
-				}
 			e1 -= e;
 			}
 #endif
@@ -701,8 +666,6 @@ strtodg
 	e2 <<= 2;
 #endif
 	rvb = d2b(dval(&rv), &rve, &rvbits);	/* rv = rvb * 2^rve */
-	if (rvb == NULL)
-		return (STRTOG_NoMemory);
 	rve += e2;
 	if ((j = rvbits - nbits) > 0) {
 		rshift(rvb, j);
@@ -719,8 +682,6 @@ strtodg
 		j = rve - emin;
 		if (j > 0) {
 			rvb = lshift(rvb, j);
-			if (rvb == NULL)
-				return (STRTOG_NoMemory);
 			rvbits += j;
 			}
 		else if (j < 0) {
@@ -749,23 +710,15 @@ strtodg
 	/* Put digits into bd: true value = bd * 10^e */
 
 	bd0 = s2b(s0, nd0, nd, y, dplen);
-	if (bd0 == NULL)
-		return (STRTOG_NoMemory);
 
 	for(;;) {
 		bd = Balloc(bd0->k);
-		if (bd == NULL)
-			return (STRTOG_NoMemory);
 		Bcopy(bd, bd0);
 		bb = Balloc(rvb->k);
-		if (bb == NULL)
-			return (STRTOG_NoMemory);
 		Bcopy(bb, rvb);
 		bbbits = rvbits - bb0;
 		bbe = rve + bb0;
 		bs = i2b(1);
-		if (bs == NULL)
-			return (STRTOG_NoMemory);
 
 		if (e >= 0) {
 			bb2 = bb5 = 0;
@@ -796,42 +749,24 @@ strtodg
 			}
 		if (bb5 > 0) {
 			bs = pow5mult(bs, bb5);
-			if (bs == NULL)
-				return (STRTOG_NoMemory);
 			bb1 = mult(bs, bb);
-			if (bb1 == NULL)
-				return (STRTOG_NoMemory);
 			Bfree(bb);
 			bb = bb1;
 			}
 		bb2 -= bb0;
-		if (bb2 > 0) {
+		if (bb2 > 0)
 			bb = lshift(bb, bb2);
-			if (bb == NULL)
-				return (STRTOG_NoMemory);
-			}
 		else if (bb2 < 0)
 			rshift(bb, -bb2);
-		if (bd5 > 0) {
+		if (bd5 > 0)
 			bd = pow5mult(bd, bd5);
-			if (bd == NULL)
-				return (STRTOG_NoMemory);
-			}
-		if (bd2 > 0) {
+		if (bd2 > 0)
 			bd = lshift(bd, bd2);
-			if (bd == NULL)
-				return (STRTOG_NoMemory);
-			}
-		if (bs2 > 0) {
+		if (bs2 > 0)
 			bs = lshift(bs, bs2);
-			if (bs == NULL)
-				return (STRTOG_NoMemory);
-			}
 		asub = 1;
 		inex = STRTOG_Inexhi;
 		delta = diff(bb, bd);
-		if (delta == NULL)
-			return (STRTOG_NoMemory);
 		if (delta->wds <= 1 && !delta->x[0])
 			break;
 		dsign = delta->sign;
@@ -857,8 +792,6 @@ strtodg
 					goto adj1;
 				rve = rve1 - 1;
 				rvb = set_ones(rvb, rvbits = nbits);
-				if (rvb == NULL)
-					return (STRTOG_NoMemory);
 				break;
 				}
 			irv |= dsign ? STRTOG_Inexlo : STRTOG_Inexhi;
@@ -874,8 +807,6 @@ strtodg
 			if (dsign || bbbits > 1 || denorm || rve1 == emin)
 				break;
 			delta = lshift(delta,1);
-			if (delta == NULL)
-				return (STRTOG_NoMemory);
 			if (cmp(delta, bs) > 0) {
 				irv = STRTOG_Normal | STRTOG_Inexlo;
 				goto drop_down;
@@ -908,8 +839,6 @@ strtodg
 					}
 				rve -= nbits;
 				rvb = set_ones(rvb, rvbits = nbits);
-				if (rvb == NULL)
-					return (STRTOG_NoMemory);
 				break;
 				}
 			else
@@ -918,8 +847,6 @@ strtodg
 				break;
 			if (dsign) {
 				rvb = increment(rvb);
-				if (rvb == NULL)
-					return (STRTOG_NoMemory);
 				j = kmask & (ULbits - (rvbits & kmask));
 				if (hi0bits(rvb->x[rvb->wds - 1]) != j)
 					rvbits++;
@@ -984,28 +911,19 @@ strtodg
 
 		if (!denorm && rvbits < nbits) {
 			rvb = lshift(rvb, j = nbits - rvbits);
-			if (rvb == NULL)
-				return (STRTOG_NoMemory);
 			rve -= j;
 			rvbits = nbits;
 			}
 		ab = d2b(dval(&adj), &abe, &abits);
-		if (ab == NULL)
-			return (STRTOG_NoMemory);
 		if (abe < 0)
 			rshift(ab, -abe);
-		else if (abe > 0) {
+		else if (abe > 0)
 			ab = lshift(ab, abe);
-			if (ab == NULL)
-				return (STRTOG_NoMemory);
-			}
 		rvb0 = rvb;
 		if (asub) {
 			/* rv -= adj; */
 			j = hi0bits(rvb->x[rvb->wds-1]);
 			rvb = diff(rvb, ab);
-			if (rvb == NULL)
-				return (STRTOG_NoMemory);
 			k = rvb0->wds - 1;
 			if (denorm)
 				/* do nothing */;
@@ -1019,8 +937,6 @@ strtodg
 					}
 				else {
 					rvb = lshift(rvb, 1);
-					if (rvb == NULL)
-						return (STRTOG_NoMemory);
 					--rve;
 					--rve1;
 					L = finished = 0;
@@ -1029,8 +945,6 @@ strtodg
 			}
 		else {
 			rvb = sum(rvb, ab);
-			if (rvb == NULL)
-				return (STRTOG_NoMemory);
 			k = rvb->wds - 1;
 			if (k >= rvb0->wds
 			 || hi0bits(rvb->x[k]) < hi0bits(rvb0->x[k])) {
@@ -1074,11 +988,8 @@ strtodg
 		Bfree(delta);
 		}
 	if (!denorm && (j = nbits - rvbits)) {
-		if (j > 0) {
+		if (j > 0)
 			rvb = lshift(rvb, j);
-			if (rvb == NULL)
-				return (STRTOG_NoMemory);
-			}
 		else
 			rshift(rvb, -j);
 		rve -= j;

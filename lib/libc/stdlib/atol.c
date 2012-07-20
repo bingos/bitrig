@@ -1,7 +1,11 @@
-/*	$OpenBSD: atol.c,v 1.5 2005/08/08 08:05:36 espie Exp $ */
 /*
- * Copyright (c) 1988 Regents of the University of California.
+ * Copyright (c) 1988, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Copyright (c) 2011 The FreeBSD Foundation
  * All rights reserved.
+ * Portions of this software were developed by David Chisnall
+ * under sponsorship from the FreeBSD Foundation.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,7 +15,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -28,10 +32,26 @@
  * SUCH DAMAGE.
  */
 
+#if defined(LIBC_SCCS) && !defined(lint)
+static char sccsid[] = "@(#)atol.c	8.1 (Berkeley) 6/4/93";
+#endif /* LIBC_SCCS and not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <stdlib.h>
+#include <xlocale.h>
 
 long
-atol(const char *str)
+atol(str)
+	const char *str;
 {
-	return(strtol(str, (char **)NULL, 10));
+	return strtol(str, (char **)NULL, 10);
+}
+
+long
+atol_l(str, locale)
+	const char *str;
+	locale_t locale;
+{
+	return strtol_l(str, (char **)NULL, 10, locale);
 }
