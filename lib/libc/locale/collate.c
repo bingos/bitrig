@@ -71,7 +71,7 @@ struct xlocale_collate __xlocale_global_collate = {
 	{{0}, "C"}, 1, 0
 };
 
-void __collate_err(int ex, const char *f) __dead2;
+void __collate_err(int ex, const char *f) __dead;
 
 int
 __collate_load_tables_l(const char *encoding, struct xlocale_collate *table);
@@ -305,7 +305,7 @@ __collate_strdup(u_char *s)
 }
 
 void
-__collate_err(int ex, const char *f)
+__collate_err(int ex, const char *f) __dead
 {
 	const char *s;
 	int serrno = errno;
