@@ -218,6 +218,30 @@
 #define	__packed
 #endif
 
+/*
+ * Compiler-dependent macros to declare that functions take printf-like
+ * or scanf-like arguments.  They are null except for versions of gcc
+ * that are known to support the features properly (old versions of gcc-2
+ * didn't permit keeping the keywords out of the application namespace).
+ */
+#if !__GNUC_PREREQ__(2, 7) && !defined(__INTEL_COMPILER)
+#define __printflike(fmtarg, firstvararg)
+#define __scanflike(fmtarg, firstvararg)
+#define __format_arg(fmtarg)
+#define __strfmonlike(fmtarg, firstvararg)
+#define __strftimelike(fmtarg, firstvararg)
+#else
+#define __printflike(fmtarg, firstvararg) \
+    __attribute__((__format__ (__printf__, fmtarg, firstvararg)))
+#define __scanflike(fmtarg, firstvararg) \
+__attribute__((__format__ (__scanf__, fmtarg, firstvararg)))
+#define __format_arg(fmtarg)    __attribute__((__format_arg__ (fmtarg)))
+#define __strfmonlike(fmtarg, firstvararg) \
+    __attribute__((__format__ (__strfmon__, fmtarg, firstvararg)))
+#define __strftimelike(fmtarg, firstvararg) \
+    __attribute__((__format__ (__strftime__, fmtarg, firstvararg)))
+#endif
+
 #if !__GNUC_PREREQ__(2, 8)
 #define	__extension__
 #endif
