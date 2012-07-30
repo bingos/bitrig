@@ -29,25 +29,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)ldef.h	8.1 (Berkeley) 6/6/93
- *	$FreeBSD$
+ * $FreeBSD$
  */
 
-#include <sys/types.h>
-#include "runefile.h"
-
-/*
- * This should look a LOT like a _RuneEntry
- */
-typedef struct rune_list {
-    int32_t		min;
-    int32_t 		max;
-    int32_t 		map;
-    uint32_t		*types;
-    struct rune_list	*next;
-} rune_list;
-
-typedef struct rune_map {
-    uint32_t		map[_CACHED_RUNES];
-    rune_list		*root;
-} rune_map;
+int yylex(void);
