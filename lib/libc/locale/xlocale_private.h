@@ -64,7 +64,7 @@ enum {
  */
 struct xlocale_refcounted {
 	/** Number of references to this component.  */
-	long retain_count;
+	volatile u_long retain_count;
 	/** Function used to destroy this component, if one is required*/
 	void(*destructor)(void*);
 };
