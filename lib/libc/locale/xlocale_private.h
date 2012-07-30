@@ -136,7 +136,8 @@ __attribute__((unused)) static void*
 xlocale_retain(void *val)
 {
 	struct xlocale_refcounted *obj = val;
-	atomic_add_long(&(obj->retain_count), 1);
+	//atomic_add_long(&(obj->retain_count), 1);
+	obj->retain_count++;
 	return (val);
 }
 /**
@@ -147,7 +148,8 @@ __attribute__((unused)) static void
 xlocale_release(void *val)
 {
 	struct xlocale_refcounted *obj = val;
-	long count = atomic_fetchadd_long(&(obj->retain_count), -1) - 1;
+	//long count = atomic_fetchadd_long(&(obj->retain_count), -1) - 1;
+	long count = --obj->retain_count;
 	if (count < 0) {
 		if (0 != obj->destructor) {
 			obj->destructor(obj);

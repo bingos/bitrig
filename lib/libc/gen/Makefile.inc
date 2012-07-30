@@ -25,6 +25,9 @@ SRCS+=  alarm.c assert.c auth_subr.c authenticate.c \
         utime.c valloc.c vis.c wait.c wait3.c waitpid.c warn.c \
         warnx.c vwarn.c vwarnx.c verr.c verrx.c
 
+# pthread indirection stub
+SRCS+=  _once_stub.c
+
 # indirect reference stubs, to be removed soon.
 SRCS+=	_sys_errlist.c _sys_nerr.c _sys_siglist.c
 

@@ -36,6 +36,9 @@
 #ifndef	_RUNETYPE_H_
 #define	_RUNETYPE_H_
 
+/* XXX XXX XXX REMOVE THIS AT SOME POINT!!!!! */
+#define __NO_TLS
+
 #include <sys/cdefs.h>
 #include <sys/_types.h>
 

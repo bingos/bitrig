@@ -110,13 +110,17 @@ static void*(*constructors[])(const char*, locale_t) =
 	__messages_load
 };
 
+#if defined (__FreeBSD__)
 static pthread_key_t locale_info_key;
+#else
+	/* bitrig stuff will go here later */
+#endif
 static int fake_tls;
 static locale_t thread_local_locale;
 
 static void init_key(void)
 {
-
+#if defined (__FreeBSD__)
 	pthread_key_create(&locale_info_key, xlocale_release);
 	pthread_setspecific(locale_info_key, (void*)42);
 	if (pthread_getspecific(locale_info_key) == (void*)42) {
@@ -124,6 +128,9 @@ static void init_key(void)
 	} else {
 		fake_tls = 1;
 	}
+#else
+	fake_tls = 1;
+#endif
 	/* At least one per-thread locale has now been set. */
 	__has_thread_locale = 1;
 	__detect_path_locale();
@@ -136,9 +143,13 @@ get_thread_locale(void)
 {
 
 	_once(&once_control, init_key);
-	
+
+#if defined (__FreeBSD__)
 	return (fake_tls ? thread_local_locale :
 		pthread_getspecific(locale_info_key));
+#else
+	return (thread_local_locale);
+#endif
 }
 
 #ifdef __NO_TLS
@@ -156,7 +167,8 @@ set_thread_locale(locale_t loc)
 {
 
 	_once(&once_control, init_key);
-	
+
+#if defined (__FreeBSD__)
 	if (NULL != loc) {
 		xlocale_retain((struct xlocale_refcounted*)loc);
 	}
@@ -169,6 +181,9 @@ set_thread_locale(locale_t loc)
 	} else {
 		pthread_setspecific(locale_info_key, loc);
 	}
+#else
+	thread_local_locale = loc;
+#endif
 #ifndef __NO_TLS
 	__thread_locale = loc;
 	__set_thread_rune_locale(loc);
