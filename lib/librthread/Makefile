@@ -8,7 +8,8 @@ WANTLINT=
 LINTFLAGS=-z
 LIBCSRCDIR=	${.CURDIR}/../libc
 
-CFLAGS+=-Wall -g -Werror -Wshadow
+#CFLAGS+=-Wall -g -Werror -Wshadow
+CFLAGS+=-Wall -g -Wshadow
 .if ${COMPILER_VERSION:L} == "gcc3" || ${COMPILER_VERSION:L} == "gcc4"
 CFLAGS+=-Wmissing-prototypes
 .endif
@@ -16,6 +17,9 @@ CFLAGS+=-Wstrict-prototypes
 CFLAGS+=-Wsign-compare
 CFLAGS+=-I${LIBCSRCDIR}/arch/${MACHINE_CPU} -I${.CURDIR}/arch/${MACHINE_CPU} -I${LIBCSRCDIR}/include
 LDADD = -Wl,-znodelete,-zinitfirst
+
+.PATH: ${.CURDIR}/../libc/locale
+CPPFLAGS+= -D__NO_TLS -DTHR_LOCALE
 
 .PATH: ${.CURDIR}/arch/${MACHINE_CPU}
 SRCS=	rthread.c \
@@ -42,6 +46,9 @@ SRCS=	rthread.c \
 	rthread_sync.c \
 	rthread_tls.c \
 	sched_prio.c
+
+SRCS+=	_once_stub.c \
+	xlocale.c
 
 OBJS+= _atomic_lock.o cerror.o
 

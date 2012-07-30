@@ -145,6 +145,7 @@ struct pthread_once {
 	int		state;
 	pthread_mutex_t	mutex;
 };
+int		_once(pthread_once_t *, void (*)(void));
 
 /*
  * Flags for once initialization.
