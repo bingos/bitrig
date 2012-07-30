@@ -307,10 +307,11 @@ __collate_strdup(u_char *s)
 void
 __collate_err(int ex, const char *f) __dead
 {
+	extern char *__progname;
 	const char *s;
 	int serrno = errno;
 
-	s = _getprogname();
+	s = __progname;
 	write(STDERR_FILENO, s, strlen(s));
 	write(STDERR_FILENO, ": ", 2);
 	s = f;

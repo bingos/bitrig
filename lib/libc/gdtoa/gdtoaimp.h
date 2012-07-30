@@ -476,6 +476,7 @@ extern double rnd_prod(double, double), rnd_quot(double, double);
 #endif
 
 #define MULTIPLE_THREADS
+#if defined (__FreeBSD__)
 extern pthread_mutex_t __gdtoa_locks[2];
 #define ACQUIRE_DTOA_LOCK(n)	do {				\
 	if (__isthreaded)					\
@@ -485,6 +486,11 @@ extern pthread_mutex_t __gdtoa_locks[2];
 	if (__isthreaded)					\
 		_pthread_mutex_unlock(&__gdtoa_locks[n]);	\
 } while(0)
+#else
+extern void			*__dtoa_locks[];
+#define ACQUIRE_DTOA_LOCK(n)	_MUTEX_LOCK(&__dtoa_locks[n])
+#define FREE_DTOA_LOCK(n)	_MUTEX_UNLOCK(&__dtoa_locks[n])
+#endif
 
 #define Kmax 9
 
@@ -514,7 +520,8 @@ extern void memcpy_D2A ANSI((void*, const void*, size_t));
 #define	dtoa		__dtoa
 #define	gdtoa		__gdtoa
 #define	freedtoa	__freedtoa
-//#define	strtodg		__strtodg
+#define	strtodg		__strtodg
+#define strtodg_l	__strtodg_l
 #define	g_ddfmt		__g_ddfmt
 #define	g_dfmt		__g_dfmt
 #define	g_ffmt		__g_ffmt
@@ -637,6 +644,7 @@ extern void memcpy_D2A ANSI((void*, const void*, size_t));
  extern Bigint *set_ones ANSI((Bigint*, int));
  extern char *strcp ANSI((char*, const char*));
  extern int strtodg_l ANSI((CONST char*, char**, FPI*, Long*, ULong*, locale_t));
+ extern int __strtodg ANSI((CONST char*, char**, FPI*, Long*, ULong*));
 
  extern int strtoId ANSI((CONST char *, char **, double *, double *));
  extern int strtoIdd ANSI((CONST char *, char **, double *, double *));
