@@ -39,7 +39,6 @@
 
 typedef	unsigned long	__cpuid_t;	/* CPU id */
 typedef	__int32_t	__dev_t;	/* device number */
-typedef	__uint32_t	__fixpt_t;	/* fixed point number */
 typedef	__uint32_t	__gid_t;	/* group id */
 typedef	__uint32_t	__id_t;		/* may contain pid, uid or gid */
 typedef __uint32_t	__in_addr_t;	/* base type for internet address */
