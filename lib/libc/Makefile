@@ -13,6 +13,7 @@ LIB=c
 LINTFLAGS=-z
 CLEANFILES+=tags
 #CFLAGS+=-Werror
+CFLAGS+=-Wno-logical-op-parentheses -Wno-empty-body
 CFLAGS+=-D__NO_TLS -D__FBSDID\(x\)=""
 
 LIBCSRCDIR=${.CURDIR}

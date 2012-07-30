@@ -68,7 +68,7 @@ _Read_RuneMagi(FILE *fp)
 	_FileRuneEntry *mapupper_ext_ranges;
 	int runetype_ext_len = 0;
 
-	if (_fstat(fileno(fp), &sb) < 0)
+	if (fstat(fileno(fp), &sb) < 0)
 		return (NULL);
 
 	if ((size_t)sb.st_size < sizeof(_FileRuneLocale)) {
