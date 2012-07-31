@@ -47,6 +47,7 @@
 #include <sys/event.h>			/* For struct klist */
 #include <sys/mutex.h>			/* For struct mutex */
 #include <sys/resource.h>		/* For struct rusage */
+#include <sys/param.h>			/* For MAXLOGNAME */
 #include <machine/atomic.h>
 
 #ifdef _KERNEL
