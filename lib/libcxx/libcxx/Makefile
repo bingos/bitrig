@@ -1,55 +1,169 @@
-##
-# libcpp Makefile
-##
+LIB=cxx
 
-SRCDIRS = .
-DESTDIR = $(DSTROOT)
+HDRDIR= ${.CURDIR}/include
+RTDIR= ${.CURDIR}/../libcxxrt/src/
+CXXINCLUDEDIR=	cxx/${SHLIB_MAJOR}.${SHLIB_MINOR}
 
-OBJROOT=.
-SYMROOT=.
-export TRIPLE=-apple-
+CXXFLAGS+= -std=c++0x -nostdlib
+#CXXFLAGS+= -fstrict-aliasing -Wall -Wextra -Wshadow -Wconversion
+#CXXFLAGS+= -Wnewline-eof -Wpadded -Wmissing-prototypes -Wstrict-aliasing=2
+#CXXFLAGS+= -Wstrict-overflow=4 -D_LIBCPP_HAS_NO_CONSTEXPR -D__XSI_VISIBLE
+CXXFLAGS+= -DLIBCXXRT -D__XSI_VISIBLE -D_LIBCPP_HAS_NO_CONSTEXPR
+#-D_LIBCPP_HAS_NO_CONSTEXPR -D__XSI_VISIBLE
+CXXFLAGS+= -I${HDRDIR} -I${RTDIR}
+CXXFLAGS+= -g
 
-ifeq (,$(RC_INDIGO))
-	INSTALL_PREFIX=""
-else
-	INSTALL_PREFIX="$(SDKROOT)"
-endif
-INSTALL_DIR=$(DSTROOT)/$(INSTALL_PREFIX)
+LIBCSRCDIR=	${.CURDIR}/../libc
 
-.PHONY: help installsrc clean installheaders do-installhdrs install
+.PATH: ${.CURDIR}/src
 
-help::
-	@echo "Use make install DSTROOT=<destination>"
+SRCS=	algorithm.cpp \
+	bind.cpp \
+	chrono.cpp \
+	condition_variable.cpp \
+	debug.cpp \
+	exception.cpp \
+	future.cpp \
+	hash.cpp \
+	ios.cpp \
+	iostream.cpp \
+	locale.cpp \
+	memory.cpp \
+	mutex.cpp \
+	new.cpp \
+	random.cpp \
+	regex.cpp \
+	stdexcept.cpp \
+	string.cpp \
+	strstream.cpp \
+	system_error.cpp \
+	thread.cpp \
+	typeinfo.cpp \
+	utility.cpp \
+	valarray.cpp
 
-installsrc:: $(SRCROOT)
+STD_HEADERS=	__bit_reference\
+		__config\
+		__debug\
+		__functional_03\
+		__functional_base\
+		__functional_base_03\
+		__hash_table\
+		__locale\
+		__mutex_base\
+		__split_buffer\
+		__sso_allocator\
+		__std_stream\
+		__tree\
+		__tuple\
+		__tuple_03\
+		__undef_min_max\
+		algorithm\
+		array\
+		atomic\
+		bitset\
+		cassert\
+		ccomplex\
+		cctype\
+		cerrno\
+		cfenv\
+		cfloat\
+		chrono\
+		cinttypes\
+		ciso646\
+		climits\
+		clocale\
+		cmath\
+		codecvt\
+		complex\
+		complex.h\
+		condition_variable\
+		csetjmp\
+		csignal\
+		cstdarg\
+		cstdbool\
+		cstddef\
+		cstdint\
+		cstdio\
+		cstdlib\
+		cstring\
+		ctgmath\
+		ctime\
+		cwchar\
+		cwctype\
+		deque\
+		exception\
+		forward_list\
+		fstream\
+		functional\
+		future\
+		initializer_list\
+		iomanip\
+		ios\
+		iosfwd\
+		iostream\
+		istream\
+		iterator\
+		limits\
+		list\
+		locale\
+		map\
+		memory\
+		mutex\
+		new\
+		numeric\
+		ostream\
+		queue\
+		random\
+		ratio\
+		regex\
+		scoped_allocator\
+		set\
+		sstream\
+		stack\
+		stdexcept\
+		streambuf\
+		string\
+		strstream\
+		system_error\
+		tgmath.h\
+		thread\
+		tuple\
+		type_traits\
+		typeindex\
+		typeinfo\
+		unordered_map\
+		unordered_set\
+		utility\
+		valarray\
+		vector
 
-	ditto $(SRCDIRS)/include $(SRCROOT)/include
-	ditto $(SRCDIRS)/lib $(SRCROOT)/lib
-	ditto $(SRCDIRS)/src $(SRCROOT)/src
-	ditto $(SRCDIRS)/Makefile $(SRCROOT)/Makefile
+EXT_HEADERS=	__hash\
+		hash_map\
+		hash_set
+EXTDIR=		${CXXINCLUDEDIR}/ext
 
-clean::
+RT_HEADERS=	cxxabi.h\
+		unwind.h\
+		unwind-arm.h\
+		unwind-itanium.h
 
-installheaders:: do-installhdrs
+includes:
+	mkdir -p ${DESTDIR}/usr/include/${CXXINCLUDEDIR}
+	cd ${HDRDIR}; for i in ${STD_HEADERS}; do \
+		cmp -s $$i ${DESTDIR}/usr/include/$$i || \
+		${INSTALL} ${INSTALL_COPY} -m 444 -o $(BINOWN) -g $(BINGRP) $$i \
+		${DESTDIR}/usr/include/${CXXINCLUDEDIR}; done
 
-# The do-installhdrs target is also used by clang's runtime/libcxx makefile.
-do-installhdrs:
-	mkdir -p $(HEADER_DIR)/c++/v1/ext
-	rsync -r --exclude=".*" --exclude="support" $(SRCDIRS)/include/* \
-	  $(HEADER_DIR)/c++/v1/
-	chown -R root:wheel $(HEADER_DIR)/c++
-	chmod 755 $(HEADER_DIR)/c++/v1
-	chmod 644 $(HEADER_DIR)/c++/v1/*
-	chmod 755 $(HEADER_DIR)/c++/v1/ext
-	chmod 644 $(HEADER_DIR)/c++/v1/ext/*
+	mkdir -p ${DESTDIR}/usr/include/${EXTDIR}
+	cd ${HDRDIR}/ext; for i in ${EXT_HEADERS}; do \
+		cmp -s $$i ${DESTDIR}/usr/include/$$i || \
+		${INSTALL} ${INSTALL_COPY} -m 444 -o $(BINOWN) -g $(BINGRP) $$i \
+		${DESTDIR}/usr/include/${EXTDIR}; done
 
-install::
+	cd ${RTDIR}; for i in ${RT_HEADERS}; do \
+		cmp -s $$i ${DESTDIR}/usr/include/$$i || \
+		${INSTALL} ${INSTALL_COPY} -m 444 -o $(BINOWN) -g $(BINGRP) $$i \
+		${DESTDIR}/usr/include/${CXXINCLUDEDIR}; done
 
-	cd lib && ./buildit
-	ditto lib/libc++.1.dylib $(SYMROOT)/usr/lib/libc++.1.dylib
-	cd lib && dsymutil -o $(SYMROOT)/libc++.1.dylib.dSYM \
-	  $(SYMROOT)/usr/lib/libc++.1.dylib
-	mkdir -p $(INSTALL_DIR)/usr/lib
-	strip -S -o $(INSTALL_DIR)/usr/lib/libc++.1.dylib \
-	  $(SYMROOT)/usr/lib/libc++.1.dylib
-	cd $(INSTALL_DIR)/usr/lib && ln -s libc++.1.dylib libc++.dylib
+.include <bsd.lib.mk>
