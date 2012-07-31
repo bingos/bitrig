@@ -27,7 +27,7 @@
  */
 
 #include <stdlib.h>
-#include <pthread.h>
+#include "thread_private.h"
 
 /**
  * Linked list of quick exit handlers.  This is simpler than the atexit()
@@ -42,7 +42,7 @@ struct quick_exit_handler {
 /**
  * Lock protecting the handlers list.
  */
-static pthread_mutex_t atexit_mutex = PTHREAD_MUTEX_INITIALIZER;
+_THREAD_PRIVATE_MUTEX(atexit_mutex);
 /**
  * Stack of cleanup handlers.  These will be invoked in reverse order when 
  */
@@ -58,10 +58,10 @@ at_quick_exit(void (*func)(void))
 	if (NULL == h)
 		return (1);
 	h->cleanup = func;
-	pthread_mutex_lock(&atexit_mutex);
+	_THREAD_PRIVATE_MUTEX_LOCK(atexit_mutex);
 	h->next = handlers;
 	handlers = h;
-	pthread_mutex_unlock(&atexit_mutex);
+	_THREAD_PRIVATE_MUTEX_UNLOCK(atexit_mutex);
 	return (0);
 }
 
