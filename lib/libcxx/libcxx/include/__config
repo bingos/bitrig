@@ -38,7 +38,7 @@
 #endif  // __BIG_ENDIAN__
 #endif  // __BIG_ENDIAN__
 
-#ifdef __FreeBSD__
+#ifdef __FreeBSD__ || __Bitrig__
 # include <sys/endian.h>
 #  if _BYTE_ORDER == _LITTLE_ENDIAN
 #   define _LIBCPP_LITTLE_ENDIAN 1
@@ -47,7 +47,7 @@
 #   define _LIBCPP_LITTLE_ENDIAN 0
 #   define _LIBCPP_BIG_ENDIAN    1
 # endif  // _BYTE_ORDER == _LITTLE_ENDIAN
-#endif  // __FreeBSD__
+#endif  // __FreeBSD__ || __Bitrig__
 
 #ifdef _WIN32
 #  define _LIBCPP_LITTLE_ENDIAN 1
@@ -248,6 +248,7 @@ typedef __char32_t char32_t;
 #endif
 
 #if __FreeBSD__
+/* XXX fix this on bitrig */
 #define _LIBCPP_HAS_QUICK_EXIT
 #endif
 
@@ -419,18 +420,18 @@ template <unsigned> struct __static_assert_check {};
 #define _LIBCPP_DECLARE_STRONG_ENUM_EPILOG(x)
 #endif  // _LIBCPP_HAS_NO_STRONG_ENUMS
 
-#if __APPLE__ || __FreeBSD__ || _WIN32 || __sun__
+#if __APPLE__ || __FreeBSD__ || __Bitrig__ || _WIN32 || __sun__
 #define _LIBCPP_LOCALE__L_EXTENSIONS 1
 #endif
-#if __FreeBSD__
+#if __FreeBSD__ || __Bitrig__
 #define _DECLARE_C99_LDBL_MATH 1
 #endif
 
-#if __APPLE__ || __FreeBSD__
+#if __APPLE__ || __FreeBSD__ || __Bitrig__
 #define _LIBCPP_HAS_DEFAULTRUNELOCALE
 #endif
 
-#if __APPLE__ || __FreeBSD__ || __sun__
+#if __APPLE__ || __FreeBSD__ || __Bitrig__ || __sun__
 #define _LIBCPP_WCTYPE_IS_MASK
 #endif
 

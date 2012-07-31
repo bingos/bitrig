@@ -2,7 +2,7 @@ LIB=cxx
 
 CXXFLAGS+= -std=c++0x -fstrict-aliasing -Wall -Wextra -Wshadow -Wconversion
 CXXFLAGS+= -Wnewline-eof -Wpadded -Wmissing-prototypes -Wstrict-aliasing=2
-CXXFLAGS+= -Wstrict-overflow=4 -D_LIBCPP_HAS_NO_CONSTEXPR
+CXXFLAGS+= -Wstrict-overflow=4 -D_LIBCPP_HAS_NO_CONSTEXPR -D__XSI_VISIBLE
 CXXFLAGS+= -I${.CURDIR}/libcxx/include
 CXXFLAGS+= -g
 

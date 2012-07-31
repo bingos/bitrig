@@ -927,7 +927,7 @@ ctype<char>::do_narrow(const char_type* low, const char_type* high, char dfault,
 const ctype<char>::mask*
 ctype<char>::classic_table()  _NOEXCEPT
 {
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__Bitrig__)
     return _DefaultRuneLocale.__runetype;
 #elif defined(__GLIBC__)
     return __cloc()->__ctype_b;
