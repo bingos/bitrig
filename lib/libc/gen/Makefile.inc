@@ -23,7 +23,7 @@ SRCS+=  alarm.c assert.c auth_subr.c authenticate.c \
         ttyname.c \
         ttyslot.c ualarm.c uname.c unvis.c usleep.c \
         utime.c valloc.c vis.c wait.c wait3.c waitpid.c warn.c \
-        warnx.c vwarn.c vwarnx.c verr.c verrx.c
+        warnx.c vwarn.c vwarnx.c verr.c verrx.c bootme.c
 
 # pthread indirection stub
 SRCS+=  _once_stub.c
