@@ -1,3 +1,5 @@
+.PATH: ${.CURDIR}/src
+
 LIB=cxx
 
 HDRDIR= ${.CURDIR}/include
@@ -13,11 +15,7 @@ CXXFLAGS+= -DLIBCXXRT -D__XSI_VISIBLE -D_LIBCPP_HAS_NO_CONSTEXPR
 CXXFLAGS+= -I${HDRDIR} -I${RTDIR}
 CXXFLAGS+= -g
 
-LIBCSRCDIR=	${.CURDIR}/../libc
-
-.PATH: ${.CURDIR}/src
-
-SRCS=	algorithm.cpp \
+SRCS+=	algorithm.cpp \
 	bind.cpp \
 	chrono.cpp \
 	condition_variable.cpp \
