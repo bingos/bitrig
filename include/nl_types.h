@@ -72,7 +72,7 @@ struct _nls_msg_hdr {
 
 #endif
 
-#define	NL_SETD		1
+#define	NL_SETD		1 /* XXX freebsd defines this as 0, find out why */
 #define NL_CAT_LOCALE   1
 
 typedef struct _nl_catd {
@@ -80,7 +80,10 @@ typedef struct _nl_catd {
 	int	__size;
 } *nl_catd;
 
+#ifndef _NL_ITEM_DECLARED
 typedef long	nl_item;
+#define _NL_ITEM_DECLARED
+#endif
 
 __BEGIN_DECLS
 extern nl_catd 	catopen(const char *, int);
