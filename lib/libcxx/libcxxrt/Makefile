@@ -12,6 +12,6 @@ SRCS+=		libelftc_dem_gnu3.c\
 		typeinfo.cc\
 		guard.cc
 
-CXXFLAGS+=	-I${SRCDIR}
+CFLAGS+=	-I${.CURDIR}/src
 
 .include <bsd.lib.mk>
