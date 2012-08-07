@@ -1,7 +1,6 @@
-/*	$OpenBSD: strstr.c,v 1.5 2005/08/08 08:05:37 espie Exp $ */
 /*-
- * Copyright (c) 1990 The Regents of the University of California.
- * All rights reserved.
+ * Copyright (c) 1990, 1993
+ *	The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Chris Torek.
@@ -14,7 +13,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,6 +30,12 @@
  * SUCH DAMAGE.
  */
 
+#if defined(LIBC_SCCS) && !defined(lint)
+static char sccsid[] = "@(#)strstr.c	8.1 (Berkeley) 6/4/93";
+#endif /* LIBC_SCCS and not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <string.h>
 
 /*
@@ -42,11 +47,11 @@ strstr(const char *s, const char *find)
 	char c, sc;
 	size_t len;
 
-	if ((c = *find++) != 0) {
+	if ((c = *find++) != '\0') {
 		len = strlen(find);
 		do {
 			do {
-				if ((sc = *s++) == 0)
+				if ((sc = *s++) == '\0')
 					return (NULL);
 			} while (sc != c);
 		} while (strncmp(s, find, len) != 0);

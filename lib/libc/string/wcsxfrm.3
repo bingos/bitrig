@@ -30,34 +30,33 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)strxfrm.3	8.1 (Berkeley) 6/4/93
+.\" FreeBSD: src/lib/libc/string/strxfrm.3,v 1.16 2002/09/06 11:24:06 tjr Exp
 .\" $FreeBSD$
 .\"
-.Dd June 4, 1993
-.Dt STRXFRM 3
+.Dd October 4, 2002
+.Dt WCSXFRM 3
 .Os
 .Sh NAME
-.Nm strxfrm
-.Nd transform a string under locale
+.Nm wcsxfrm
+.Nd transform a wide string under locale
 .Sh LIBRARY
 .Lb libc
 .Sh SYNOPSIS
-.In string.h
+.In wchar.h
 .Ft size_t
-.Fn strxfrm "char * restrict dst" "const char * restrict src" "size_t n"
-.Ft size_t
-.Fn strxfrm_l "char * restrict dst" "const char *restrict src" "size_t n" "locale_t loc"
+.Fn wcsxfrm "wchar_t * restrict dst" "const wchar_t * restrict src" "size_t n"
 .Sh DESCRIPTION
 The
-.Fn strxfrm
-function transforms a null-terminated string pointed to by
+.Fn wcsxfrm
+function transforms a null-terminated wide character string pointed to by
 .Fa src
-according to the current locale collation if any,
+according to the current locale collation order
 then copies the transformed string
 into
 .Fa dst .
-Not more than
+No more than
 .Fa n
-characters are copied into
+wide characters are copied into
 .Fa dst ,
 including the terminating null character added.
 If
@@ -66,25 +65,21 @@ is set to 0
 (it helps to determine an actual size needed
 for transformation),
 .Fa dst
-is permitted to be a NULL pointer.
+is permitted to be a
+.Dv NULL
+pointer.
 .Pp
 Comparing two strings using
-.Fn strcmp
+.Fn wcscmp
 after
-.Fn strxfrm
-is equal to comparing
+.Fn wcsxfrm
+is equivalent to comparing
 two original strings with
-.Fn strcoll .
-.Pp
-.Fn strxfrm_l
-does the same, however takes an explicit locale rather than the global
-locale.
+.Fn wcscoll .
 .Sh RETURN VALUES
 Upon successful completion,
-.Fn strxfrm
-and
-.Fn strxfrm_l
-return the length of the transformed string not including
+.Fn wcsxfrm
+returns the length of the transformed string not including
 the terminating null character.
 If this value is
 .Fa n
@@ -93,16 +88,35 @@ or more, the contents of
 are indeterminate.
 .Sh SEE ALSO
 .Xr setlocale 3 ,
-.Xr strcmp 3 ,
-.Xr strcoll 3 ,
-.Xr wcsxfrm 3
+.Xr strxfrm 3 ,
+.Xr wcscmp 3 ,
+.Xr wcscoll 3
 .Sh STANDARDS
 The
-.Fn strxfrm
+.Fn wcsxfrm
 function
 conforms to
-.St -isoC .
-The
-.Fn strxfrm_l
-function conforms to
-.St -p1003.1-2008 .
+.St -isoC-99 .
+.Sh BUGS
+The current implementation of
+.Fn wcsxfrm
+only works in single-byte
+.Dv LC_CTYPE
+locales, and falls back to using
+.Fn wcsncpy
+in locales with extended character sets.
+.Pp
+Comparing two strings using
+.Fn wcscmp
+after
+.Fn wcsxfrm
+is
+.Em not
+always equivalent to comparison with
+.Fn wcscoll ;
+.Fn wcsxfrm
+only stores information about primary collation weights into
+.Fa dst ,
+whereas
+.Fn wcscoll
+compares characters using both primary and secondary weights.
