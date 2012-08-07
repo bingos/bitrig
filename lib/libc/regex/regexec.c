@@ -1,4 +1,3 @@
-/*	$OpenBSD: regexec.c,v 1.11 2005/08/05 13:03:00 espie Exp $ */
 /*-
  * Copyright (c) 1992, 1993, 1994 Henry Spencer.
  * Copyright (c) 1992, 1993, 1994
@@ -15,7 +14,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,12 +33,18 @@
  *	@(#)regexec.c	8.3 (Berkeley) 3/20/94
  */
 
+#if defined(LIBC_SCCS) && !defined(lint)
+static char sccsid[] = "@(#)regexec.c	8.3 (Berkeley) 3/20/94";
+#endif /* LIBC_SCCS and not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 /*
  * the outer shell of regexec()
  *
- * This file includes engine.c *twice*, after muchos fiddling with the
+ * This file includes engine.c three times, after muchos fiddling with the
  * macros that code uses.  This lets the same code operate on two different
- * representations for state sets.
+ * representations for state sets and characters.
  */
 #include <sys/types.h>
 #include <stdio.h>
@@ -48,9 +53,46 @@
 #include <limits.h>
 #include <ctype.h>
 #include <regex.h>
+#include <wchar.h>
+#include <wctype.h>
 
 #include "utils.h"
 #include "regex2.h"
+
+static int nope __unused = 0;	/* for use in asserts; shuts lint up */
+
+static __inline size_t
+xmbrtowc(wint_t *wi, const char *s, size_t n, mbstate_t *mbs, wint_t dummy)
+{
+	size_t nr;
+	wchar_t wc;
+
+	nr = mbrtowc(&wc, s, n, mbs);
+	if (wi != NULL)
+		*wi = wc;
+	if (nr == 0)
+		return (1);
+	else if (nr == (size_t)-1 || nr == (size_t)-2) {
+		memset(mbs, 0, sizeof(*mbs));
+		if (wi != NULL)
+			*wi = dummy;
+		return (1);
+	} else
+                return (nr);
+}
+
+static __inline size_t
+xmbrtowc_dummy(wint_t *wi,
+		const char *s,
+		size_t n __unused,
+		mbstate_t *mbs __unused,
+		wint_t dummy __unused)
+{
+
+	if (wi != NULL)
+		*wi = (unsigned char)*s;
+	return (1);
+}
 
 /* macros for manipulating states, small version */
 #define	states	long
@@ -67,13 +109,16 @@
 #define	SETUP(v)	((v) = 0)
 #define	onestate	long
 #define	INIT(o, n)	((o) = (unsigned long)1 << (n))
-#define	INC(o)		((o) <<= 1)
+#define	INC(o)	((o) <<= 1)
 #define	ISSTATEIN(v, o)	(((v) & (o)) != 0)
 /* some abbreviations; note that some of these know variable names! */
 /* do "if I'm here, I can also be there" etc without branches */
 #define	FWD(dst, src, n)	((dst) |= ((unsigned long)(src)&(here)) << (n))
 #define	BACK(dst, src, n)	((dst) |= ((unsigned long)(src)&(here)) >> (n))
-#define	ISSETBACK(v, n)		(((v) & ((unsigned long)here >> (n))) != 0)
+#define	ISSETBACK(v, n)	(((v) & ((unsigned long)here >> (n))) != 0)
+/* no multibyte support */
+#define	XMBRTOWC	xmbrtowc_dummy
+#define	ZAPSTATE(mbs)	((void)(mbs))
 /* function names */
 #define SNAMES			/* engine.c looks after details */
 
@@ -99,6 +144,8 @@
 #undef	BACK
 #undef	ISSETBACK
 #undef	SNAMES
+#undef	XMBRTOWC
+#undef	ZAPSTATE
 
 /* macros for manipulating states, large version */
 #define	states	char *
@@ -123,21 +170,45 @@
 #define	FWD(dst, src, n)	((dst)[here+(n)] |= (src)[here])
 #define	BACK(dst, src, n)	((dst)[here-(n)] |= (src)[here])
 #define	ISSETBACK(v, n)	((v)[here - (n)])
+/* no multibyte support */
+#define	XMBRTOWC	xmbrtowc_dummy
+#define	ZAPSTATE(mbs)	((void)(mbs))
 /* function names */
 #define	LNAMES			/* flag */
 
 #include "engine.c"
 
+/* multibyte character & large states version */
+#undef	LNAMES
+#undef	XMBRTOWC
+#undef	ZAPSTATE
+#define	XMBRTOWC	xmbrtowc
+#define	ZAPSTATE(mbs)	memset((mbs), 0, sizeof(*(mbs)))
+#define	MNAMES
+
+#include "engine.c"
+
 /*
  - regexec - interface for matching
+ = extern int regexec(const regex_t *, const char *, size_t, \
+ =					regmatch_t [], int);
+ = #define	REG_NOTBOL	00001
+ = #define	REG_NOTEOL	00002
+ = #define	REG_STARTEND	00004
+ = #define	REG_TRACE	00400	// tracing of execution
+ = #define	REG_LARGE	01000	// force large representation
+ = #define	REG_BACKR	02000	// force use of backref code
  *
  * We put this here so we can exploit knowledge of the state representation
  * when choosing which matcher to call.  Also, by this point the matchers
  * have been prototyped.
  */
 int				/* 0 success, REG_NOMATCH failure */
-regexec(const regex_t *preg, const char *string, size_t nmatch,
-    regmatch_t pmatch[], int eflags)
+regexec(const regex_t * __restrict preg,
+	const char * __restrict string,
+	size_t nmatch,
+	regmatch_t pmatch[__restrict],
+	int eflags)
 {
 	struct re_guts *g = preg->re_g;
 #ifdef REDEBUG
@@ -153,7 +224,9 @@ regexec(const regex_t *preg, const char *string, size_t nmatch,
 		return(REG_BADPAT);
 	eflags = GOODFLAGS(eflags);
 
-	if (g->nstates <= CHAR_BIT*sizeof(states1) && !(eflags&REG_LARGE))
+	if (MB_CUR_MAX > 1)
+		return(mmatcher(g, (char *)string, nmatch, pmatch, eflags));
+	else if (g->nstates <= CHAR_BIT*sizeof(states1) && !(eflags&REG_LARGE))
 		return(smatcher(g, (char *)string, nmatch, pmatch, eflags));
 	else
 		return(lmatcher(g, (char *)string, nmatch, pmatch, eflags));

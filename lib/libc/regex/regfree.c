@@ -1,4 +1,3 @@
-/*	$OpenBSD: regfree.c,v 1.7 2005/08/05 13:03:00 espie Exp $ */
 /*-
  * Copyright (c) 1992, 1993, 1994 Henry Spencer.
  * Copyright (c) 1992, 1993, 1994
@@ -15,7 +14,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
+ * 4. Neither the name of the University nor the names of its contributors
  *    may be used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,21 +33,32 @@
  *	@(#)regfree.c	8.3 (Berkeley) 3/20/94
  */
 
+#if defined(LIBC_SCCS) && !defined(lint)
+static char sccsid[] = "@(#)regfree.c	8.3 (Berkeley) 3/20/94";
+#endif /* LIBC_SCCS and not lint */
+#include <sys/cdefs.h>
+__FBSDID("$FreeBSD$");
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <regex.h>
+#include <wchar.h>
+#include <wctype.h>
 
 #include "utils.h"
 #include "regex2.h"
 
 /*
  - regfree - free everything
+ = extern void regfree(regex_t *);
  */
 void
 regfree(regex_t *preg)
 {
 	struct re_guts *g;
+	int i;
 
 	if (preg->re_magic != MAGIC1)	/* oops */
 		return;			/* nice to complain, but hard */
@@ -61,11 +71,19 @@ regfree(regex_t *preg)
 
 	if (g->strip != NULL)
 		free((char *)g->strip);
-	if (g->sets != NULL)
+	if (g->sets != NULL) {
+		for (i = 0; i < g->ncsets; i++) {
+			free(g->sets[i].ranges);
+			free(g->sets[i].wides);
+			free(g->sets[i].types);
+		}
 		free((char *)g->sets);
-	if (g->setbits != NULL)
-		free((char *)g->setbits);
+	}
 	if (g->must != NULL)
 		free(g->must);
+	if (g->charjump != NULL)
+		free(&g->charjump[CHAR_MIN]);
+	if (g->matchjump != NULL)
+		free(g->matchjump);
 	free((char *)g);
 }
