@@ -1,5 +1,3 @@
-.\"	$OpenBSD: fnmatch.3,v 1.13 2009/03/05 15:13:30 millert Exp $
-.\"
 .\" Copyright (c) 1989, 1991, 1993
 .\"	The Regents of the University of California.  All rights reserved.
 .\"
@@ -13,7 +11,7 @@
 .\" 2. Redistributions in binary form must reproduce the above copyright
 .\"    notice, this list of conditions and the following disclaimer in the
 .\"    documentation and/or other materials provided with the distribution.
-.\" 3. Neither the name of the University nor the names of its contributors
+.\" 4. Neither the name of the University nor the names of its contributors
 .\"    may be used to endorse or promote products derived from this software
 .\"    without specific prior written permission.
 .\"
@@ -30,21 +28,25 @@
 .\" SUCH DAMAGE.
 .\"
 .\"     @(#)fnmatch.3	8.3 (Berkeley) 4/28/95
+.\" $FreeBSD$
 .\"
-.Dd $Mdocdate: March 5 2009 $
+.Dd July 18, 2004
 .Dt FNMATCH 3
 .Os
 .Sh NAME
 .Nm fnmatch
-.Nd match filename or pathname using shell globbing rules
+.Nd test whether a filename or pathname matches a shell-style pattern
+.Sh LIBRARY
+.Lb libc
 .Sh SYNOPSIS
-.Fd #include <fnmatch.h>
+.In fnmatch.h
 .Ft int
 .Fn fnmatch "const char *pattern" "const char *string" "int flags"
 .Sh DESCRIPTION
 The
 .Fn fnmatch
-function matches patterns according to the globbing rules used by the shell.
+function
+matches patterns according to the rules used by the shell.
 It checks the string specified by the
 .Fa string
 argument to see if it matches the pattern specified by the
@@ -63,11 +65,11 @@ is the bitwise inclusive
 .Tn OR
 of any of the following
 constants, which are defined in the include file
-.Aq Pa fnmatch.h .
+.In fnmatch.h .
 .Bl -tag -width FNM_PATHNAME
 .It Dv FNM_NOESCAPE
 Normally, every occurrence of a backslash
-.Pq Sq \e
+.Pq Ql \e
 followed by a character in
 .Fa pattern
 is replaced by that character.
@@ -92,17 +94,19 @@ The definition of
 .Dq leading
 is related to the specification of
 .Dv FNM_PATHNAME .
-A period is always leading
+A period is always
+.Dq leading
 if it is the first character in
 .Fa string .
 Additionally, if
 .Dv FNM_PATHNAME
 is set,
-a period is leading
+a period is
+leading
 if it immediately follows a slash.
 .It Dv FNM_LEADING_DIR
 Ignore
-.Sq /*
+.Dq Li /*
 rest after successful
 .Fa pattern
 matching.
@@ -124,22 +128,16 @@ otherwise, it returns the value
 .Sh SEE ALSO
 .Xr sh 1 ,
 .Xr glob 3 ,
-.Xr regex 3 ,
-.Xr glob 7
+.Xr regex 3
 .Sh STANDARDS
-The
+The current implementation of the
 .Fn fnmatch
-function conforms to
-.St -p1003.2-92
-and
-.St -xpg4.2 .
-.Pp
-Note, however, that the flags
-.Dv FNM_LEADING_DIR
-and
-.Dv FNM_CASEFOLD
-are extensions and should not be used by applications striving for
-strict standards conformance.
+function
+.Em does not
+conform to
+.St -p1003.2 .
+Collating symbol expressions, equivalence class expressions and
+character class expressions are not supported.
 .Sh HISTORY
 The
 .Fn fnmatch
