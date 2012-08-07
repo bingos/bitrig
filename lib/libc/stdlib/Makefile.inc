@@ -7,7 +7,7 @@ SRCS+=	a64l.c abort.c atexit.c atoi.c atof.c atol.c atoll.c bsearch.c \
 	cfree.c exit.c ecvt.c gcvt.c getenv.c getopt_long.c \
 	getsubopt.c hcreate.c heapsort.c imaxabs.c imaxdiv.c l64a.c llabs.c \
 	lldiv.c lsearch.c malloc.c merge.c quick_exit.c qsort.c radixsort.c rand.c \
-	random.c reallocf.c realpath.c setenv.c strtoimax.c strtol.c \
+	random.c reallocf.c realpath.c setenv.c strfmon.c strtoimax.c strtol.c \
 	strtoll.c strtonum.c strtoq.c strtoul.c strtoull.c strtoumax.c system.c \
 	tfind.c tsearch.c _rand48.c drand48.c erand48.c jrand48.c lcong48.c \
 	lrand48.c mrand48.c nrand48.c seed48.c srand48.c qabs.c qdiv.c _Exit.c
@@ -43,7 +43,7 @@ MAN+=	a64l.3 abort.3 abs.3 alloca.3 at_quick_exit.3 atexit.3 atof.3 atoi.3 atol.
 	bsearch.3 div.3 ecvt.3 exit.3 getenv.3 getopt.3 getopt_long.3 \
 	getsubopt.3 hcreate.3 imaxabs.3 imaxdiv.3 insque.3 labs.3 ldiv.3 \
 	lldiv.3 lsearch.3 malloc.3 quick_exit.3 posix_memalign.3 qabs.3 qdiv.3 qsort.3 \
-	radixsort.3 rand48.3 rand.3 random.3 reallocf.3 realpath.3 strtod.3 strtonum.3 \
+	radixsort.3 rand48.3 rand.3 random.3 reallocf.3 realpath.3 strfmon.3 strtod.3 strtonum.3 \
 	strtol.3 strtoul.3 system.3 tsearch.3
 
 MLINKS+=exit.3 _Exit.3
@@ -58,6 +58,7 @@ MLINKS+=malloc.3 free.3 malloc.3 realloc.3 malloc.3 calloc.3
 MLINKS+=malloc.3 cfree.3 malloc.3 malloc.conf.5
 MLINKS+=qsort.3 heapsort.3 qsort.3 mergesort.3
 MLINKS+=radixsort.3 sradixsort.3
+MLINKS+=strfmon.3 strfmon_l.3
 MLINKS+=rand.3 srand.3 rand.3 rand_r.3
 MLINKS+=random.3 initstate.3 random.3 setstate.3
 MLINKS+=random.3 srandom.3 random.3 srandomdev.3
