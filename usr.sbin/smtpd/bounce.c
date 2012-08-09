@@ -1,4 +1,4 @@
-/*	$OpenBSD: bounce.c,v 1.46 2012/08/09 16:00:31 eric Exp $	*/
+/*	$OpenBSD: bounce.c,v 1.44 2012/08/09 09:48:02 eric Exp $	*/
 
 /*
  * Copyright (c) 2009 Gilles Chehade <gilles@openbsd.org>
@@ -67,7 +67,6 @@ struct bounce {
 	struct event		 evt;
 };
 
-static void bounce_commit(uint32_t);
 static void bounce_send(struct bounce *, const char *, ...);
 static int  bounce_next(struct bounce *);
 static void bounce_status(struct bounce *, const char *, ...);
@@ -336,7 +335,7 @@ bounce_status(struct bounce *bounce, const char *fmt, ...)
 	va_list		 ap;
 	char		*status;
 	int		 len, msg;
-	struct envelope	*evp;
+	struct envelope *evp;
 
 	/* ignore if the envelopes have already been updated/deleted */
 	if (TAILQ_FIRST(&bounce->envelopes) == NULL)
@@ -354,22 +353,20 @@ bounce_status(struct bounce *bounce, const char *fmt, ...)
 	else
 		msg = IMSG_QUEUE_DELIVERY_TEMPFAIL;
 
-	while ((evp = TAILQ_FIRST(&bounce->envelopes))) {
-		if (msg == IMSG_QUEUE_DELIVERY_TEMPFAIL) {
-			evp->retry++;
-			envelope_set_errormsg(evp, "%s", status);
-			queue_envelope_update(evp);
-			imsg_compose_event(env->sc_ievs[PROC_SCHEDULER], msg, 0, 0, -1,
-			    evp, sizeof *evp);
-		} else {
-			queue_envelope_delete(evp);
-			imsg_compose_event(env->sc_ievs[PROC_SCHEDULER], msg, 0, 0, -1,
-			    &evp->id, sizeof evp->id);
-		}
-		TAILQ_REMOVE(&bounce->envelopes, evp, entry);
-		free(evp);
+	evp = &bounce->evp;
+	if (msg == IMSG_QUEUE_DELIVERY_TEMPFAIL) {
+		evp->retry++;
+		envelope_set_errormsg(evp, "%s", status);
+		queue_envelope_update(evp);
+		imsg_compose_event(env->sc_ievs[PROC_SCHEDULER], msg, 0, 0, -1,
+		    evp, sizeof *evp);
+	} else {
+		queue_envelope_delete(evp);
+		imsg_compose_event(env->sc_ievs[PROC_SCHEDULER], msg, 0, 0, -1,
+		    &evp->id, sizeof evp->id);
 	}
 
+	bounce->evp.id = 0;
 	free(status);
 }
 

@@ -55,6 +55,7 @@ static void scheduler_process_expire(struct scheduler_batch *);
 static void scheduler_process_bounce(struct scheduler_batch *);
 static void scheduler_process_mda(struct scheduler_batch *);
 static void scheduler_process_mta(struct scheduler_batch *);
+static int scheduler_load_message(u_int32_t);
 
 static struct scheduler_backend *backend = NULL;
 
@@ -337,6 +338,7 @@ scheduler_process_remove(struct scheduler_batch *batch)
 		batch->evpids = e->next;
 		log_debug("scheduler: evp:%016" PRIx64 " removed",
 		    e->id);
+		backend->delete(e->id);
 		imsg_compose_event(env->sc_ievs[PROC_QUEUE], IMSG_QUEUE_REMOVE,
 		    0, 0, -1, &e->id, sizeof e->id);
 		free(e);

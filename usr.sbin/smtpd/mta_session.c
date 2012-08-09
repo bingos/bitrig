@@ -1,4 +1,4 @@
-/*	$OpenBSD: mta_session.c,v 1.8 2012/08/10 11:05:55 eric Exp $	*/
+/*	$OpenBSD: mta_session.c,v 1.7 2012/08/09 09:48:02 eric Exp $	*/
 
 /*
  * Copyright (c) 2008 Pierre-Yves Ritschard <pyr@openbsd.org>
