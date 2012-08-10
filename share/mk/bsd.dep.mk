@@ -21,7 +21,7 @@ subdirdepend: _SUBDIRUSE
 	  mkdep -a ${MKDEP} ${CFLAGS:M-[ID]*} ${CPPFLAGS} $$files; \
 	fi
 	@files="${.ALLSRC:M*.cc} ${.ALLSRC:M*.C} ${.ALLSRC:M*.cxx} ${.ALLSRC:M*.cpp}"; \
-	if [ "$$files" != "  " ]; then \
+	if [ "$$files" != "   " ]; then \
 	  echo mkdep -a ${MKDEP} ${CXXFLAGS:M-[ID]*} ${CPPFLAGS} $$files; \
 	  mkdep -a ${MKDEP} ${CXXFLAGS:M-[ID]*} ${CPPFLAGS} $$files; \
 	fi
