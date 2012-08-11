@@ -14,7 +14,7 @@ OSMINOR=	1
 OSREV=		$(OSMAJOR).$(OSMINOR)
 OSrev=		$(OSMAJOR)$(OSMINOR)
 
-.SUFFIXES: .out .a .o .c .cc .C .cxx .F .f .r .y .l .s .S .cl .p .h .sh .m4
+.SUFFIXES: .out .a .o .c .cc .C .cxx .cpp .F .f .r .y .l .s .S .cl .p .h .sh .m4
 
 .LIBS:		.a
 
@@ -26,9 +26,9 @@ CPP?=		cpp
 CPPFLAGS?=
 
 .if ${COMPILER_VERSION:L} == "gcc4"
-CC?=		cc
-CXX?=		c++
-HOSTCC?=	cc
+CC?=		gcc
+CXX?=		g++
+HOSTCC?=	gcc
 CFLAGS?=	-O2
 CXXLAGS?=	-O2
 .else
@@ -130,6 +130,15 @@ CTAGS?=		/usr/bin/ctags
 .cxx.o:
 	${COMPILE.cc} ${.IMPSRC}
 .cxx.a:
+	${COMPILE.cc} ${.IMPSRC}
+	${AR} ${ARFLAGS} $@ $*.o
+	rm -f $*.o
+
+.cpp:
+	${LINK.cc} -o ${.TARGET} ${.IMPSRC} ${LDLIBS}
+.cpp.o:
+	${COMPILE.cc} ${.IMPSRC}
+.cpp.a:
 	${COMPILE.cc} ${.IMPSRC}
 	${AR} ${ARFLAGS} $@ $*.o
 	rm -f $*.o

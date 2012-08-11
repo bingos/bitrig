@@ -8,7 +8,7 @@
 
 .include <bsd.own.mk>
 
-.SUFFIXES: .out .o .c .cc .C .cxx .y .l .s .8 .7 .6 .5 .4 .3 .2 .1 .0
+.SUFFIXES: .out .o .c .cc .C .cxx .cpp .y .l .s .8 .7 .6 .5 .4 .3 .2 .1 .0
 
 .if ${WARNINGS:L} == "yes"
 CFLAGS+=       ${CDIAGFLAGS}
@@ -81,7 +81,7 @@ _YACCINTM+=${SRCS:M*.y:.y=.c}
 .  endif
 
 .  if defined(OBJS) && !empty(OBJS)
-.    if !empty(SRCS:M*.C) || !empty(SRCS:M*.cc) || !empty(SRCS:M*.cxx)
+.    if !empty(SRCS:M*.C) || !empty(SRCS:M*.cc) || !empty(SRCS:M*.cxx) || !empty(SRCS:M*.cpp)
 ${PROG}: ${LIBCRT0} ${OBJS} ${LIBC} ${CRTBEGIN} ${CRTEND} ${DPADD}
 	${CXX} ${LDFLAGS} ${LDSTATIC} -o ${.TARGET} ${OBJS} ${LDADD}
 .    else
