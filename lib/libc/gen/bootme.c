@@ -186,3 +186,34 @@ const char _C_ctype_[1 + CTYPE_NUM_CHARS] = {
 };
 
 const char *_ctype_ = _C_ctype_;
+
+#include <stdlib.h>
+#include <err.h>
+
+int
+snprintf_l(char * restrict str, size_t size, locale_t loc, const char * restrict format, ...)
+{
+	warnx("%s NOT IMPLEMENTED", __func__);
+	abort();
+}
+
+int
+sprintf_l(char * restrict str, locale_t loc, const char * restrict format, ...)
+{
+	warnx("%s NOT IMPLEMENTED", __func__);
+	abort();
+}
+
+int
+asprintf_l(char **ret, locale_t loc, const char *format, ...)
+{
+	warnx("%s NOT IMPLEMENTED", __func__);
+	abort();
+}
+
+int
+sscanf_l(const char * restrict str, locale_t loc, const char * restrict format, ...)
+{
+	warnx("%s NOT IMPLEMENTED", __func__);
+	abort();
+}
