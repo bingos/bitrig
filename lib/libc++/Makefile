@@ -1,15 +1,15 @@
 .PATH: ${.CURDIR}/src
 
-LIB=cxx
+LIB=c++
 
 HDRDIR= ${.CURDIR}/include
-RTDIR= ${.CURDIR}/../libcxxrt/src/
-CXXINCLUDEDIR=	cxx/${SHLIB_MAJOR}.${SHLIB_MINOR}
+RTDIR= ${.CURDIR}/../libcxxrt/src
+CXXINCLUDEDIR=	c++
 
-CXXFLAGS+= -std=c++0x -nostdlib
-#CXXFLAGS+= -fstrict-aliasing -Wall -Wextra -Wshadow -Wconversion
-#CXXFLAGS+= -Wnewline-eof -Wpadded -Wmissing-prototypes -Wstrict-aliasing=2
-#CXXFLAGS+= -Wstrict-overflow=4 -D_LIBCPP_HAS_NO_CONSTEXPR -D__XSI_VISIBLE
+CXXFLAGS+= -std=c++0x -nostdlib -nostdinc -I/usr/include -v
+CXXFLAGS+= -fstrict-aliasing -Wall -Wextra -Wshadow -Wconversion
+CXXFLAGS+= -Wnewline-eof -Wpadded -Wmissing-prototypes -Wstrict-aliasing=2
+CXXFLAGS+= -Wstrict-overflow=4
 CXXFLAGS+= -DLIBCXXRT -D__XSI_VISIBLE -D_LIBCPP_HAS_NO_CONSTEXPR
 #-D_LIBCPP_HAS_NO_CONSTEXPR -D__XSI_VISIBLE
 CXXFLAGS+= -I${HDRDIR} -I${RTDIR}
@@ -141,11 +141,6 @@ EXT_HEADERS=	__hash\
 		hash_set
 EXTDIR=		${CXXINCLUDEDIR}/ext
 
-RT_HEADERS=	cxxabi.h\
-		unwind.h\
-		unwind-arm.h\
-		unwind-itanium.h
-
 includes:
 	mkdir -p ${DESTDIR}/usr/include/${CXXINCLUDEDIR}
 	cd ${HDRDIR}; for i in ${STD_HEADERS}; do \
@@ -158,10 +153,5 @@ includes:
 		cmp -s $$i ${DESTDIR}/usr/include/$$i || \
 		${INSTALL} ${INSTALL_COPY} -m 444 -o $(BINOWN) -g $(BINGRP) $$i \
 		${DESTDIR}/usr/include/${EXTDIR}; done
-
-	cd ${RTDIR}; for i in ${RT_HEADERS}; do \
-		cmp -s $$i ${DESTDIR}/usr/include/$$i || \
-		${INSTALL} ${INSTALL_COPY} -m 444 -o $(BINOWN) -g $(BINGRP) $$i \
-		${DESTDIR}/usr/include/${CXXINCLUDEDIR}; done
 
 .include <bsd.lib.mk>
