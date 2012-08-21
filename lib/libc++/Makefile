@@ -6,14 +6,14 @@ HDRDIR= ${.CURDIR}/include
 RTDIR= ${.CURDIR}/../libcxxrt/src
 CXXINCLUDEDIR=	c++
 
-CXXFLAGS+= -std=c++0x -nostdlib -nostdinc -I/usr/include -v
-CXXFLAGS+= -fstrict-aliasing -Wall -Wextra -Wshadow -Wconversion
-CXXFLAGS+= -Wnewline-eof -Wpadded -Wmissing-prototypes -Wstrict-aliasing=2
-CXXFLAGS+= -Wstrict-overflow=4
-CXXFLAGS+= -DLIBCXXRT -D__XSI_VISIBLE -D_LIBCPP_HAS_NO_CONSTEXPR
+CPPFLAGS+= -std=c++0x -stdlib=libc++
+CPPFLAGS+= -fstrict-aliasing -Wall -Wextra -Wshadow -Wconversion
+CPPFLAGS+= -Wnewline-eof -Wpadded -Wmissing-prototypes -Wstrict-aliasing=2
+CPPFLAGS+= -Wstrict-overflow=4
+CPPFLAGS+= -DLIBCXXRT -D__XSI_VISIBLE -D_LIBCPP_HAS_NO_CONSTEXPR
 #-D_LIBCPP_HAS_NO_CONSTEXPR -D__XSI_VISIBLE
-CXXFLAGS+= -I${HDRDIR} -I${RTDIR}
-CXXFLAGS+= -g
+CPPFLAGS+= -I${HDRDIR} -I${RTDIR}
+CPPFLAGS+= -g
 
 SRCS+=	algorithm.cpp \
 	bind.cpp \
