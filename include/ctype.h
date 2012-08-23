@@ -60,7 +60,7 @@ int	isxdigit(int);
 int	tolower(int);
 int	toupper(int);
 
-#if __XSI_VISIBLE
+#if __XPG_VISIBLE
 int	isascii(int);
 int	toascii(int);
 #endif
@@ -100,7 +100,7 @@ __END_DECLS
 #define	toupper(c)	__sbtoupper(c)
 #endif /* !__cplusplus */
 
-#if __XSI_VISIBLE
+#if __XPG_VISIBLE
 /*
  * POSIX.1-2001 specifies _tolower() and _toupper() to be macros equivalent to
  * tolower() and toupper() respectively, minus extra checking to ensure that
