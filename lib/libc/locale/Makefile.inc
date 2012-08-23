@@ -28,7 +28,7 @@ MAN+=	btowc.3 \
 	ctype.3 digittoint.3 isalnum.3 isalpha.3 isascii.3 isblank.3 iscntrl.3 \
 	isdigit.3 isgraph.3 isideogram.3 islower.3 isphonogram.3 isprint.3 \
 	ispunct.3 isrune.3 isspace.3 isspecial.3 \
-	isupper.3 iswalnum.3 isxdigit.3 localeconv.3 mblen.3 mbrlen.3 \
+	isupper.3 iswalnum.3 iswalnum_l.3 isxdigit.3 localeconv.3 mblen.3 mbrlen.3 \
 	mbrtowc.3 \
 	mbsinit.3 \
 	mbsrtowcs.3 mbstowcs.3 mbtowc.3 multibyte.3 \
