@@ -251,6 +251,7 @@ int	 cgetustr(char *, const char *, char **);
 int	 daemon(int, int);
 char	*devname(int, mode_t);
 int	 getloadavg(double [], int);
+const char *getprogname(void);
 
 void	 cfree(void *);
 
@@ -269,6 +270,7 @@ int	 heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
 int	 mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
 int	 radixsort(const unsigned char **, int, const unsigned char *,
 	    unsigned);
+void	 setprogname(const char *);
 int	 sradixsort(const unsigned char **, int, const unsigned char *,
 	    unsigned);
 
