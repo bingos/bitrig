@@ -22,7 +22,7 @@ FILES=	_ctype.h a.out.h ar.h assert.h bitstring.h blf.h bm.h bsd_auth.h \
 	stdbool.h stddef.h stdio.h stdlib.h \
 	string.h strings.h struct.h sysexits.h tar.h tgmath.h \
 	time.h ttyent.h tzfile.h unistd.h utime.h utmp.h vis.h \
-	wchar.h wctype.h xlocale.h
+	wchar.h wctype.h xlocale.h stringlist.h
 
 FILES+=	link.h link_aout.h link_elf.h
 
