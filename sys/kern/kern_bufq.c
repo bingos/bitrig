@@ -1,4 +1,4 @@
-/*	$OpenBSD: kern_bufq.c,v 1.20 2012/10/09 15:12:15 beck Exp $	*/
+/*	$OpenBSD: kern_bufq.c,v 1.23 2012/10/17 23:58:25 beck Exp $	*/
 /*
  * Copyright (c) 2010 Thordur I. Bjornsson <thib@secnorth.net>
  * Copyright (c) 2010 David Gwynne <dlg@openbsd.org>
@@ -249,7 +249,7 @@ bufq_done(struct bufq *bq, struct buf *bp)
 	if (bq->bufq_stop && bq->bufq_outstanding == 0)
 		wakeup(&bq->bufq_outstanding);
 	if (bq->bufq_waiting && bq->bufq_outstanding < bq->bufq_low)
-		wakeup_one(&bq->bufq_waiting);
+		wakeup(&bq->bufq_waiting);
 	mtx_leave(&bq->bufq_mtx);
 	bp->b_bq = NULL;
 }
