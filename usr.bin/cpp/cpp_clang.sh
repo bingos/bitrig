@@ -71,11 +71,7 @@ do
 		STDINC=-nostdinc
 		;;
 	-traditional)
-		# use gcc cpp to preserve whitespace
-		TRAD=-traditional
-		CPP=/usr/libexec/cpp
-		CLANGOPTS=
-		CLANGSTDIN=
+		TRAD=-traditional-cpp
 		;;
 	-notraditional)
 		TRAD=
