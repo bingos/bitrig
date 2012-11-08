@@ -56,7 +56,7 @@ if [ $? != 0 ]
 then
 	exit 1
 fi
-CLANGOPTS="-x c -E"
+CLANGOPTS="-x assembler-with-cpp -E"
 CLANGSTDIN="-"
 OPTS=""
 TRAD=""
@@ -72,7 +72,7 @@ do
 		;;
 	-traditional)
 		# use gcc cpp to preserve whitespace
-		TRAD=-traditional
+		TRAD=-t
 		CPP=/usr/libexec/cpp
 		CLANGOPTS=
 		CLANGSTDIN=
