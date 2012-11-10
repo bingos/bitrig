@@ -27,7 +27,7 @@ FILES=	a.out.h ar.h assert.h bitstring.h blf.h bm.h bsd_auth.h \
 FILES+=	link.h link_aout.h link_elf.h ieeefp.h
 
 MFILES=	frame.h
-LFILES=	fcntl.h syslog.h termios.h stdarg.h stdatomic.h stdint.h varargs.h
+LFILES=	fcntl.h ll.h syslog.h termios.h stdarg.h stdatomic.h stdint.h varargs.h
 
 DIRS=	arpa protocols rpc rpcsvc
 LDIRS=	altq crypto ddb dev isofs miscfs msdosfs net netinet netinet6 \
