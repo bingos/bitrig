@@ -5,5 +5,5 @@
 .include <bsd.own.mk>
 
 .if ${ELF_TOOLCHAIN:L} == "yes"
-SRCS+=		dlfcn_stubs.c
+SRCS+=		dlfcn_stubs.c tls_stubs.c
 .endif
