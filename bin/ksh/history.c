@@ -646,7 +646,7 @@ histsave(int lno, const char *cmd, int dowrite)
 		if (gotlock) {
 			/* append to file */
 			if (fseeko(histfd, 0, SEEK_END) == 0) {
-				fprintf(histfd, "%s", cmd);
+				fprintf(histfd, "%s\n", c);
 				fflush(histfd);
 				fstat(fileno(histfd), &last_sb);
 				line_co++;

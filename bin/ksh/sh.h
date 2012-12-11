@@ -66,7 +66,8 @@ typedef INT32 Tflag;
 #define ISMAGIC(c)	((unsigned char)(c) == MAGIC)
 #define	NOT		'!'	/* might use ^ (ie, [!...] vs [^..]) */
 
-#define	LINE	2048		/* input line size */
+//#define	LINE	2048		/* input line size */
+#define	LINE	10		/* input line size */
 #define	PATH	1024		/* pathname size (todo: PATH_MAX/pathconf()) */
 #define ARRAYMAX (10*1024-1)	/* max array index */
 
