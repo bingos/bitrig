@@ -1833,10 +1833,9 @@ priv_resolv_conf(struct imsg_resolv_conf *imsg)
 	int conffd, tailfd, tailn;
 	char *buf, *resolv_conf, resolv_conf_tail[PATH_MAX];
 
-	if (config->resolv_conf) {
+	if (config->resolv_conf)
 		resolv_conf = config->resolv_conf;
-		fprintf(stderr, "OVERRIDE %s\n", resolv_conf);
-	} else
+	else
 		resolv_conf = "/etc/resolv.conf";
 	snprintf(resolv_conf_tail, sizeof(resolv_conf_tail), "%s.tail",
 	    resolv_conf);
