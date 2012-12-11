@@ -1831,9 +1831,17 @@ priv_resolv_conf(struct imsg_resolv_conf *imsg)
 {
 	ssize_t n;
 	int conffd, tailfd, tailn;
-	char *buf;
+	char *buf, *resolv_conf, resolv_conf_tail[PATH_MAX];
 
-	conffd = open("/etc/resolv.conf",
+	if (config->resolv_conf) {
+		resolv_conf = config->resolv_conf;
+		fprintf(stderr, "OVERRIDE %s\n", resolv_conf);
+	} else
+		resolv_conf = "/etc/resolv.conf";
+	snprintf(resolv_conf_tail, sizeof(resolv_conf_tail), "%s.tail",
+	    resolv_conf);
+
+	conffd = open(resolv_conf,
 	    O_WRONLY | O_CREAT | O_TRUNC | O_SYNC | O_EXLOCK,
 	    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (conffd == -1) {
@@ -1852,7 +1860,7 @@ priv_resolv_conf(struct imsg_resolv_conf *imsg)
 			    n, strlen(imsg->contents));
 	}
 
-	tailfd = open("/etc/resolv.conf.tail", O_RDONLY);
+	tailfd = open(resolv_conf_tail, O_RDONLY);
 
 	n = tailn = 0;
 	buf = calloc(1, MAXRESOLVCONFSIZE);
@@ -1881,7 +1889,7 @@ priv_resolv_conf(struct imsg_resolv_conf *imsg)
 
 	if ((strlen(imsg->contents) == 0) && (tailn < 1 || n < 1)) {
 		note("No contents for resolv.conf");
-		unlink("/etc/resolv.conf");
+		unlink(resolv_conf);
 		close(conffd);
 		return;
 	}

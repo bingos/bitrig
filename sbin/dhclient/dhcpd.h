@@ -139,6 +139,7 @@ struct client_config {
 	time_t			 select_interval;
 	time_t			 reboot_timeout;
 	time_t			 backoff_cutoff;
+	char			*resolv_conf;
 	enum { IGNORE, ACCEPT, PREFER }
 				 bootp_policy;
 	struct reject_elem	*reject_list;

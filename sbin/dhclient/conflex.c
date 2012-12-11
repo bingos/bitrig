@@ -350,6 +350,7 @@ static const struct keywords {
 	{ "renew",				TOK_RENEW },
 	{ "request",				TOK_REQUEST },
 	{ "require",				TOK_REQUIRE },
+	{ "resolv-conf",			TOK_RESOLV_CONF },
 	{ "retry",				TOK_RETRY },
 	{ "select-timeout",			TOK_SELECT_TIMEOUT },
 	{ "send",				TOK_SEND },

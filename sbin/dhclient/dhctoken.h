@@ -59,6 +59,7 @@
 #define TOK_TIMEOUT		272
 #define TOK_RETRY		273
 #define TOK_SELECT_TIMEOUT	274
+#define TOK_RESOLV_CONF		275
 #define TOK_INTERFACE		276
 #define TOK_RENEW		277
 #define TOK_REBIND		278

@@ -145,6 +145,7 @@ read_client_leases(void)
  *	TOK_REBOOT number |
  *	TOK_BACKOFF_CUTOFF number |
  *	TOK_INITIAL_INTERVAL number |
+ *	TOK_RESOLV_CONF string |
  *	interface-declaration |
  *	TOK_LEASE client-lease-statement |
  *	TOK_ALIAS client-lease-statement |
@@ -230,6 +231,9 @@ parse_client_statement(FILE *cfile)
 		return;
 	case TOK_INITIAL_INTERVAL:
 		parse_lease_time(cfile, &config->initial_interval);
+		return;
+	case TOK_RESOLV_CONF:
+		config->resolv_conf = parse_string(cfile);
 		return;
 	case TOK_INTERFACE:
 		parse_interface_declaration(cfile);

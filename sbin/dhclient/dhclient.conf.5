@@ -435,6 +435,15 @@ specified name.
 Interfaces for which there is no interface declaration will use the
 parameters declared outside of any interface declaration,
 or the default settings.
+.It Ic resolv-conf Ar \&"string\&" ;
+The
+.Ic resolv-conf
+statement overrides where resolv.conf and resolv.conf.tail get written.
+By default it is
+.Ic /etc/resolv.conf
+and
+.Ic /etc/resolv.conf.tail .
+Note that .tail is appended to the specified filename.
 .El
 .Sh EXAMPLES
 The following configuration file is used on a laptop
