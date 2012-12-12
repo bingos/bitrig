@@ -720,24 +720,29 @@ history_close(void)
 static int
 history_load(Source *s)
 {
-	char		*p, line[LINE + 1];
+	char		*p, *line;
+	size_t		len;
 
 	rewind(histfd);
 
 	/* just read it all; will auto resize history upon next command */
 	for (line_co = 1; ; line_co++) {
-		p = fgets(line, sizeof line, histfd);
+		p = fgetln(histfd, &len);
 		if (p == NULL || feof(histfd) || ferror(histfd))
 			break;
-		if ((p = strchr(line, '\n')) == NULL) {
-			bi_errorf("history file is corrupt");
-			return (1);
+		if (p[len - 1] == '\n') {
+			p[len - 1] = '\0';
+			line = p;
+		} else {
+			line = alloc(len + 1, APERM);
+			bcopy(p, line, len);
+			line[len] = '\0';
 		}
-		*p = '\0';
-
 		s->line = line_co;
 		s->cmd_offset = line_co;
-		histsave(line_co, (char *)line, 0);
+		histsave(line_co, line, 0);
+		if (line != p)
+			afree(line, APERM);
 	}
 
 	writehistfile();
