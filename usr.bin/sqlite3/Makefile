@@ -13,6 +13,6 @@ CPPFLAGS +=	-DHAVE_READLINE=1
 
 CFLAGS += -pthread
 LDFLAGS += -pthread
-LDADD += -lsqlite3 -lreadline -lcurses
+LDADD += -lsqlite3 -lcurses -ledit
 
 .include <bsd.prog.mk>
