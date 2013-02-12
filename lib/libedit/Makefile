@@ -121,6 +121,7 @@ includes:
 		/dev/null 2>&1 || \
 	${INSTALL} ${INSTALL_COPY} -o ${BINOWN} -g ${BINGRP} -m 444 histedit.h \
 		${DESTDIR}/usr/include
+	-cd ${.CURDIR}/readline && exec ${SUDO} ${MAKE} includes
 
 .include <bsd.lib.mk>
 .include <bsd.subdir.mk>
