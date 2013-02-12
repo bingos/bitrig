@@ -333,8 +333,8 @@ ENTRY(copystr)
 
 .globl _C_LABEL(_stac)
 _C_LABEL(_stac):
-	stac
+	.byte 0x0f,0x01,0xcb /* stac */
 
 .globl _C_LABEL(_clac)
 _C_LABEL(_clac):
-	clac
+	.byte 0x0f,0x01,0xca /* clac */
