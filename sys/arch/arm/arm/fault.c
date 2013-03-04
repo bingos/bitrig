@@ -107,6 +107,7 @@
 #include <arm/db_machdep.h>
 #include <arch/arm/arm/disassem.h>
 #include <arm/machdep.h>
+#include <arm/vfp.h>
  
 #ifdef DEBUG
 int last_fault_code;	/* For the benefit of pmap_fault_fixup() */
@@ -222,6 +223,9 @@ printf("DFAULT %08x addr %08x\n", fsr, far);
 
 	/* Update vmmeter statistics */
 	uvmexp.traps++;
+
+	/* before enabling interrupts save FPU state */
+	vfp_save();
 
 	/* Re-enable interrupts if they were enabled previously */
 	if (__predict_true((tf->tf_spsr & I32_bit) == 0))
@@ -659,6 +663,11 @@ printf("IFAULT %08x addr %08x\n", fsr, far);
 	/* Prefetch aborts cannot happen in kernel mode */
 	if (__predict_false(!TRAP_USERMODE(tf)))
 		dab_fatal(tf, fsr, far, NULL, NULL);
+
+
+	/* Before enabling interrupts, save FPU state */
+	if (curcpu()->ci_fpuproc)
+		vfp_save();
 
 	/*
 	 * Enable IRQ's (disabled by the abort) This always comes

@@ -96,6 +96,8 @@ ASENTRY_NP(irq_entry)
 
 	PUSHFRAMEINSVC			/* Push an interrupt frame */
 
+	bl	vfp_save		/* save fpu state before irq handler */
+
 	/*
 	 * Increment the interrupt nesting depth and call the interrupt
 	 * dispatch routine.  We've pushed a frame, so we can safely use
@@ -110,6 +112,7 @@ ASENTRY_NP(irq_entry)
 	ldr	r6, [r5]
 	add	r1, r6, #1
 	str	r1, [r5]
+
 
 	bl	ARM_IRQ_HANDLER
 
