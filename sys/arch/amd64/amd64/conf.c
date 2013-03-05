@@ -50,6 +50,7 @@ bdev_decl(wd);
 #include "uk.h"
 #include "vnd.h"
 #include "rd.h"
+#include "fuse.h"
 
 struct bdevsw	bdevsw[] =
 {
@@ -284,6 +285,8 @@ struct cdevsw	cdevsw[] =
 	cdev_vscsi_init(NVSCSI,vscsi),	/* 89: vscsi */
 	cdev_disk_init(1,diskmap),	/* 90: disk mapper */
 	cdev_pppx_init(NPPPX,pppx),     /* 91: pppx */
+	cdev_notdef(),			/* 92: */
+	cdev_fuse_init(NFUSE, fuse),	/* 93: fuse */ 
 };
 int	nchrdev = nitems(cdevsw);
 
