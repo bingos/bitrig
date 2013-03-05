@@ -103,13 +103,13 @@ void fuse_internal_attr_fat2vat(struct mount *, struct fuse_attr *, struct vattr
 #define VFSTOFUSEFS(mp)	((struct fuse_mnt *)((mp)->mnt_data))
 
 #define MAX_FUSE_DEV 4
-///*
+/*
 #define FUSE_DEBUG_VNOP 42
 #define FUSE_DEBUG_VFS 42
 #define FUSE_DEBUG 42
 #define FUSE_DEV_DEBUG 42
 #define FUSE_DEBUG_MSG 42
-//*/
+*/
 /*
  * Helpers
  */
