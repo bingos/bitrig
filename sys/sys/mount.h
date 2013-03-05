@@ -199,6 +199,16 @@ struct msdosfs_args {
 #define	MSDOSFSMNT_NOWIN95	0x04	/* Completely ignore Win95 entries */
 #define MSDOSFSMNT_ALLOWDIRX	0x10	/* dir is mode +x if r */
 
+/*
+ * Arguments to mount fusefs filesystems
+ */
+struct fusefs_args {
+	char *name;
+	char *url;
+	int fd;
+	int flags;
+};
+
 /* Arguments to mount UDF file systems */
 struct udf_args {
 	char *fspec; /* Block special device to mount */
@@ -259,6 +269,7 @@ struct statfs {
 #define	MOUNT_CD9660	"cd9660"	/* ISO9660 (aka CDROM) Filesystem */
 #define	MOUNT_EXT2FS	"ext2fs"	/* Second Extended Filesystem */
 #define	MOUNT_UDF	"udf"		/* UDF */
+#define MOUNT_FUSEFS	"fuse"		/* FUSE */
 
 /*
  * Structure per mounted file system.  Each mounted file system has an
