@@ -30,7 +30,7 @@
 
 int
 fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
-	       enum fufh_type fufh_type, int flags, int isdir)
+    enum fufh_type fufh_type, int flags, int isdir)
 {
 	struct fuse_open_out *open_out;
 	struct fuse_open_in open_in;
@@ -45,14 +45,14 @@ fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
 	msg.cb = &fuse_sync_resp;
 	msg.fmp = fmp;
 	msg.type = msg_buff;
-	
+
 	open_in.flags = flags;
 	open_in.mode = 0;
 	msg.rep.buff.data_rcv = NULL;
 	msg.rep.buff.len = sizeof(*open_out);
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, ((isdir)?FUSE_OPENDIR:FUSE_OPEN), 
-		     ip->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len,
+	    ((isdir)?FUSE_OPENDIR:FUSE_OPEN), ip->i_number, curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -74,7 +74,7 @@ fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
 
 int
 fuse_file_close(struct fuse_mnt *fmp, struct fuse_node * ip,
-		enum fufh_type  fufh_type, int flags, int isdir)
+    enum fufh_type  fufh_type, int flags, int isdir)
 {
 	struct fuse_release_in rel;
 	struct fuse_in_header hdr;
@@ -93,8 +93,8 @@ fuse_file_close(struct fuse_mnt *fmp, struct fuse_node * ip,
 	rel.fh  = ip->fufh[fufh_type].fh_id;
 	rel.flags = flags;
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, ((isdir)?FUSE_RELEASEDIR:FUSE_RELEASE),
-		     ip->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len,
+	    ((isdir)?FUSE_RELEASEDIR:FUSE_RELEASE), ip->i_number, curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);

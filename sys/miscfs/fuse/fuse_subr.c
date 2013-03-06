@@ -28,13 +28,13 @@
 #include "fusefs.h"
 
 void
-fuse_make_in(struct mount *mp, struct fuse_in_header *hdr, int len, 
-	     enum fuse_opcode op, ino_t ino, struct proc *p)
+fuse_make_in(struct mount *mp, struct fuse_in_header *hdr, int len,
+    enum fuse_opcode op, ino_t ino, struct proc *p)
 {
 	struct fuse_mnt *fmp;
-	
+
 	fmp = VFSTOFUSEFS(mp);
-	
+
 	fmp->unique++;
 
 	hdr->len = sizeof(*hdr) + len;
@@ -44,15 +44,15 @@ fuse_make_in(struct mount *mp, struct fuse_in_header *hdr, int len,
 #ifdef FUSE_DEBUG_MSG
 	printf("creat unique %i\n", hdr->unique);
 #endif
-	
+
 	if (!p) {
-	  hdr->pid = curproc->p_pid;
-	  hdr->uid = 0;
-	  hdr->gid = 0;
+		hdr->pid = curproc->p_pid;
+		hdr->uid = 0;
+		hdr->gid = 0;
 	} else {
-	  hdr->pid = p->p_pid;
-	  hdr->uid = p->p_cred->p_ruid;
-	  hdr->gid = p->p_cred->p_rgid;
+		hdr->pid = p->p_pid;
+		hdr->uid = p->p_cred->p_ruid;
+		hdr->gid = p->p_cred->p_rgid;
 	}
 }
 
@@ -90,20 +90,24 @@ fuse_sync_resp(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 	if (data != NULL && msg->rep.buff.len != 0) {
 		len = hdr->len - sizeof(*hdr);
 		if (msg->rep.buff.len != len) {
-			printf("fusefs: packet size error on opcode %i\n", msg->hdr->opcode);
+			printf("fusefs: packet size error on opcode %i\n",
+			    msg->hdr->opcode);
 		}
 
 		if (msg->rep.buff.len > len)
-			printf("buff unused byte : 0x%x\n", msg->rep.buff.len - len);
+			printf("buff unused byte : 0x%x\n",
+			    msg->rep.buff.len - len);
 
-		msg->rep.buff.data_rcv = malloc(msg->rep.buff.len,  M_FUSEFS, M_WAITOK | M_ZERO);
+		msg->rep.buff.data_rcv = malloc(msg->rep.buff.len,  M_FUSEFS,
+		    M_WAITOK | M_ZERO);
 		memcpy(msg->rep.buff.data_rcv, data, msg->rep.buff.len);
 
 		wakeup(msg);
-		
+
 	} else if (data != NULL) {
 		len = hdr->len - sizeof(*hdr);
-		msg->rep.buff.data_rcv = malloc(len,  M_FUSEFS, M_WAITOK | M_ZERO);
+		msg->rep.buff.data_rcv = malloc(len,  M_FUSEFS,
+		    M_WAITOK | M_ZERO);
 		memcpy(msg->rep.buff.data_rcv, data, len);
 		msg->rep.buff.len = len;
 
@@ -127,7 +131,7 @@ void
 fuse_sync_it(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 {
 #ifdef FUSE_DEBUG_MSG
-	printf("it unique %i\n", msg->hdr->unique);
+	printf("unique %i\n", msg->hdr->unique);
 #endif
 
 	if (msg->type != msg_intr)

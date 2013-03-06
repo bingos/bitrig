@@ -210,7 +210,7 @@ struct fuse_mkdir_in {
 };
 
 struct fuse_link_in {
-	uint64_t oldnodeid; 
+	uint64_t oldnodeid;
 };
 
 struct fuse_write_in {

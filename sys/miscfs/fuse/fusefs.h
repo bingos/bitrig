@@ -36,11 +36,11 @@ struct fuse_mnt {
 #define UNDEF_RMDIR	1<<5
 #define UNDEF_REMOVE	1<<6
 
-typedef void (*fuse_cb)(struct fuse_msg *msg,struct fuse_out_header *hdr, void *buf);
+typedef void (*fuse_cb)(struct fuse_msg *,struct fuse_out_header *, void *);
 
 struct rcv_buf {
 	void *data_rcv;
-	size_t len;      
+	size_t len;
 };
 
 enum msg_type {
@@ -68,7 +68,7 @@ struct fuse_msg {
 
 extern struct vops fusefs_vops;
 
-/* 
+/*
  * In and Out fifo for fuse communication
  */
 TAILQ_HEAD(fuse_msg_head, fuse_msg);
@@ -79,20 +79,22 @@ extern struct fuse_msg_head fmq_wait;
 /*
  * fuse helpers
  */
-void fuse_make_in(struct mount *, struct fuse_in_header *, int, 
-		  enum fuse_opcode, ino_t, struct proc *);
+void fuse_make_in(struct mount *, struct fuse_in_header *, int,
+    enum fuse_opcode, ino_t, struct proc *);
 void fuse_init_resp(struct fuse_msg *, struct fuse_out_header *, void *);
 void fuse_sync_resp(struct fuse_msg *, struct fuse_out_header *, void *);
-void fuse_sync_it(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data);
+void fuse_sync_it(struct fuse_msg *, struct fuse_out_header *, void *);
 
 /*
  * files helpers.
  */
 
-int fuse_file_open(struct fuse_mnt *, struct fuse_node *, enum fufh_type, int, int);
-int fuse_file_close(struct fuse_mnt *, struct fuse_node *, enum fufh_type, int, int);
-
-void fuse_internal_attr_fat2vat(struct mount *, struct fuse_attr *, struct vattr *);
+int fuse_file_open(struct fuse_mnt *, struct fuse_node *, enum fufh_type, int,
+    int);
+int fuse_file_close(struct fuse_mnt *, struct fuse_node *, enum fufh_type, int,
+    int);
+void fuse_internal_attr_fat2vat(struct mount *, struct fuse_attr *,
+    struct vattr *);
 
 /*
  * The root inode is the root of the file system.  Inode 0 can't be used for

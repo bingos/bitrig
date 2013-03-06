@@ -74,15 +74,17 @@ fusefs_lookup(void *v)
 	if ((error = cache_lookup(vdp, vpp, cnp)) >= 0)
 		return (error);
 
-	/* if we get ".." */
 	if (flags & ISDOTDOT) {
+		/* got ".." */
 		nid = dp->parent;
 		if (nid == 0) {
 			return ENOENT;
 		}
-	} else if (cnp->cn_namelen == 1 && *(cnp->cn_nameptr) == '.') {  /* if we get "." */
+	} else if (cnp->cn_namelen == 1 && *(cnp->cn_nameptr) == '.') {
+		/* got "." */
 		nid = dp->i_number;
-	} else { /* if we get a real entry */
+	} else {
+		/* got a real entry */
 		bzero(&msg, sizeof(msg));
 		msg.hdr = &hdr;
 		msg.len = cnp->cn_namelen + 1;
@@ -95,19 +97,21 @@ fusefs_lookup(void *v)
 		msg.rep.buff.len = 0;
 		msg.rep.buff.data_rcv = NULL;
 		msg.cb = &fuse_sync_resp;
-	
-		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_LOOKUP, dp->i_number, curproc);
-	
+
+		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_LOOKUP,
+		    dp->i_number, curproc);
+
 		TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 		wakeup(&fmq_in);
 
 		error = tsleep(&msg, PWAIT, "fuse lookup", 0);
-	
+
 		if (error)
 			return (error);
 
 		if (msg.error) {
-			if ((nameiop == CREATE || nameiop == RENAME) && (flags & ISLASTCN) ) {
+			if ((nameiop == CREATE || nameiop == RENAME) &&
+			    (flags & ISLASTCN) ) {
 				if (vdp->v_mount->mnt_flag & MNT_RDONLY)
 					return EROFS;
 
@@ -141,7 +145,9 @@ fusefs_lookup(void *v)
 	}
 
 	if (flags & ISDOTDOT) {
+#ifdef FUSE_DEBUG_VNOP
 		printf("lookup for ..\n");
+#endif
 		VOP_UNLOCK(vdp, 0);	/* race to get the inode */
 		cnp->cn_flags |= PDIRUNLOCK;
 
@@ -175,7 +181,8 @@ fusefs_lookup(void *v)
 			VTOI(tdp)->vtype = tdp->v_type;
 		}
 
-		fuse_internal_attr_fat2vat(fmp->mp, &feo->attr, &(VTOI(tdp)->cached_attrs));
+		fuse_internal_attr_fat2vat(fmp->mp, &feo->attr,
+		    &(VTOI(tdp)->cached_attrs));
 		free(feo, M_FUSEFS);
 
 		if (error)
@@ -193,7 +200,8 @@ fusefs_lookup(void *v)
 	}
 
 out:
-	if ((cnp->cn_flags & MAKEENTRY) && nameiop != CREATE && nameiop != DELETE )
+	if ((cnp->cn_flags & MAKEENTRY) && nameiop != CREATE &&
+	    nameiop != DELETE )
 		cache_enter(vdp, *vpp, cnp);
 
 	return (error);

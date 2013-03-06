@@ -40,13 +40,13 @@ struct fuse_dev {
 
 static struct fuse_dev *fuse_devs[MAX_FUSE_DEV];
 
-void			 fuseattach(int);
-int			 fuseopen(dev_t, int, int, struct proc *);
-int			 fuseclose(dev_t, int, int, struct proc *);
-int			 fuseioctl(dev_t, u_long, caddr_t, int, struct proc *);
-int			 fuseread(dev_t, struct uio *, int);
-int			 fusewrite(dev_t, struct uio *, int);
-int			 fusepoll(dev_t, int, struct proc *);
+void	fuseattach(int);
+int	fuseopen(dev_t, int, int, struct proc *);
+int	fuseclose(dev_t, int, int, struct proc *);
+int	fuseioctl(dev_t, u_long, caddr_t, int, struct proc *);
+int	fuseread(dev_t, struct uio *, int);
+int	fusewrite(dev_t, struct uio *, int);
+int	fusepoll(dev_t, int, struct proc *);
 
 struct fuse_msg_head fmq_in;
 struct fuse_msg_head fmq_wait;
@@ -58,24 +58,24 @@ dump_buff(char *buff, int len)
 	char text[17];
 	int i;
 
-	bzero(text, 17);
+	bzero(text, sizeof text);
 	for (i = 0; i < len ; i++) {
 
-		if (i != 0 && (i % 16) == 0) {
+		if (i != 0 && (i % (sizeof(text) - 1)) == 0) {
 			printf(": %s\n", text);
-			bzero(text, 17);
+			bzero(text, sizeof text);
 		}
 
 		printf("%.2x ", buff[i] & 0xff);
 
 		if (buff[i] > ' ' && buff[i] < '~')
-			text[i%16] = buff[i] & 0xff;
+			text[i % (sizeof(text) - 1)] = buff[i] & 0xff;
 		else
-			text[i%16] = '.';
+			text[i % (sizeof(text) - 1)] = '.';
 	}
 
-	if ((i % 16) != 0) {
-		while ((i % 16) != 0) {
+	if ((i % (sizeof(text) - 1)) != 0) {
+		while ((i % (sizeof(text) - 1)) != 0) {
 			printf("   ");
 			i++;
 		}
@@ -95,18 +95,18 @@ fuseattach(int num)
 int
 fuseopen(dev_t dev, int flags, int fmt, struct proc * p)
 {
-	if (minor(dev) >= MAX_FUSE_DEV && 
-		fuse_devs[minor(dev)]->opened != FUSE_CLOSE)
+	if (minor(dev) >= MAX_FUSE_DEV &&
+	    fuse_devs[minor(dev)]->opened != FUSE_CLOSE)
 		return (ENXIO);
 
 #ifdef FUSE_DEV_DEBUG
 	printf("open dev %i\n", minor(dev));
 #endif
 
-	fuse_devs[minor(dev)] = malloc(sizeof(*fuse_devs[minor(dev)]), 
-				       M_FUSEFS, M_WAITOK | M_ZERO);
+	fuse_devs[minor(dev)] = malloc(sizeof(*fuse_devs[minor(dev)]),
+	    M_FUSEFS, M_WAITOK | M_ZERO);
 	fuse_devs[minor(dev)]->opened = FUSE_OPEN;
-	
+
 	return (0);
 }
 
@@ -177,6 +177,7 @@ again:
 			printf("catch done\n");
 #endif
 			fuse_devs[minor(dev)]->opened = FUSE_DONE;
+			/* MP should this return? */
 		}
 
 		error = uiomove(msg->hdr, sizeof(struct fuse_in_header), uio);
@@ -217,7 +218,7 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 	struct fuse_out_header hdr;
 	struct fuse_msg *msg;
 	int error = 0;
-	int catched = 0;
+	int caught = 0;
 	int len;
 	void *data;
 
@@ -234,7 +235,7 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 	 * get out header
 	 */
 
-	if ((error = uiomove(&hdr, sizeof(struct fuse_out_header), uio)) != 0){
+	if ((error = uiomove(&hdr, sizeof(struct fuse_out_header), uio)) != 0) {
 		printf("uiomove failed\n");
 		return (error);
 	}
@@ -260,12 +261,12 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 #ifdef FUSE_DEV_DEBUG
 			printf("catch unique %i\n", msg->hdr->unique);
 #endif
-			catched = 1;
+			caught = 1;
 			break;
 		}
 	}
 
-	if (catched) {
+	if (caught) {
 		if (uio->uio_resid > 0) {
 			len = uio->uio_resid;
 			data = malloc(len, M_FUSEFS, M_WAITOK);
@@ -275,7 +276,6 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 			printf("data w:\n");
 			dump_buff(data, len);
 #endif
-			
 		} else {
 			data = NULL;
 		}
@@ -290,13 +290,12 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 		TAILQ_REMOVE(&fmq_wait, msg, node);
 
 		if (msg->type == msg_buff_async) {
-		  	free(msg->hdr, M_FUSEFS);
+			free(msg->hdr, M_FUSEFS);
 			free(msg, M_FUSEFS);
-			
+
 			if (data)
 				free(data, M_FUSEFS);
 		}
-
 	} else {
 		error = EINVAL;
 	}

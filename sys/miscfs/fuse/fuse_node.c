@@ -28,7 +28,7 @@
 #include "fusefs.h"
 
 LIST_HEAD(ihashhead, fuse_node) *fhashtbl;
-u_long	fhash;		/* size of hash table - 1 */
+u_long	fhash;	/* size of hash table - 1 */
 #define	INOHASH(fd, inum)	(&fhashtbl[((fd) + (inum)) & fhash])
 
 void
@@ -36,7 +36,6 @@ fusefs_ihashinit(void)
 {
 	fhashtbl = hashinit(desiredvnodes, M_FUSEFS, M_WAITOK, &fhash);
 }
-
 
 /*
  * Use the fd/inum pair to find the incore inode, and return a pointer
@@ -57,7 +56,7 @@ loop:
 			if (vget(vp, LK_EXCLUSIVE, p))
 				goto loop;
 			return (vp);
- 		}
+		}
 	}
 	/* XXXLOCKING unlock hash list? */
 	return (NULL);
@@ -90,6 +89,7 @@ fusefs_ihashins(struct fuse_node *ip)
 
 	return (0);
 }
+
 /*
  * Remove the inode from the hash table.
  */

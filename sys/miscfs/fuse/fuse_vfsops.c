@@ -28,26 +28,24 @@
 #include "fuse_node.h"
 #include "fusefs.h"
 
-static int	fusefs_mount(struct mount *mp, const char *path, void *data,
-			     struct nameidata *ndp, struct proc *p);
-static int	fusefs_start(struct mount *mp, int flags, struct proc *p);
-static int	fusefs_unmount(struct mount *mp, int mntflags, struct proc *p);
-static int	fusefs_root(struct mount *mp, struct vnode **vpp);
-static int	fusefs_quotactl(struct mount *mp, int cmds, uid_t uid,
-				caddr_t arg, struct proc *p);
-static int	fusefs_statfs(struct mount *mp, struct statfs *sbp,
-			      struct proc *p);
-static int	fusefs_sync(struct mount *mp, int waitfor, struct ucred *cred,
-			    struct proc *p);
-static int	fusefs_vget(struct mount *mp, ino_t ino, struct vnode **vpp);
-static int	fusefs_fhtovp(struct mount *mp, struct fid *fhp,
-			      struct vnode **vpp);
-static int	fusefs_vptofh(struct vnode *vp, struct fid *fhp);
+/* MP you don't want static here */
+static int	fusefs_mount(struct mount *, const char *, void *,
+		    struct nameidata *, struct proc *);
+static int	fusefs_start(struct mount *, int, struct proc *);
+static int	fusefs_unmount(struct mount *, int, struct proc *);
+static int	fusefs_root(struct mount *, struct vnode **);
+static int	fusefs_quotactl(struct mount *, int, uid_t, caddr_t,
+		    struct proc *);
+static int	fusefs_statfs(struct mount *, struct statfs *, struct proc *);
+static int	fusefs_sync(struct mount *, int, struct ucred *, struct proc *);
+static int	fusefs_vget(struct mount *, ino_t, struct vnode **);
+static int	fusefs_fhtovp(struct mount *, struct fid *, struct vnode **);
+static int	fusefs_vptofh(struct vnode *, struct fid *);
 static int	fusefs_init(struct vfsconf *);
 static int	fusefs_sysctl(int *, u_int, void *, size_t *, void *,
-			      size_t, struct proc *);
-static int	fusefs_checkexp(struct mount *mp, struct mbuf *nam,
-				int *extflagsp, struct ucred **credanonp);
+		    size_t, struct proc *);
+static int	fusefs_checkexp(struct mount *, struct mbuf *, int *,
+		    struct ucred **);
 
 const struct vfsops fusefs_vfsops = {
 	fusefs_mount,
@@ -66,15 +64,15 @@ const struct vfsops fusefs_vfsops = {
 };
 
 int
-fusefs_mount(struct mount *mp, const char *path, void *data, 
-	     struct nameidata *ndp, struct proc *p)
+fusefs_mount(struct mount *mp, const char *path, void *data,
+    struct nameidata *ndp, struct proc *p)
 {
 	struct fuse_mnt *fmp;
 	struct fuse_msg *msg;
 	struct fuse_init_in *init;
 	struct fusefs_args args;
 	int error;
-	
+
 #ifdef FUSE_DEBUG_VFS
 	printf("mount\n");
 #endif
@@ -85,11 +83,11 @@ fusefs_mount(struct mount *mp, const char *path, void *data,
 	error = copyin(data, &args, sizeof(struct fusefs_args));
 	if (error)
 		return error;
-	
+
 #ifdef FUSE_DEBUG_VFS
 	printf("fd = %d\n", args.fd);
 #endif
-	
+
 	fmp = malloc(sizeof(*fmp), M_FUSEFS, M_WAITOK | M_ZERO);
 	fmp->mp = mp;
 	fmp->sess_init = 0;
@@ -106,9 +104,10 @@ fusefs_mount(struct mount *mp, const char *path, void *data,
 	bcopy("fusefs", mp->mnt_stat.f_mntfromname, sizeof("fusefs"));
 
 	msg = malloc(sizeof(struct fuse_msg), M_FUSEFS, M_WAITOK | M_ZERO);
-	msg->hdr = malloc(sizeof(struct fuse_in_header), M_FUSEFS, M_WAITOK | M_ZERO);
+	msg->hdr = malloc(sizeof(struct fuse_in_header), M_FUSEFS,
+	    M_WAITOK | M_ZERO);
 	init = malloc(sizeof(struct fuse_init_in), M_FUSEFS, M_WAITOK | M_ZERO);
-	
+
 	init->major = FUSE_KERNEL_VERSION;
 	init->minor = FUSE_KERNEL_MINOR_VERSION;
 	init->max_readahead = 4096 * 16;
@@ -182,19 +181,19 @@ fusefs_unmount(struct mount *mp, int mntflags, struct proc *p)
 	while ((m = TAILQ_FIRST(&fmq_in))) {
 		printf("warning some msg where not processed....\n");
 	}
-	
+
 	/* clear FIFO WAIT*/
 	while ((m = TAILQ_FIRST(&fmq_wait))) {
 		printf("warning some msg where not processed....\n");
 	}
-	
+
 	if (mntflags & MNT_FORCE) {
 		/* fusefs can never be rootfs so don't check for it */
 		if (!doforce)
 			return (EINVAL);
 		flags |= FORCECLOSE;
 	}
-	
+
 	if ((error = vflush(mp, 0, flags)))
 		return (error);
 
@@ -205,7 +204,7 @@ fusefs_unmount(struct mount *mp, int mntflags, struct proc *p)
 
 int
 fusefs_root(struct mount *mp, struct vnode **vpp)
-{  
+{
 	struct vnode *nvp;
 	struct fuse_node *ip;
 	int error;
@@ -225,8 +224,8 @@ fusefs_root(struct mount *mp, struct vnode **vpp)
 	return (0);
 }
 
-int fusefs_quotactl(struct mount *mp, int cmds, uid_t uid, caddr_t arg, 
-		    struct proc *p)
+int fusefs_quotactl(struct mount *mp, int cmds, uid_t uid, caddr_t arg,
+    struct proc *p)
 {
 #ifdef FUSE_DEBUG_VFS
 	printf("quotactl\n");
@@ -237,16 +236,16 @@ int fusefs_quotactl(struct mount *mp, int cmds, uid_t uid, caddr_t arg,
 
 int fusefs_statfs(struct mount *mp, struct statfs *sbp, struct proc *p)
 {
-  	struct fuse_statfs_out *stat;
+	struct fuse_statfs_out *stat;
 	struct fuse_in_header hdr;
 	struct fuse_mnt *fmp;
 	struct fuse_msg msg;
 	int error;
-	
+
 #ifdef FUSE_DEBUG_VFS
 	printf("statfs\n");
 #endif
-	
+
 	fmp = VFSTOFUSEFS(mp);
 
 	if (fmp->sess_init) {
@@ -258,21 +257,22 @@ int fusefs_statfs(struct mount *mp, struct statfs *sbp, struct proc *p)
 		msg.rep.buff.len = sizeof(*stat);
 		msg.cb = &fuse_sync_resp;
 		msg.type = msg_buff;
-		
-		fuse_make_in(mp, msg.hdr, msg.len, FUSE_STATFS, FUSE_ROOT_ID, NULL);
-		
+
+		fuse_make_in(mp, msg.hdr, msg.len, FUSE_STATFS, FUSE_ROOT_ID,
+		    NULL);
+
 		TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 		wakeup(&fmq_in);
-		
+
 		error = tsleep(&msg, PWAIT, "fuse stat", 0);
 		if (error) {
 			if (msg.rep.buff.data_rcv)
 				free(msg.rep.buff.data_rcv, M_FUSEFS);
 			return error;
 		}
-		
+
 		stat = (struct fuse_statfs_out *)msg.rep.buff.data_rcv;
-		
+
 #ifdef FUSE_DEBUG_VFS
 		printf("statfs a: %i\n", stat->st.bavail);
 		printf("statfs a: %i\n", stat->st.bfree);
@@ -284,7 +284,7 @@ int fusefs_statfs(struct mount *mp, struct statfs *sbp, struct proc *p)
 		printf("statfs a: %i\n", stat->st.namelen);
 		printf("statfs a: %i\n", stat->st.padding);
 #endif
-		
+
 		sbp->f_bavail = stat->st.bavail;
 		sbp->f_bfree = stat->st.bfree;
 		sbp->f_blocks = stat->st.blocks;
@@ -303,18 +303,17 @@ int fusefs_statfs(struct mount *mp, struct statfs *sbp, struct proc *p)
 		sbp->f_bsize = 0;
 		sbp->f_namemax = 0;
 	}
-	
-	
+
 	return (0);
 }
 
 int fusefs_sync(struct mount *mp, int waitfor, struct ucred *cred,
-		struct proc *p)
+    struct proc *p)
 {
 #ifdef FUSE_DEBUG_VFS
 	printf("sync\n");
 #endif
-	
+
 	return (0);
 }
 
@@ -325,7 +324,7 @@ int fusefs_vget(struct mount *mp, ino_t ino, struct vnode **vpp)
 	struct vnode *nvp;
 	int i;
 	int error;
-	
+
 #ifdef FUSE_DEBUG_VFS
 	printf("vget\n");
 #endif
@@ -345,7 +344,7 @@ retry:
 		*vpp = NULLVP;
 		return (error);
 	}
-	
+
 	ip = malloc(sizeof(*ip), M_FUSEFS, M_WAITOK | M_ZERO);
 	lockinit(&ip->i_lock, PINOD, "fuseinode", 0, 0);
 	nvp->v_data = ip;
@@ -353,10 +352,10 @@ retry:
 	ip->i_fd = fmp->fd;
 	ip->i_number = ino;
 	ip->parent = 0;
-	
+
 	for (i = 0; i < FUFH_MAXTYPE; i++)
 		ip->fufh[i].fh_type = FUFH_INVALID;
-	
+
 	error = fusefs_ihashins(ip);
 	if (error) {
 		vrele(nvp);
@@ -366,12 +365,12 @@ retry:
 
 		return (error);
 	}
-	
+
 	ip->i_mnt = fmp;
-	
+
 	if (ino == FUSE_ROOTINO)
 		nvp->v_flag |= VROOT;
-	
+
 	*vpp = nvp;
 
 	return (0);
@@ -400,7 +399,7 @@ int fusefs_init(struct vfsconf *vfc)
 #ifdef FUSE_DEBUG_VFS
 	printf("init\n");
 #endif
-	
+
 	TAILQ_INIT(&fmq_in);
 	TAILQ_INIT(&fmq_wait);
 
@@ -409,7 +408,7 @@ int fusefs_init(struct vfsconf *vfc)
 }
 
 int fusefs_sysctl(int *name, u_int namelen, void *oldp, size_t *oldplen,
-		  void *newp, size_t newlen, struct proc *p)
+    void *newp, size_t newlen, struct proc *p)
 {
 #ifdef FUSE_DEBUG_VFS
 	printf("sysctl\n");
@@ -419,7 +418,7 @@ int fusefs_sysctl(int *name, u_int namelen, void *oldp, size_t *oldplen,
 }
 
 int fusefs_checkexp(struct mount *mp, struct mbuf *nam, int *extflagsp,
-		    struct ucred **credanonp)
+    struct ucred **credanonp)
 {
 #ifdef FUSE_DEBUG_VFS
 	printf("checkexp\n");

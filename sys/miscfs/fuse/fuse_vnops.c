@@ -160,7 +160,7 @@ fusefs_open(void *v)
 #endif
 	isdir = 0;
 	if (ip->vtype == VDIR) {
-		fufh_type = FUFH_RDONLY; 
+		fufh_type = FUFH_RDONLY;
 		flags = O_RDONLY;
 		isdir = 1;
 	} else {
@@ -216,11 +216,12 @@ fusefs_close(void *v)
 
 	isdir = 0;
 	if (ip->vtype == VDIR) {
-		fufh_type = FUFH_RDONLY; 
+		fufh_type = FUFH_RDONLY;
 		isdir = 1;
-		
-		if (ip->fufh[fufh_type].fh_type != FUFH_INVALID) 
-			return fuse_file_close(fmp, ip, fufh_type, O_RDONLY, isdir);
+
+		if (ip->fufh[fufh_type].fh_type != FUFH_INVALID)
+			return fuse_file_close(fmp, ip, fufh_type, O_RDONLY,
+			    isdir);
 	} else {
 		if (ap->a_fflag & IO_NDELAY) {
 			return (0);
@@ -240,7 +241,7 @@ fusefs_close(void *v)
 		}
 	}
 
-	/* 
+	/*
 	 * if fh not valid lookup for another valid fh in vnode.
 	 * panic if there's not fh valid
 	 */
@@ -276,7 +277,7 @@ fusefs_access(void *v)
 	if (!fmp->sess_init || (fmp->undef_op & UNDEF_ACCESS))
 		goto system_check;
 
-	if (ap->a_vp->v_type == VLNK) 
+	if (ap->a_vp->v_type == VLNK)
 		goto system_check;
 
 	if (ap->a_vp->v_type == VREG && (ap->a_mode & VWRITE & VEXEC))
@@ -304,8 +305,9 @@ fusefs_access(void *v)
 	msg.fmp = fmp;
 	msg.type = msg_intr;
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_ACCESS, ip->i_number, curproc);
-	
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_ACCESS, ip->i_number,
+	    curproc);
+
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
 
@@ -331,13 +333,14 @@ system_check:
 	printf("Use kernel access\n");
 #endif
 	return (vaccess(ap->a_vp->v_type, ip->cached_attrs.va_mode & ALLPERMS,
-		ip->cached_attrs.va_uid, ip->cached_attrs.va_gid, ap->a_mode, ap->a_cred));
+	    ip->cached_attrs.va_uid, ip->cached_attrs.va_gid, ap->a_mode,
+	    ap->a_cred));
 }
 
 int
 fusefs_getattr(void *v)
 {
-  	struct vop_getattr_args *ap = v;
+	struct vop_getattr_args *ap = v;
 	struct vnode *vp = ap->a_vp;
 	struct fuse_mnt *fmp;
 	struct vattr *vap = ap->a_vap;
@@ -352,7 +355,7 @@ fusefs_getattr(void *v)
 #endif
 	ip = VTOI(vp);
 	fmp = ip->i_mnt;
-	
+
 	if (!fmp->sess_init) {
 		goto fake;
 	}
@@ -365,22 +368,23 @@ fusefs_getattr(void *v)
 	msg.rep.buff.data_rcv = NULL;
 	msg.type = msg_buff;
 	msg.cb = &fuse_sync_resp;
-	
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_GETATTR, ip->i_number, curproc);
-	
+
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_GETATTR, ip->i_number,
+	    curproc);
+
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
 
 	error = tsleep(&msg, PWAIT, "fuse getattr", 0);
-	
+
 	if (error) {
 		if (msg.rep.buff.data_rcv != NULL)
 			free(msg.rep.buff.data_rcv, M_FUSEFS);
 		return (error);
 	}
-	
+
 	fat = (struct fuse_attr_out *)msg.rep.buff.data_rcv;
-	
+
 #ifdef FUSE_DEBUG_VNOP
 	printf("ino: %d\n", fat->attr.ino);
 	printf("size: %d\n", fat->attr.size);
@@ -400,7 +404,7 @@ fusefs_getattr(void *v)
 
 	fuse_internal_attr_fat2vat(fmp->mp, &fat->attr, vap);
 
-	memcpy(&ip->cached_attrs, vap, sizeof(*vap));	
+	memcpy(&ip->cached_attrs, vap, sizeof(*vap));
 	free(fat, M_FUSEFS);
 
 	return (error);
@@ -479,13 +483,14 @@ fusefs_link(void *v)
 	msg.type = msg_buff;
 	msg.cb = &fuse_sync_resp;
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_LINK, ip->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_LINK, ip->i_number,
+	    curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
 
 	error = tsleep(&msg, PWAIT, "fuse link", 0);
-	
+
 	if (error) {
 		if (msg.rep.buff.data_rcv != NULL)
 			free(msg.rep.buff.data_rcv, M_FUSEFS);
@@ -552,7 +557,8 @@ readdir_process_data(void *buff, int len, struct uio *uio)
 			break;
 		}
 
-		bytesavail = GENERIC_DIRSIZ((struct pseudo_dirent *) &fdir->namelen);
+		bytesavail = GENERIC_DIRSIZ((struct pseudo_dirent *) &
+		    fdir->namelen);
 		if (bytesavail > uio->uio_resid) {
 			error = 0;
 			break;
@@ -571,7 +577,7 @@ readdir_process_data(void *buff, int len, struct uio *uio)
 		buff = (void *)(((char *) buff) + flen);
 		uio->uio_offset = fdir->off;
 	}
-	
+
 	return (error);
 }
 
@@ -624,8 +630,9 @@ fusefs_readdir(void *v)
 		read.offset = uio->uio_offset;
 		read.size = MIN(uio->uio_resid, PAGE_SIZE);
 
-		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_READDIR, ip->i_number, curproc);
-		
+		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_READDIR,
+		    ip->i_number, curproc);
+
 		TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 		wakeup(&fmq_in);
 
@@ -642,7 +649,8 @@ fusefs_readdir(void *v)
 			break;
 		}
 
-		if ((error = readdir_process_data(msg.rep.buff.data_rcv, msg.rep.buff.len, uio))) {
+		if ((error = readdir_process_data(msg.rep.buff.data_rcv,
+		    msg.rep.buff.len, uio))) {
 			if (msg.rep.buff.len != 0)
 				free(msg.rep.buff.data_rcv, M_FUSEFS);
 			break;
@@ -667,13 +675,13 @@ fusefs_inactive(void *v)
 #ifdef FUSE_DEBUG_VNOP
 	printf("fusefs_inactive\n");
 #endif
-	
+
 	ip->flag = 0;
 	VOP_UNLOCK(vp, 0);
 
 	/* not sure if it is ok to do like that ...*/
 	if (ip->cached_attrs.va_mode == 0)
-		vrecycle(vp, p); 
+		vrecycle(vp, p);
 
 	return (error);
 }
@@ -681,7 +689,7 @@ fusefs_inactive(void *v)
 int
 fusefs_readlink(void *v)
 {
-  	struct vop_readlink_args *ap = v;
+	struct vop_readlink_args *ap = v;
 	struct vnode *vp = ap->a_vp;
 	struct fuse_in_header hdr;
 	struct fuse_node *ip;
@@ -711,7 +719,8 @@ fusefs_readlink(void *v)
 	msg.rep.buff.data_rcv = NULL;
 	msg.cb = &fuse_sync_resp;
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_READLINK, ip->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_READLINK, ip->i_number,
+	    curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -820,7 +829,8 @@ fusefs_create(void *v)
 	msg.len = sizeof(foi) + cnp->cn_namelen + 1;
 	msg.data = malloc(msg.len, M_FUSEFS, M_WAITOK | M_ZERO);
 	msg.type = msg_buff;
-	msg.rep.buff.len = sizeof(struct fuse_entry_out) + sizeof(struct fuse_open_out);
+	msg.rep.buff.len = sizeof(struct fuse_entry_out) +
+	    sizeof(struct fuse_open_out);
 	msg.rep.buff.data_rcv = NULL;
 	msg.cb = &fuse_sync_resp;
 
@@ -828,10 +838,12 @@ fusefs_create(void *v)
 	foi.flags = O_CREAT | O_RDWR;
 
 	memcpy(msg.data, &foi, sizeof(foi));
-	memcpy((char *)msg.data + sizeof(foi), cnp->cn_nameptr, cnp->cn_namelen);
+	memcpy((char *)msg.data + sizeof(foi), cnp->cn_nameptr,
+	    cnp->cn_namelen);
 	((char *)msg.data)[sizeof(foi) + cnp->cn_namelen] = '\0';
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_CREATE, ip->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_CREATE, ip->i_number,
+	    curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -874,7 +886,7 @@ int
 fusefs_mknod(void *v)
 {
 	struct vop_mknod_args *ap = v;
-  
+
 	VN_KNOTE(ap->a_dvp, NOTE_WRITE);
 	vput(ap->a_dvp);
 	return (EINVAL);
@@ -899,8 +911,8 @@ fusefs_read(void *v)
 	ip = VTOI(vp);
 	fmp = ip->i_mnt;
 #ifdef FUSE_DEBUG_VNOP
-	printf("read inode=%i, offset=%p, resid=%p\n", ip->i_mnt, 
-	       uio->uio_offset, uio->uio_resid);
+	printf("read inode=%i, offset=%p, resid=%p\n", ip->i_mnt,
+	    uio->uio_offset, uio->uio_resid);
 #endif
 
 	if (uio->uio_resid == 0)
@@ -922,7 +934,8 @@ fusefs_read(void *v)
 		fri.offset = uio->uio_offset;
 		fri.size = MIN(uio->uio_resid, fmp->max_write);
 
-		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_READ, ip->i_number, curproc);
+		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_READ, ip->i_number,
+		    curproc);
 
 		TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 		wakeup(&fmq_in);
@@ -930,7 +943,8 @@ fusefs_read(void *v)
 		if ((error = tsleep(&msg, PWAIT, "fuse read", 0)))
 			break;
 
-		if ((error = uiomove(msg.rep.buff.data_rcv, MIN(fri.size, msg.rep.buff.len), uio))) {
+		if ((error = uiomove(msg.rep.buff.data_rcv, MIN(fri.size,
+		    msg.rep.buff.len), uio))) {
 			break;
 		}
 
@@ -945,6 +959,7 @@ fusefs_read(void *v)
 
 	if (msg.rep.buff.data_rcv)
 		free(msg.rep.buff.data_rcv, M_FUSEFS);
+
 	return (error);
 }
 
@@ -969,8 +984,8 @@ fusefs_write(void *v)
 	ip = VTOI(vp);
 	fmp = ip->i_mnt;
 #ifdef FUSE_DEBUG_VNOP
-	printf("write inode=%i, offset=%x, resid=%x\n", ip->i_mnt, 
-	       uio->uio_offset, uio->uio_resid);
+	printf("write inode=%i, offset=%x, resid=%x\n", ip->i_mnt,
+	    uio->uio_offset, uio->uio_resid);
 #endif
 
 	if (!uio->uio_resid)
@@ -995,7 +1010,8 @@ fusefs_write(void *v)
 		if ((error = uiomove((char *)msg.data + sizeof(fwi), len, uio)))
 			break;
 
-		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_WRITE, ip->i_number, curproc);
+		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_WRITE,
+		    ip->i_number, curproc);
 
 		TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 		wakeup(&fmq_in);
@@ -1003,12 +1019,13 @@ fusefs_write(void *v)
 		if ((error = tsleep(&msg, PWAIT, "fuse write", 0)))
 			break;
 
-		diff = len - ((struct fuse_write_out *)msg.rep.buff.data_rcv)->size;
+		diff = len -
+		    ((struct fuse_write_out *)msg.rep.buff.data_rcv)->size;
 		if (diff < 0) {
 			error = EINVAL;
 			break;
 		}
-		
+
 		uio->uio_resid += diff;
 		uio->uio_offset -= diff;
 
@@ -1020,6 +1037,7 @@ fusefs_write(void *v)
 
 	if (msg.rep.buff.data_rcv)
 		free(msg.rep.buff.data_rcv, M_FUSEFS);
+
 	return (error);
 }
 
@@ -1095,10 +1113,12 @@ fusefs_mkdir(void *v)
 	msg.cb = &fuse_sync_resp;
 
 	memcpy(msg.data, &fmdi, sizeof(fmdi));
-	memcpy((char *)msg.data + sizeof(fmdi), cnp->cn_nameptr, cnp->cn_namelen);
+	memcpy((char *)msg.data + sizeof(fmdi), cnp->cn_nameptr,
+	    cnp->cn_namelen);
 	((char *)msg.data)[sizeof(fmdi) + cnp->cn_namelen] = '\0';
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_MKDIR, ip->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_MKDIR, ip->i_number,
+	    curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -1153,7 +1173,8 @@ fusefs_rmdir(void *v)
 
 #ifdef FUSE_DEBUG_VNOP
 	printf("fusefs_rmdir\n");
-	printf("len :%i, cnp: %c %c %c\n", cnp->cn_namelen, cnp->cn_nameptr[0], cnp->cn_nameptr[1], cnp->cn_nameptr[2]);
+	printf("len :%i, cnp: %c %c %c\n", cnp->cn_namelen, cnp->cn_nameptr[0],
+	    cnp->cn_nameptr[1], cnp->cn_nameptr[2]);
 #endif
 	ip = VTOI(vp);
 	dp = VTOI(dvp);
@@ -1185,7 +1206,8 @@ fusefs_rmdir(void *v)
 	memcpy(msg.data, cnp->cn_nameptr, cnp->cn_namelen);
 	((char *)msg.data)[cnp->cn_namelen] = '\0';
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_RMDIR, dp->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_RMDIR, dp->i_number,
+	    curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -1204,7 +1226,7 @@ fusefs_rmdir(void *v)
 	}
 
 	VN_KNOTE(dvp, NOTE_WRITE | NOTE_LINK);
-	
+
 	cache_purge(dvp);
 	vput(dvp);
 	dvp = NULL;
@@ -1234,7 +1256,8 @@ fusefs_remove(void *v)
 
 #ifdef FUSE_DEBUG_VNOP
 	printf("fusefs_remove\n");
-	printf("len :%i, cnp: %c %c %c\n", cnp->cn_namelen, cnp->cn_nameptr[0], cnp->cn_nameptr[1], cnp->cn_nameptr[2]);
+	printf("len :%i, cnp: %c %c %c\n", cnp->cn_namelen, cnp->cn_nameptr[0],
+	    cnp->cn_nameptr[1], cnp->cn_nameptr[2]);
 #endif
 	ip = VTOI(vp);
 	dp = VTOI(dvp);
@@ -1255,12 +1278,12 @@ fusefs_remove(void *v)
 	memcpy(msg.data, cnp->cn_nameptr, cnp->cn_namelen);
 	((char *)msg.data)[cnp->cn_namelen] = '\0';
 
-	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_UNLINK, dp->i_number, curproc);
+	fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_UNLINK, dp->i_number,
+	    curproc);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
 
-	
 	if ((error = tsleep(&msg, PWAIT, "fuse remove", 0)))
 		goto out;
 
@@ -1272,7 +1295,6 @@ fusefs_remove(void *v)
 		goto out;
 	}
 
-	
 	VN_KNOTE(vp, NOTE_DELETE);
 	VN_KNOTE(dvp, NOTE_WRITE);
 out:
@@ -1302,7 +1324,7 @@ fusefs_lock(void *v)
 #ifdef FUSE_LOCK
 	printf("fuse_lock\n");
 #endif
-	return (lockmgr(&VTOI(vp)->i_lock, ap->a_flags, NULL));  
+	return (lockmgr(&VTOI(vp)->i_lock, ap->a_flags, NULL));
 }
 
 int
