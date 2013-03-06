@@ -41,7 +41,7 @@ main(int argc, char *argv[])
 	int ch, mntflags, altflags;
 	struct fusefs_args args;
 	char path[MAXPATHLEN];
-	
+
 	mntflags = altflags = 0;
 	while ((ch = getopt(argc, argv, "o:")) != -1)
 		switch (ch) {
@@ -54,13 +54,13 @@ main(int argc, char *argv[])
 		}
 	argc -= optind;
 	argv += optind;
-	
+
 	if (argc != 2)
 		usage();
-	
+
 	args.flags = altflags;
 	args.fd = atoi(argv[0]);
-	
+
 	if (realpath(argv[1], path) == NULL)
 		err(1, "realpath %s", argv[1]);
 
@@ -71,6 +71,7 @@ main(int argc, char *argv[])
 		else
 			err(1, "%s", argv[1]);
 	}
+
 	exit(0);
 }
 
