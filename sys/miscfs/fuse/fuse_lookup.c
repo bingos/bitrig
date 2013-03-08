@@ -29,6 +29,12 @@
 #include "fuse_node.h"
 #include "fusefs.h"
 
+#ifdef	FUSE_DEBUG_VNOP
+#define	DPRINTF(fmt, arg...)	printf("fuse vnop: " fmt, ##arg)
+#else
+#define	DPRINTF(fmt, arg...)
+#endif
+
 extern int fusefs_lookup(void *);
 
 int
@@ -44,6 +50,7 @@ fusefs_lookup(void *v)
 	struct fuse_msg msg;
 	struct vnode **vpp = ap->a_vpp;
 	struct componentname *cnp = ap->a_cnp;
+	struct proc *p = cnp->cn_proc;
 	struct ucred *cred = cnp->cn_cred;
 	struct fuse_entry_out *feo = NULL;
 	int flags;
@@ -59,10 +66,8 @@ fusefs_lookup(void *v)
 	fmp = dp->i_mnt;
 	lockparent = flags & LOCKPARENT;
 
-#ifdef FUSE_DEBUG_VNOP
-	printf("lookup path %s\n", cnp->cn_pnbuf);
-	printf("lookup file %s\n", cnp->cn_nameptr);
-#endif
+	DPRINTF("lookup path %s\n", cnp->cn_pnbuf);
+	DPRINTF("lookup file %s\n", cnp->cn_nameptr);
 
 	if ((error = VOP_ACCESS(vdp, VEXEC, cred)) != 0)
 		return (error);
@@ -78,7 +83,7 @@ fusefs_lookup(void *v)
 		/* got ".." */
 		nid = dp->parent;
 		if (nid == 0) {
-			return ENOENT;
+			return (ENOENT);
 		}
 	} else if (cnp->cn_namelen == 1 && *(cnp->cn_nameptr) == '.') {
 		/* got "." */
@@ -99,7 +104,7 @@ fusefs_lookup(void *v)
 		msg.cb = &fuse_sync_resp;
 
 		fuse_make_in(fmp->mp, msg.hdr, msg.len, FUSE_LOOKUP,
-		    dp->i_number, curproc);
+		    dp->i_number, p);
 
 		TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 		wakeup(&fmq_in);
@@ -113,7 +118,7 @@ fusefs_lookup(void *v)
 			if ((nameiop == CREATE || nameiop == RENAME) &&
 			    (flags & ISLASTCN) ) {
 				if (vdp->v_mount->mnt_flag & MNT_RDONLY)
-					return EROFS;
+					return (EROFS);
 
 				cnp->cn_flags |= SAVENAME;
 
@@ -145,23 +150,21 @@ fusefs_lookup(void *v)
 	}
 
 	if (flags & ISDOTDOT) {
-#ifdef FUSE_DEBUG_VNOP
-		printf("lookup for ..\n");
-#endif
+		DPRINTF("lookup for ..\n");
 		VOP_UNLOCK(vdp, 0);	/* race to get the inode */
 		cnp->cn_flags |= PDIRUNLOCK;
 
 		error = VFS_VGET(fmp->mp, nid, &tdp);
 
 		if (error) {
-			if (vn_lock(vdp, LK_EXCLUSIVE | LK_RETRY, curproc) == 0)
+			if (vn_lock(vdp, LK_EXCLUSIVE | LK_RETRY, p) == 0)
 				cnp->cn_flags &= ~PDIRUNLOCK;
 
 			return (error);
 		}
 
 		if (lockparent && (flags & ISLASTCN)) {
-			if ((error = vn_lock(vdp, LK_EXCLUSIVE, curproc))) {
+			if ((error = vn_lock(vdp, LK_EXCLUSIVE, p))) {
 				vput(tdp);
 				return (error);
 			}

@@ -90,9 +90,9 @@ void fuse_sync_it(struct fuse_msg *, struct fuse_out_header *, void *);
  */
 
 int fuse_file_open(struct fuse_mnt *, struct fuse_node *, enum fufh_type, int,
-    int);
+    int, struct proc *);
 int fuse_file_close(struct fuse_mnt *, struct fuse_node *, enum fufh_type, int,
-    int);
+    int, struct proc *);
 void fuse_internal_attr_fat2vat(struct mount *, struct fuse_attr *,
     struct vattr *);
 
@@ -106,14 +106,10 @@ void fuse_internal_attr_fat2vat(struct mount *, struct fuse_attr *,
 
 #define MAX_FUSE_DEV 4
 /*
-#define FUSE_DEBUG_VNOP 42
-#define FUSE_DEBUG_VFS 42
-#define FUSE_DEBUG 42
-#define FUSE_DEV_DEBUG 42
-#define FUSE_DEBUG_MSG 42
+#define FUSE_DEBUG_VNOP
+#define FUSE_DEBUG_VFS
+#define FUSE_DEV_DEBUG
+#define FUSE_DEBUG_MSG
 */
-/*
- * Helpers
- */
 
 #endif /* __FUSEFS_H__ */

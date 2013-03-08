@@ -71,14 +71,13 @@ main(int argc, char *argv[])
 		else
 			err(1, "%s", argv[1]);
 	}
-
 	exit(0);
 }
 
-void
+__dead void
 usage(void)
 {
 	(void)fprintf(stderr,
-		"usage: mount_procfs [-o options] fd mount_point\n");
+		"usage: mount_fusefs [-o options] fd mount_point\n");
 	exit(1);
 }

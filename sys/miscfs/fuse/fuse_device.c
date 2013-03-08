@@ -29,6 +29,12 @@
 #include "fuse_node.h"
 #include "fusefs.h"
 
+#ifdef	FUSE_DEV_DEBUG
+#define	DPRINTF(fmt, arg...)	printf("fuse device: " fmt, ##arg)
+#else
+#define	DPRINTF(fmt, arg...)
+#endif
+
 struct fuse_dev {
 	int opened;
 	int end;
@@ -51,7 +57,7 @@ int	fusepoll(dev_t, int, struct proc *);
 struct fuse_msg_head fmq_in;
 struct fuse_msg_head fmq_wait;
 
-#ifdef FUSE_DEV_DEBUG
+#ifdef	FUSE_DEV_DEBUG
 static void
 dump_buff(char *buff, int len)
 {
@@ -82,14 +88,14 @@ dump_buff(char *buff, int len)
 	}
 	printf(": %s\n", text);
 }
+#else
+#define dump_buff(x, y)
 #endif
 
 void
 fuseattach(int num)
 {
-#ifdef FUSE_DEV_DEBUG
-	printf("fuse0 at root\n");
-#endif
+	DPRINTF("fuse attach\n");
 }
 
 int
@@ -99,9 +105,7 @@ fuseopen(dev_t dev, int flags, int fmt, struct proc * p)
 	    fuse_devs[minor(dev)]->opened != FUSE_CLOSE)
 		return (ENXIO);
 
-#ifdef FUSE_DEV_DEBUG
-	printf("open dev %i\n", minor(dev));
-#endif
+	DPRINTF("open dev %i\n", minor(dev));
 
 	fuse_devs[minor(dev)] = malloc(sizeof(*fuse_devs[minor(dev)]),
 	    M_FUSEFS, M_WAITOK | M_ZERO);
@@ -116,9 +120,7 @@ fuseclose(dev_t dev, int flags, int fmt, struct proc *p)
 	if (minor(dev) >= MAX_FUSE_DEV)
 		return (ENXIO);
 
-#ifdef FUSE_DEV_DEBUG
-	printf("close dev %i\n", minor(dev));
-#endif
+	DPRINTF("close dev %i\n", minor(dev));
 
 	fuse_devs[minor(dev)]->opened = FUSE_CLOSE;
 	free(fuse_devs[minor(dev)], M_FUSEFS);
@@ -133,11 +135,11 @@ fuseioctl(dev_t dev, u_long cmd, caddr_t addr, int flags, struct proc *p)
 
 	switch (cmd) {
 	default:
-		printf("bad ioctl number %d\n", cmd);
-		return ENODEV;
+		DPRINTF("bad ioctl number %d\n", cmd);
+		return (ENODEV);
 	}
 
-	return error;
+	return (error);
 }
 
 int
@@ -146,12 +148,11 @@ fuseread(dev_t dev, struct uio *uio, int ioflag)
 	int error = 0;
 	struct fuse_msg *msg;
 
-#ifdef FUSE_DEV_DEBUG
-	printf("read 0x%x\n", dev);
-#endif
+	DPRINTF("read 0x%x\n", dev);
+
 
 	if (fuse_devs[minor(dev)]->opened != FUSE_OPEN) {
-		return ENODEV;
+		return (ENODEV);
 	}
 
 again:
@@ -164,7 +165,7 @@ again:
 		error = tsleep(&fmq_in, PWAIT, "fuse read", 0);
 
 		if (error)
-			return error;
+			return (error);
 	}
 	if (TAILQ_EMPTY(&fmq_in))
 		goto again;
@@ -173,34 +174,28 @@ again:
 		msg = TAILQ_FIRST(&fmq_in);
 
 		if (msg->hdr->opcode == FUSE_DESTROY) {
-#ifdef FUSE_DEV_DEBUG
-			printf("catch done\n");
-#endif
+			DPRINTF("catch done\n");
 			fuse_devs[minor(dev)]->opened = FUSE_DONE;
 			/* MP should this return? */
 		}
 
 		error = uiomove(msg->hdr, sizeof(struct fuse_in_header), uio);
 
-#ifdef FUSE_DEV_DEBUG
-		printf("hdr r:\n");
+		DPRINTF("hdr r:\n");
 		dump_buff((char *)msg->hdr, sizeof(struct fuse_in_header));
-#endif
 
 		if (msg->len > 0) {
 			error = uiomove(msg->data, msg->len, uio);
-#ifdef FUSE_DEV_DEBUG
-			printf("data r:\n");
+			DPRINTF("data r:\n");
 			dump_buff(msg->data, msg->len);
-#endif
 		}
 
-#ifdef FUSE_DEV_DEBUG
-		printf("msg send : %i\n", msg->len);
-#endif
+		DPRINTF("msg send : %i\n", msg->len);
 
-		if (error)
-			return error;
+		if (error) {
+			DPRINTF("error: %i\n", error);
+			return (error);
+		}
 
 		/*
 		  * msg moves from a tailq to another
@@ -209,7 +204,7 @@ again:
 		TAILQ_INSERT_TAIL(&fmq_wait, msg, node);
 	}
 
-	return error;
+	return (error);
 }
 
 int
@@ -222,12 +217,10 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 	int len;
 	void *data;
 
-#ifdef FUSE_DEV_DEBUG
-	printf("write %x bytes\n", uio->uio_resid);
-#endif
+	DPRINTF("write %x bytes\n", uio->uio_resid);
 
 	if (uio->uio_resid < sizeof(struct fuse_out_header)) {
-		printf("uio goes wrong\n");
+		DPRINTF("uio goes wrong\n");
 		return (EINVAL);
 	}
 
@@ -236,19 +229,18 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 	 */
 
 	if ((error = uiomove(&hdr, sizeof(struct fuse_out_header), uio)) != 0) {
-		printf("uiomove failed\n");
+		DPRINTF("uiomove failed\n");
 		return (error);
 	}
-#ifdef FUSE_DEV_DEBUG
-	printf("hdr w:\n");
+	DPRINTF("hdr w:\n");
 	dump_buff((char *)&hdr, sizeof(struct fuse_out_header));
-#endif
+
 	/*
 	 * check header validity
 	 */
 	if (uio->uio_resid + sizeof(struct fuse_out_header) != hdr.len ||
 	    (uio->uio_resid && hdr.error) || TAILQ_EMPTY(&fmq_wait) ) {
-		printf("corrupted fuse header or queue empty\n");
+		DPRINTF("corrupted fuse header or queue empty\n");
 		return (EINVAL);
 	}
 
@@ -258,9 +250,7 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 
 	TAILQ_FOREACH(msg, &fmq_wait, node) {
 		if (msg->hdr->unique == hdr.unique) {
-#ifdef FUSE_DEV_DEBUG
-			printf("catch unique %i\n", msg->hdr->unique);
-#endif
+			DPRINTF("catch unique %i\n", msg->hdr->unique);
 			caught = 1;
 			break;
 		}
@@ -272,17 +262,13 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 			data = malloc(len, M_FUSEFS, M_WAITOK);
 			error = uiomove(data, len, uio);
 
-#ifdef FUSE_DEV_DEBUG
-			printf("data w:\n");
+			DPRINTF("data w:\n");
 			dump_buff(data, len);
-#endif
 		} else {
 			data = NULL;
 		}
 
-#ifdef FUSE_DEV_DEBUG
-		printf("call callback\n");
-#endif
+		DPRINTF("call callback\n");
 
 		if (!error)
 			msg->cb(msg, &hdr, data);
@@ -296,11 +282,12 @@ fusewrite(dev_t dev, struct uio *uio, int ioflag)
 			if (data)
 				free(data, M_FUSEFS);
 		}
+
 	} else {
 		error = EINVAL;
 	}
 
-	return error;
+	return (error);
 }
 
 int
@@ -308,9 +295,7 @@ fusepoll(dev_t dev, int events, struct proc *p)
 {
 	int revents = 0;
 
-#ifdef FUSE_DEV_DEBUG
-	printf("fuse poll\n");
-#endif
+	DPRINTF("fuse poll\n");
 
 	if (events & (POLLIN | POLLRDNORM)) {
 		if (!TAILQ_EMPTY(&fmq_in))

@@ -28,9 +28,16 @@
 #include "fuse_node.h"
 #include "fusefs.h"
 
+#ifdef	FUSE_DEV_DEBUG
+#define	DPRINTF(fmt, arg...)	printf("fuse vnop: " fmt, ##arg)
+#else
+#define	DPRINTF(fmt, arg...)
+#endif
+
+
 int
 fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
-    enum fufh_type fufh_type, int flags, int isdir)
+    enum fufh_type fufh_type, int flags, int isdir, struct proc *p)
 {
 	struct fuse_open_out *open_out;
 	struct fuse_open_in open_in;
@@ -52,7 +59,7 @@ fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
 	msg.rep.buff.len = sizeof(*open_out);
 
 	fuse_make_in(fmp->mp, msg.hdr, msg.len,
-	    ((isdir)?FUSE_OPENDIR:FUSE_OPEN), ip->i_number, curproc);
+	    ((isdir) ? FUSE_OPENDIR : FUSE_OPEN), ip->i_number, p);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -60,7 +67,7 @@ fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
 	error = tsleep(&msg, PWAIT, "fuse open", 0);
 
 	if (error)
-		return error;
+		return (error);
 
 	open_out = (struct fuse_open_out *)msg.rep.buff.data_rcv;
 
@@ -69,12 +76,12 @@ fuse_file_open(struct fuse_mnt *fmp, struct fuse_node *ip,
 
 	free(open_out, M_FUSEFS);
 
-	return 0;
+	return (0);
 }
 
 int
 fuse_file_close(struct fuse_mnt *fmp, struct fuse_node * ip,
-    enum fufh_type  fufh_type, int flags, int isdir)
+    enum fufh_type  fufh_type, int flags, int isdir, struct proc *p)
 {
 	struct fuse_release_in rel;
 	struct fuse_in_header hdr;
@@ -94,7 +101,7 @@ fuse_file_close(struct fuse_mnt *fmp, struct fuse_node * ip,
 	rel.flags = flags;
 
 	fuse_make_in(fmp->mp, msg.hdr, msg.len,
-	    ((isdir)?FUSE_RELEASEDIR:FUSE_RELEASE), ip->i_number, curproc);
+	    ((isdir) ? FUSE_RELEASEDIR : FUSE_RELEASE), ip->i_number, p);
 
 	TAILQ_INSERT_TAIL(&fmq_in, &msg, node);
 	wakeup(&fmq_in);
@@ -102,11 +109,11 @@ fuse_file_close(struct fuse_mnt *fmp, struct fuse_node * ip,
 	error = tsleep(&msg, PWAIT, "fuse close", 0);
 
 	if (error)
-		return error;
+		return (error);
 
 	error = msg.rep.it_res;
 	if (error)
-		printf("error %d\n", error);
+		printf("fuse file error %d\n", error);
 
 	ip->fufh[fufh_type].fh_id = (uint64_t)-1;
 	ip->fufh[fufh_type].fh_type = FUFH_INVALID;

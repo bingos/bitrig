@@ -27,6 +27,12 @@
 #include "fuse_node.h"
 #include "fusefs.h"
 
+#ifdef	FUSE_DEBUG_MSG
+#define	DPRINTF(fmt, arg...)	printf("fuse ipc: " fmt, ##arg)
+#else
+#define	DPRINTF(fmt, arg...)
+#endif
+
 void
 fuse_make_in(struct mount *mp, struct fuse_in_header *hdr, int len,
     enum fuse_opcode op, ino_t ino, struct proc *p)
@@ -34,16 +40,14 @@ fuse_make_in(struct mount *mp, struct fuse_in_header *hdr, int len,
 	struct fuse_mnt *fmp;
 
 	fmp = VFSTOFUSEFS(mp);
-
 	fmp->unique++;
 
 	hdr->len = sizeof(*hdr) + len;
 	hdr->opcode = op;
 	hdr->nodeid = ino;
 	hdr->unique = fmp->unique;
-#ifdef FUSE_DEBUG_MSG
-	printf("creat unique %i\n", hdr->unique);
-#endif
+
+	DPRINTF("create unique %i\n", hdr->unique);
 
 	if (!p) {
 		hdr->pid = curproc->p_pid;
@@ -61,15 +65,13 @@ fuse_init_resp(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 {
 	struct fuse_init_out *out = data;
 
-#ifdef FUSE_DEBUG_MSG
-	printf("async init unique %i\n", msg->hdr->unique);
-	printf("init_out flags %i\n", out->flags);
-	printf("init_out major %i\n", out->major);
-	printf("init_out minor %i\n", out->minor);
-	printf("init_out max_readahead %i\n", out->max_readahead);
-	printf("init_out max_write %i\n", out->max_write);
-	printf("init_out unused %i\n", out->unused);
-#endif
+	DPRINTF("async init unique %i\n", msg->hdr->unique);
+	DPRINTF("init_out flags %i\n", out->flags);
+	DPRINTF("init_out major %i\n", out->major);
+	DPRINTF("init_out minor %i\n", out->minor);
+	DPRINTF("init_out max_readahead %i\n", out->max_readahead);
+	DPRINTF("init_out max_write %i\n", out->max_write);
+	DPRINTF("init_out unused %i\n", out->unused);
 
 	msg->fmp->sess_init = 1;
 	msg->fmp->max_write = out->max_readahead;
@@ -80,23 +82,20 @@ fuse_sync_resp(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 {
 	size_t len;
 
-#ifdef FUSE_DEBUG_MSG
-	printf("buf unique %i\n", msg->hdr->unique);
-#endif
+	DPRINTF("unique %i\n", msg->hdr->unique);
 
 	if (msg->type != msg_buff)
-		printf("bad msg type\n");
+		DPRINTF("bad msg type\n");
 
 	if (data != NULL && msg->rep.buff.len != 0) {
 		len = hdr->len - sizeof(*hdr);
 		if (msg->rep.buff.len != len) {
-			printf("fusefs: packet size error on opcode %i\n",
+			DPRINTF("fusefs: packet size error on opcode %i\n",
 			    msg->hdr->opcode);
 		}
 
 		if (msg->rep.buff.len > len)
-			printf("buff unused byte : 0x%x\n",
-			    msg->rep.buff.len - len);
+			printf("unused byte: 0x%x\n", msg->rep.buff.len - len);
 
 		msg->rep.buff.data_rcv = malloc(msg->rep.buff.len,  M_FUSEFS,
 		    M_WAITOK | M_ZERO);
@@ -114,15 +113,11 @@ fuse_sync_resp(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 		wakeup(msg);
 	} else if (hdr->error) {
 		msg->error = hdr->error;
-#ifdef FUSE_DEBUG_MSG
-		printf("error %i\n", msg->error);
-#endif
+		DPRINTF("error %i\n", msg->error);
 		wakeup(msg);
 	} else {
 		msg->error = -1;
-#ifdef FUSE_DEBUG_MSG
-		printf("ack for msg\n");
-#endif
+		DPRINTF("ack for msg\n");
 		wakeup(msg);
 	}
 }
@@ -130,9 +125,7 @@ fuse_sync_resp(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 void
 fuse_sync_it(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 {
-#ifdef FUSE_DEBUG_MSG
-	printf("unique %i\n", msg->hdr->unique);
-#endif
+	DPRINTF("unique %i\n", msg->hdr->unique);
 
 	if (msg->type != msg_intr)
 		printf("bad msg type\n");
@@ -141,9 +134,6 @@ fuse_sync_it(struct fuse_msg *msg, struct fuse_out_header *hdr, void *data)
 		printf("normally data should be Null\n");
 
 	msg->rep.it_res = hdr->error;
-#ifdef FUSE_DEBUG_MSG
-	printf("errno = %d\n");
-#endif
-
+	DPRINTF("errno = %d\n", msg->rep.it_res);
 	wakeup(msg);
 }
