@@ -199,6 +199,10 @@ void	setifgroup(const char *, int);
 void	unsetifgroup(const char *, int);
 void	setgroupattribs(char *, int, char *[]);
 int	printgroup(char *, int);
+void	settrunkport(const char *, int);
+void	unsettrunkport(const char *, int);
+void	settrunkproto(const char *, int);
+void	trunk_status(void);
 
 #ifndef SMALL
 void	carp_status(void);
@@ -235,10 +239,6 @@ void	unsetsppppeerflag(const char *, int);
 void	spppinfo(struct spppreq *);
 void	sppp_status(void);
 void	sppp_printproto(const char *, struct sauthreq *);
-void	settrunkport(const char *, int);
-void	unsettrunkport(const char *, int);
-void	settrunkproto(const char *, int);
-void	trunk_status(void);
 void	setifpriority(const char *, int);
 void	setifpowersave(const char *, int);
 void	setifmetric(const char *, int);
@@ -330,6 +330,9 @@ const struct	cmd {
 	{ "-vlandev",	1,		0,		unsetvlandev },
 	{ "group",	NEXTARG,	0,		setifgroup },
 	{ "-group",	NEXTARG,	0,		unsetifgroup },
+	{ "trunkport",	NEXTARG,	0,		settrunkport },
+	{ "-trunkport", NEXTARG,        0,		unsettrunkport },
+	{ "trunkproto", NEXTARG,        0,		settrunkproto },
 #ifdef INET6
 	{ "anycast",	IN6_IFF_ANYCAST,	0,	setia6flags },
 	{ "-anycast",	-IN6_IFF_ANYCAST,	0,	setia6flags },
@@ -388,9 +391,6 @@ const struct	cmd {
 	{ "timeslot",	NEXTARG,	0,		settimeslot },
 	{ "txpower",	NEXTARG,	0,		setiftxpower },
 	{ "-txpower",	1,		0,		setiftxpower },
-	{ "trunkport",	NEXTARG,	0,		settrunkport },
-	{ "-trunkport",	NEXTARG,	0,		unsettrunkport },
-	{ "trunkproto",	NEXTARG,	0,		settrunkproto },
 	{ "authproto",	NEXTARG,	0,		setspppproto },
 	{ "authname",	NEXTARG,	0,		setspppname },
 	{ "authkey",	NEXTARG,	0,		setspppkey },
@@ -2808,13 +2808,13 @@ status(int link, struct sockaddr_dl *sdl, int ls)
 		    ikardesc.ikar_timeo, ikardesc.ikar_cnt);
 #endif
 	vlan_status();
+	trunk_status();
 #ifndef SMALL
 	carp_status();
 	pfsync_status();
 	pppoe_status();
 	timeslot_status();
 	sppp_status();
-	trunk_status();
 	mpe_status();
 	pflow_status();
 #endif
@@ -4259,6 +4259,7 @@ sppp_status(void)
 		printf("norechallenge ");
 	putchar('\n');
 }
+#endif /* SMALL */
 
 void
 settrunkport(const char *val, int d)
@@ -4378,6 +4379,7 @@ trunk_status(void)
 		printf("\ttrunk: trunkdev %s\n", rp.rp_ifname);
 }
 
+#ifndef SMALL
 void
 setkeepalive(const char *timeout, const char *count)
 {
@@ -4425,7 +4427,7 @@ setifpriority(const char *id, int param)
 	if (ioctl(s, SIOCSIFPRIORITY, (caddr_t)&ifr) < 0)
 		warn("SIOCSIFPRIORITY");
 }
-#endif
+#endif /* SMALL */
 
 #define SIN(x) ((struct sockaddr_in *) &(x))
 struct sockaddr_in *sintab[] = {

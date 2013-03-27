@@ -333,6 +333,7 @@ pseudo-device	bpfilter 1	# packet filter
 pseudo-device	rd	1	# ramdisk
 pseudo-device	wsmux	2
 pseudo-device	bio	1	# ioctl multiplexing device
+pseudo-device	trunk		# Trunking support
 
 # Virtio devices
 virtio*	at pci?			# Virtio PCI device
