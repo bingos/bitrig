@@ -65,7 +65,7 @@ ASRC=${LIBEDITDIR}/vi.c ${LIBEDITDIR}/emacs.c ${LIBEDITDIR}/common.c
 
 CLEANFILES+=	${AHDR} fcns.h help.h fcns.c help.c
 
-SUBDIR+=	readline
+#SUBDIR+=	readline
 HOST_SH=	sh
 
 vi.h: vi.c makelist
@@ -121,7 +121,6 @@ includes:
 		/dev/null 2>&1 || \
 	${INSTALL} ${INSTALL_COPY} -o ${BINOWN} -g ${BINGRP} -m 444 histedit.h \
 		${DESTDIR}/usr/include
-	-cd ${.CURDIR}/readline && exec ${SUDO} ${MAKE} includes
 
 .include <bsd.lib.mk>
 .include <bsd.subdir.mk>
