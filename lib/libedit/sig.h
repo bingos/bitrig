@@ -1,4 +1,3 @@
-/*	$OpenBSD: sig.h,v 1.7 2010/06/30 00:05:35 nicm Exp $	*/
 /*	$NetBSD: sig.h,v 1.8 2009/02/19 15:20:22 christos Exp $	*/
 
 /*-

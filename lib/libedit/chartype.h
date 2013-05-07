@@ -1,5 +1,4 @@
-/*	$OpenBSD: chartype.h,v 1.4 2011/07/07 16:15:47 nicm Exp $	*/
-/*	$NetBSD: chartype.h,v 1.5 2010/04/15 00:55:57 christos Exp $	*/
+/*	$NetBSD: chartype.h,v 1.10 2011/11/16 01:45:10 christos Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -45,7 +44,7 @@
  * supports non-BMP code points without requiring UTF-16, but nothing
  * seems to actually advertise this properly, despite Unicode 3.1 having
  * been around since 2001... */
-#if !defined(__NetBSD__) && !defined(__OpenBSD__)
+#if !defined(__Bitrig__) && !defined(__NetBSD__) && !defined(__sun) && !(defined(__APPLE__) && defined(__MACH__))
 #ifndef __STDC_ISO_10646__
 /* In many places it is assumed that the first 127 code points are ASCII
  * compatible, so ensure wchar_t indeed does ISO 10646 and not some other
@@ -62,7 +61,7 @@
 #endif
 
 #define ct_mbtowc            mbtowc
-#define ct_mbtowc_reset      mbtowc(0,0,0)
+#define ct_mbtowc_reset      mbtowc(0,0,(size_t)0)
 #define ct_wctomb            wctomb
 #define ct_wctomb_reset      wctomb(0,0)
 #define ct_wcstombs          wcstombs
@@ -96,7 +95,7 @@
 #define Strrchr(s,c)    wcsrchr(s,c)
 #define Strstr(s,v)     wcsstr(s,v)
 #define Strdup(x)       wcsdup(x)
-/* #define Strcpy(d,s)     wcscpy(d,s) */
+#define Strcpy(d,s)     wcscpy(d,s)
 #define Strncpy(d,s,n)  wcsncpy(d,s,n)
 #define Strncat(d,s,n)  wcsncat(d,s,n)
 
@@ -106,7 +105,12 @@
 
 #define Strtol(p,e,b)   wcstol(p,e,b)
 
-#define Width(c)	(wcwidth(c) == -1 ? 0 : wcwidth(c))
+static inline int
+Width(wchar_t c)
+{
+	int w = wcwidth(c);
+	return w < 0 ? 0 : w;
+}
 
 #else /* NARROW */
 
@@ -146,7 +150,7 @@
 #define Strrchr(s,c)    strrchr(s,c)
 #define Strstr(s,v)     strstr(s,v)
 #define Strdup(x)       strdup(x)
-/* #define Strcpy(d,s)     strcpy(d,s) */
+#define Strcpy(d,s)     strcpy(d,s)
 #define Strncpy(d,s,n)  strncpy(d,s,n)
 #define Strncat(d,s,n)  strncat(d,s,n)
 
@@ -207,7 +211,7 @@ protected size_t ct_enc_width(Char);
 
 /* The maximum buffer size to hold the most unwieldly visual representation,
  * in this case \U+nnnnn. */
-#define VISUAL_WIDTH_MAX 8
+#define VISUAL_WIDTH_MAX ((size_t)8)
 
 /* The terminal is thought of in terms of X columns by Y lines. In the cases
  * where a wide character takes up more than one column, the adjacent 

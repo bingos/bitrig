@@ -1,5 +1,4 @@
-/*	$OpenBSD: eln.c,v 1.3 2011/11/27 21:46:44 pascal Exp $	*/
-/*	$NetBSD: eln.c,v 1.9 2010/11/04 13:53:12 christos Exp $	*/
+/*	$NetBSD: eln.c,v 1.14 2012/03/11 21:15:25 christos Exp $	*/
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -34,6 +33,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include "config.h"
+#if !defined(lint) && !defined(SCCSID)
+__RCSID("$NetBSD: eln.c,v 1.14 2012/03/11 21:15:25 christos Exp $");
+#endif /* not lint && not SCCSID */
 
 #include "histedit.h"
 #include "el.h"
@@ -55,7 +57,7 @@ el_getc(EditLine *el, char *cp)
 		el->el_flags &= ~IGNORE_EXTCHARS;
 
 	if (num_read > 0)
-		*cp = (unsigned char)wc;
+		*cp = (char)wc;
 	return num_read;
 }
 
@@ -152,7 +154,7 @@ el_set(EditLine *el, int op, ...)
 			    break;
 		argv[0] = NULL;
 		wargv = (const wchar_t **)
-		    ct_decode_argv(i, argv, &el->el_lgcyconv);
+		    ct_decode_argv(i + 1, argv, &el->el_lgcyconv);
 		if (!wargv) {
 		    ret = -1;
 		    goto out;
@@ -169,15 +171,15 @@ el_set(EditLine *el, int op, ...)
 			break;
 		case EL_TELLTC:
 			wargv[0] = STR("telltc");
-			ret = term_telltc(el, i, wargv);
+			ret = terminal_telltc(el, i, wargv);
 			break;
 		case EL_SETTC:
 			wargv[0] = STR("settc");
-			ret = term_settc(el, i, wargv);
+			ret = terminal_settc(el, i, wargv);
 			break;
 		case EL_ECHOTC:
 			wargv[0] = STR("echotc");
-			ret = term_echotc(el, i, wargv);
+			ret = terminal_echotc(el, i, wargv);
 			break;
 		case EL_SETTY:
 			wargv[0] = STR("setty");
@@ -205,7 +207,7 @@ el_set(EditLine *el, int op, ...)
 		    ret = -1;
 		    goto out;
 		}
-		/* XXX: The two strdup's leak */
+		// XXX: The two strdup's leak
 		ret = map_addfunc(el, Strdup(wargv[0]), Strdup(wargv[1]),
 		    func);
 		ct_free_argv(wargv);
@@ -213,7 +215,7 @@ el_set(EditLine *el, int op, ...)
 	}
 	case EL_HIST: {           /* hist_fun_t, const char * */
 		hist_fun_t fun = va_arg(ap, hist_fun_t);
-		ptr_t ptr = va_arg(ap, ptr_t);
+		void *ptr = va_arg(ap, void *);
 		ret = hist_set(el, fun, ptr);
 		el->el_flags |= NARROW_HISTORY;
 		break;
@@ -235,7 +237,7 @@ el_set(EditLine *el, int op, ...)
 	case EL_PROMPT_ESC: /* el_pfunc_t, char */
 	case EL_RPROMPT_ESC: {
 		el_pfunc_t p = va_arg(ap, el_pfunc_t);
-		char c = va_arg(ap, int);
+		char c = (char)va_arg(ap, int);
 		ret = prompt_set(el, p, c, op, 0);
 		break;
 	}
@@ -275,7 +277,7 @@ el_get(EditLine *el, int op, ...)
 		char *c = va_arg(ap, char *);
 		wchar_t wc = 0;
 		ret = prompt_get(el, p, &wc, op);
-		*c = (unsigned char)wc;
+		*c = (char)wc;
 		break;
 	}
 
@@ -308,7 +310,7 @@ el_get(EditLine *el, int op, ...)
 			if ((argv[i] = va_arg(ap, char *)) == NULL)
 				break;
 		argv[0] = gettc;
-		ret = term_gettc(el, i, argv);
+		ret = terminal_gettc(el, i, argv);
 		break;
 	}
 

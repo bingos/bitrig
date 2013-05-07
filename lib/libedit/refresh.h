@@ -1,4 +1,3 @@
-/*	$OpenBSD: refresh.h,v 1.7 2010/06/30 00:05:35 nicm Exp $	*/
 /*	$NetBSD: refresh.h,v 1.6 2009/12/30 22:37:40 christos Exp $	*/
 
 /*-

@@ -1,5 +1,4 @@
-/*	$OpenBSD: chared.h,v 1.10 2011/07/07 05:40:42 okan Exp $	*/
-/*	$NetBSD: chared.h,v 1.20 2010/04/15 00:57:33 christos Exp $	*/
+/*	$NetBSD: chared.h,v 1.21 2010/08/28 15:44:59 christos Exp $	*/
 
 /*-
  * Copyright (c) 1992, 1993

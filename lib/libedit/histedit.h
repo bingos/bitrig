@@ -1,5 +1,4 @@
-/*	$OpenBSD: histedit.h,v 1.11 2011/07/07 05:40:42 okan Exp $	*/
-/*	$NetBSD: histedit.h,v 1.46 2010/04/15 00:50:03 christos Exp $	*/
+/*	$NetBSD: histedit.h,v 1.50 2013/01/22 20:23:21 christos Exp $	*/
 
 /*-
  * Copyright (c) 1992, 1993
@@ -44,8 +43,6 @@
 #define	LIBEDIT_MAJOR 2
 #define	LIBEDIT_MINOR 11
 
-#include <stdint.h>
-
 #include <sys/types.h>
 #include <stdio.h>
 
@@ -87,6 +84,8 @@ typedef struct lineinfo {
  * Initialization, cleanup, and resetting
  */
 EditLine	*el_init(const char *, FILE *, FILE *, FILE *);
+EditLine	*el_init_fd(const char *, FILE *, FILE *, FILE *,
+    int, int, int);
 void		 el_end(EditLine *);
 void		 el_reset(EditLine *);
 
@@ -143,7 +142,7 @@ unsigned char	_el_fn_complete(EditLine *, int);
 #define	EL_SETTY	8	/* , const Char *, ..., NULL);        set     */
 #define	EL_ADDFN	9	/* , const Char *, const Char,        set     */
 				/*   el_func_t);		 	      */
-#define	EL_HIST		10	/* , hist_fun_t, const ptr_t);	      set     */
+#define	EL_HIST		10	/* , hist_fun_t, const void *);	      set     */
 #define	EL_EDITMODE	11	/* , int);			      set/get */
 #define	EL_RPROMPT	12	/* , prompt_func);		      set/get */
 #define	EL_GETCFN	13	/* , el_rfunc_t);		      set/get */

@@ -8,8 +8,8 @@ USE_SHLIBDIR=	yes
 WIDECHAR=	yes
 
 OSRCS=	chared.c common.c el.c emacs.c fcns.c filecomplete.c help.c \
-	hist.c key.c map.c chartype.c \
-	parse.c prompt.c read.c refresh.c search.c sig.c term.c tty.c vi.c
+	hist.c keymacro.c map.c chartype.c \
+	parse.c prompt.c read.c refresh.c search.c sig.c terminal.c tty.c vi.c
 
 MAN=	editline.3 editrc.5
 

@@ -1,4 +1,3 @@
-/*	$OpenBSD: search.h,v 1.8 2010/06/30 00:05:35 nicm Exp $	*/
 /*	$NetBSD: search.h,v 1.9 2009/12/30 22:37:40 christos Exp $	*/
 
 /*-

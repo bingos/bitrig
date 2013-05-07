@@ -1,5 +1,4 @@
-/*	$OpenBSD: sig.c,v 1.13 2011/06/03 23:34:56 deraadt Exp $	*/
-/*	$NetBSD: sig.c,v 1.15 2009/02/19 15:20:22 christos Exp $	*/
+/*	$NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $	*/
 
 /*-
  * Copyright (c) 1992, 1993
@@ -34,6 +33,13 @@
  */
 
 #include "config.h"
+#if !defined(lint) && !defined(SCCSID)
+#if 0
+static char sccsid[] = "@(#)sig.c	8.1 (Berkeley) 6/4/93";
+#else
+__RCSID("$NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $");
+#endif
+#endif /* not lint && not SCCSID */
 
 /*
  * sig.c: Signal handling stuff.
@@ -62,7 +68,7 @@ private void sig_handler(int);
 private void
 sig_handler(int signo)
 {
-	int i, save_errno = errno;
+	int i;
 	sigset_t nset, oset;
 
 	(void) sigemptyset(&nset);
@@ -76,7 +82,7 @@ sig_handler(int signo)
 		tty_rawmode(sel);
 		if (ed_redisplay(sel, 0) == CC_REFRESH)
 			re_refresh(sel);
-		term__flush(sel);
+		terminal__flush(sel);
 		break;
 
 	case SIGWINCH:
@@ -98,7 +104,6 @@ sig_handler(int signo)
 	sigemptyset(&sel->el_signal->sig_action[i].sa_mask);
 	(void) sigprocmask(SIG_SETMASK, &oset, NULL);
 	(void) kill(0, signo);
-	errno = save_errno;
 }
 
 
@@ -141,7 +146,7 @@ protected void
 sig_end(EditLine *el)
 {
 
-	el_free((ptr_t) el->el_signal);
+	el_free(el->el_signal);
 	el->el_signal = NULL;
 }
 

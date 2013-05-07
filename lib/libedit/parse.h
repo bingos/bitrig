@@ -1,4 +1,3 @@
-/*	$OpenBSD: parse.h,v 1.7 2010/06/30 00:05:35 nicm Exp $	*/
 /*	$NetBSD: parse.h,v 1.7 2009/12/30 22:37:40 christos Exp $	*/
 
 /*-

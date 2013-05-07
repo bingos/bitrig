@@ -1,4 +1,3 @@
-/*	$OpenBSD: filecomplete.h,v 1.1 2010/06/30 00:05:35 nicm Exp $	*/
 /*	$NetBSD: filecomplete.h,v 1.9 2009/12/30 22:37:40 christos Exp $	*/
 
 /*-
