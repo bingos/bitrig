@@ -276,7 +276,15 @@ ffs_read(void *v)
 	}
 	if (bp != NULL)
 		brelse(bp);
-	if (!(vp->v_mount->mnt_flag & MNT_NOATIME) ||
+
+	if (vp->v_mount->mnt_flag & MNT_RELATIME) {
+		if (DIP(ip, mtime) == DIP(ip, atime) ?
+		    DIP(ip, mtimensec) > DIP(ip, atimensec) :
+		    DIP(ip, mtime) > DIP(ip, atime)) {
+			ip->i_flag |= IN_ACCESS;
+		}
+	}
+	if (!(vp->v_mount->mnt_flag & (MNT_NOATIME|MNT_RELATIME)) ||
 	    (ip->i_flag & (IN_CHANGE | IN_UPDATE))) {
 		ip->i_flag |= IN_ACCESS;
 	}

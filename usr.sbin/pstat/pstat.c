@@ -771,6 +771,11 @@ mount_print(struct mount *mp)
 			flags &= ~MNT_ROOTFS;
 			comma = ",";
 		}
+		if (flags & MNT_RELATIME) {
+			(void)printf("%srelatime", comma);
+			flags &= ~MNT_RELATIME;
+			comma = ",";
+		}
 		if (flags & MNT_NOATIME) {
 			(void)printf("%snoatime", comma);
 			flags &= ~MNT_NOATIME;

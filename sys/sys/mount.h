@@ -380,6 +380,7 @@ struct mount {
  * Extra post 4.4BSD-lite2 mount flags.
  */
 #define MNT_NOATIME	0x00008000	/* don't update access times on fs */
+#define MNT_RELATIME	0x00000020	/* set atime relative to mtime/ctime */
 
 /*
  * Mask of flags that are visible to statfs()

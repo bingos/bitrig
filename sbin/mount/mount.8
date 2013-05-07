@@ -227,6 +227,12 @@ The options
 and
 .Ic softdep
 are mutually exclusive.
+.It relatime
+(FFS only.)
+Similar to but incompatible with
+.Ic noatime .
+Access times are updated relative to mtime, i.e if mtime is ahead
+of atime, it is updated at the time of the read.
 .It sync
 Regular data I/O to the file system should be done synchronously.
 By default, only metadata is read/written synchronously.

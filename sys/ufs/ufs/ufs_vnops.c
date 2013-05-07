@@ -386,11 +386,15 @@ ufs_setattr(void *v)
 		    ((vap->va_vaflags & VA_UTIMES_NULL) == 0 || 
 		    (error = VOP_ACCESS(vp, VWRITE, cred))))
 			return (error);
-		if (vap->va_mtime.tv_sec != VNOVAL)
+		if (vap->va_mtime.tv_sec != VNOVAL) {
 			ip->i_flag |= IN_CHANGE | IN_UPDATE;
+			if (vp->v_mount->mnt_flag & MNT_RELATIME) {
+				ip->i_flag |= IN_ACCESS;
+			}
+		}
 		if (vap->va_atime.tv_sec != VNOVAL) {
-			if (!(vp->v_mount->mnt_flag & MNT_NOATIME) ||
-			    (ip->i_flag & (IN_CHANGE | IN_UPDATE)))
+			if (!(vp->v_mount->mnt_flag & (MNT_NOATIME|MNT_RELATIME))
+			    || (ip->i_flag & (IN_CHANGE | IN_UPDATE)))
 				ip->i_flag |= IN_ACCESS;
 		}
 		error = UFS_UPDATE2(ip, &vap->va_atime, &vap->va_mtime, 0);

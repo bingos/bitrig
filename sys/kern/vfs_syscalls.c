@@ -264,11 +264,11 @@ update:
 	else if (mp->mnt_flag & MNT_RDONLY)
 		mp->mnt_flag |= MNT_WANTRDWR;
 	mp->mnt_flag &=~ (MNT_NOSUID | MNT_NOEXEC | MNT_NODEV |
-	    MNT_SYNCHRONOUS | MNT_ASYNC | MNT_SOFTDEP | MNT_NOATIME |
-	    MNT_FORCE);
+	    MNT_SYNCHRONOUS | MNT_ASYNC | MNT_SOFTDEP | MNT_RELATIME |
+	    MNT_NOATIME | MNT_FORCE);
 	mp->mnt_flag |= flags & (MNT_NOSUID | MNT_NOEXEC |
 	    MNT_NODEV | MNT_SYNCHRONOUS | MNT_ASYNC | MNT_SOFTDEP |
-	    MNT_NOATIME | MNT_FORCE);
+	    MNT_RELATIME | MNT_NOATIME | MNT_FORCE);
 	/*
 	 * Mount the filesystem.
 	 */
@@ -587,6 +587,7 @@ sys_statfs(struct proc *p, void *v, register_t *retval)
 	vrele(nd.ni_vp);
 	if ((error = VFS_STATFS(mp, sp, p)) != 0)
 		return (error);
+
 	sp->f_flags = mp->mnt_flag & MNT_VISFLAGMASK;
 
 	return (copyout_statfs(sp, SCARG(uap, buf), p));

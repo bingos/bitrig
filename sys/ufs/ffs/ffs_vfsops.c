@@ -197,6 +197,15 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 		return (EINVAL);
 	}
 	/*
+	 * relatime is incompatible with noatime, so if we are doing relatime,
+	 * stop the user from setting the noatime flag a.
+	 */
+	if ((mp->mnt_flag & (MNT_RELATIME | MNT_NOATIME)) ==
+	    (MNT_RELATIME | MNT_NOATIME)) {
+		return (EINVAL);
+	}
+
+	/*
 	 * If updating, check whether changing from read-only to
 	 * read/write; if there is no device name, that's all we do.
 	 */

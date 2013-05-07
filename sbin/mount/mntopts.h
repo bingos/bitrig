@@ -54,6 +54,7 @@ union mntval {
 #define MOPT_ASYNC	{ "async",	MNT_ASYNC, MFLAG_SET }
 #define MOPT_NOACCESSTIME	{ "accesstime", MNT_NOATIME,		\
 					MFLAG_INVERSE | MFLAG_SET }
+#define MOPT_RELATIME	{ "relatime",   MNT_RELATIME, MFLAG_SET }
 #define MOPT_NOATIME	{ "atime",      MNT_NOATIME, MFLAG_INVERSE | MFLAG_SET }
 #define MOPT_NODEV	{ "dev",	MNT_NODEV, MFLAG_INVERSE | MFLAG_SET }
 #define MOPT_NOEXEC	{ "exec",	MNT_NOEXEC, MFLAG_INVERSE | MFLAG_SET }
