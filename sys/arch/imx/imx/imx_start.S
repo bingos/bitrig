@@ -53,6 +53,21 @@
 	mov	tmp, tmp		/* wait for it to complete */	;\
 	CPWAIT_BRANCH			/* branch to next insn */
 	
+
+/* assume r0 is the table, r2 is VA, r3 is PA */
+#define MMU_INIT(n_sec,attr) \
+	mov	r1, #(n_sec)				; \
+	lsr	r2, #L1_S_SHIFT				; \
+	lsl	r2, #2					; \
+	ldr	r4, attr				; \
+	orr	r3, r4					; \
+1:							; \
+	str	r3, [r0, r2]				; \
+	add	r2, r2, #4				; \
+	add	r3, r3, #(L1_S_SIZE)			; \
+	adds	r1, r1, #-1				; \
+	bhi	1b					; \
+
 /*
  * Kernel start routine for OMAP
  * this code is excuted at the very first after the kernel is loaded
@@ -107,16 +122,11 @@ Lstart_off:	.word bootstrap_start_ram-_C_LABEL(bootstrap_start)
 bootstrap_start_ram:	
 	/*
 	 *  Kernel is loaded in SDRAM (0xa0200000..), and is expected to run
-	 *  in VA 0xc0200000..  
+	 *  in VA 0xc0200000
 	 */
 
 	mrc	p15, 0, r0, c2, c0, 0	/* get ttb prepared by redboot */
-	adr	r4, mmu_init_table2
-	
-/*
-#define BUILD_STARTUP_PAGETABLE
-*/
-#ifdef BUILD_STARTUP_PAGETABLE
+
 	mrc	p15, 0, r2, c1, c0, 0
 	mov	r2, #0
 	tst	r2, #CPU_CONTROL_MMU_ENABLE /* we already have a page table? */
@@ -124,26 +134,34 @@ bootstrap_start_ram:
 
 	/* build page table from scratch */
 	ldr	r0, Lstartup_pagetable
-	adr	r4, mmu_init_table
-	b	3f
+	add	r0, r8
+	bic	r0, #0xFF
+	bic	r0, #0xFF00
 
-2:
-	str	r3, [r0, r2]
-	add	r2, r2, #4
-	add	r3, r3, #(L1_S_SIZE)
-	adds	r1, r1, #-1
-	bhi	2b
-3:	
-	ldmia	r4!, {r1,r2,r3}   /* # of sections, PA|attr, VA */
-	cmp	r1, #0
-	bne	2b	
-#endif
+	/* fill all table VA==PA */
+	mov	r2, #0x0
+	mov	r3, #0x0
+	MMU_INIT(1<<(32-L1_S_SHIFT), Lattr_nc)
+
+	/* map SDRAM VA==PA, WT cacheable */
+	mov	r2, r8
+	bic	r2, #0x0000FF
+	bic	r2, #0x00FF00
+	mov	r3, r2
+	MMU_INIT(64, Lattr_wt)
+
+	/* map VA 0xc0000000..0xc3ffffff to PA 0xa0000000..0xa3ffffff */
+	ldr	r2, Lkernel_base
+	mov	r3, r8
+	bic	r3, #0x0000FF
+	bic	r3, #0x00FF00
+	MMU_INIT(64, Lattr_wt)
 
 	mcr	p15, 0, r0, c2, c0, 0	/* Set TTB */
 	mcr	p15, 0, r0, c8, c7, 0	/* Flush TLB */
 
 	/* Set the Domain Access register.  Very important! */
-        mov     r0, #((DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2)) | DOMAIN_CLIENT)
+	mov	r0, #((DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2)) | DOMAIN_CLIENT)
 	mcr	p15, 0, r0, c3, c0, 0
 
 	/* Enable MMU */
@@ -152,6 +170,7 @@ bootstrap_start_ram:
 	mcr	p15, 0, r0, c1, c0, 0
 	CPWAIT(r0)
 
+3:
 	/* Restore U-Boot arguments */
 	mov	r0, r6
 	mov	r1, r7
@@ -164,26 +183,10 @@ bootstrap_start_ram:
 Lstart:
 	.word	start
 
-#define MMU_INIT(va,pa,n_sec,attr) \
-	.word	n_sec					    ; \
-	.word	4*((va)>>L1_S_SHIFT)			    ; \
-	.word	(pa)|(attr)				    ;
-	
-#ifdef BUILD_STARTUP_PAGETABLE
 #ifndef STARTUP_PAGETABLE_ADDR
-#define STARTUP_PAGETABLE_ADDR 0x82000000
+#define STARTUP_PAGETABLE_ADDR 0x02000000
 #endif
 Lstartup_pagetable:	.word	STARTUP_PAGETABLE_ADDR
-mmu_init_table:	
-	/* fill all table VA==PA */
-	MMU_INIT(0x00000000, 0x00000000, 1<<(32-L1_S_SHIFT), L1_TYPE_S|L1_S_V7_AP(AP_KRW))
-	/* map SDRAM VA==PA, WT cacheable */
-	MMU_INIT(SDRAM_START, SDRAM_START, 64, L1_TYPE_S|L1_S_C|L1_S_V7_AP(AP_KRW))
-#endif
-mmu_init_table2:	
-	/* map VA 0xc0000000..0xc3ffffff to PA 0xa0000000..0xa3ffffff */
-	MMU_INIT(0xc0000000, SDRAM_START, 64, L1_TYPE_S|L1_S_C|L1_S_V7_AP(AP_KRW))
-
-	.word 0	/* end of table */
-
-	.text
+Lkernel_base:		.word	0xc0000000
+Lattr_nc:		.word	L1_TYPE_S|L1_S_V7_AP(AP_KRW)
+Lattr_wt:		.word	L1_TYPE_S|L1_S_C|L1_S_V7_AP(AP_KRW)
