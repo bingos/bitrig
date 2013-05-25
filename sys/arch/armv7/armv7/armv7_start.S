@@ -35,10 +35,6 @@
 #include <arm/pte.h>
 #include <arm/pmap.h>		/* for PMAP_DOMAIN_KERNEL */
 
-#ifndef SDRAM_START
-#define SDRAM_START	0x10000000
-#endif
-
 /*
  * CPWAIT -- Canonical method to wait for CP15 update.
  * NOTE: Clobbers the specified temp reg.
@@ -82,6 +78,8 @@ _C_LABEL(bootstrap_start):
 	mov	r7, r1
 	mov	r8, r2
 
+	/* XXX: assume we're in RAM */
+#if 0
 	/* Are we running on ROM ? */
 	cmp     pc, #0x06000000
 	bhi     bootstrap_start_ram
@@ -118,6 +116,7 @@ _C_LABEL(bootstrap_start):
 
 Lcopy_size:	.word _edata-_C_LABEL(bootstrap_start)
 Lstart_off:	.word bootstrap_start_ram-_C_LABEL(bootstrap_start)
+#endif
 
 bootstrap_start_ram:	
 	/*
