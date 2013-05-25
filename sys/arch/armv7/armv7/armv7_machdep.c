@@ -238,7 +238,6 @@ int   safepri = 0;
 
 /* Prototypes */
 
-void	imxdog_reset(void);
 void	arm_powerdown(void);
 
 char	bootargs[MAX_BOOT_STRING];
@@ -501,7 +500,7 @@ initarm(void *arg0, void *arg1, void *arg2)
 		board->bd_early_init();
 
 	/* Talk to the user */
-	printf("\nBitrig/imx booting ...\n");
+	printf("\nBitrig/armv7 booting ...\n");
 
 	printf("arg0 %p arg1 %p arg2 %p\n", arg0, arg1, arg2);
 	parse_uboot_tags(arg2);
