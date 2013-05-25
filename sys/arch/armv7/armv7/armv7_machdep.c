@@ -505,6 +505,9 @@ initarm(void *arg0, void *arg1, void *arg2)
 	if (board == NULL)
 		panic("board type %x unknown", board_id);
 
+	if (board->bd_early_init)
+		board->bd_early_init();
+
 	/* setup a serial console for very early boot */
 	consinit();
 
@@ -525,6 +528,8 @@ initarm(void *arg0, void *arg1, void *arg2)
 
 	/* normally u-boot will set up bootconfig.dramblocks */
 	if (bootconfig.dramblocks == 0) {
+		/* XXX: make this MI */
+		panic("%s: u-boot didn't set us up", __func__);
 		memstart = SDRAM_START;
 		memsize = 0x10000000; /* 256 MB */
 		/* Fake bootconfig structure for the benefit of pmap.c */

@@ -154,6 +154,15 @@
 #define PCIE_IRQ2	122
 #define PCIE_IRQ3	123
 
+void imx6_smc_write(bus_space_tag_t, bus_space_handle_t, bus_size_t,
+    uint32_t, uint32_t);
+
+void
+imx6_smc_write(bus_space_tag_t iot, bus_space_handle_t ioh, bus_size_t off,
+    uint32_t op, uint32_t val)
+{
+	bus_space_write_4(iot, ioh, off, val);
+}
 
 struct arm_dev imx6_devs[] = {
 
@@ -405,8 +414,10 @@ struct arm_board imx6_phyflex_board = {
 	.bd_name = "PhyFLEX-i.MX6",
 	.bd_dev = imx6_phyflex_devs,
 	.bd_soc = imx6_devs,
+	.bd_early_init = NULL,
 	.bd_cnattach = imxuartcnattach,
 	.bd_console_addr = 0x021f0000,
+	.bd_smc_write = imx6_smc_write,
 };
 
 struct arm_board imx6_sabrelite_board = {
@@ -414,6 +425,8 @@ struct arm_board imx6_sabrelite_board = {
 	.bd_name = "i.MX6 SABRE Lite",
 	.bd_dev = imx6_sabrelite_devs,
 	.bd_soc = imx6_devs,
+	.bd_early_init = NULL,
 	.bd_cnattach = imxuartcnattach,
 	.bd_console_addr = 0x021e8000,
+	.bd_smc_write = imx6_smc_write,
 };

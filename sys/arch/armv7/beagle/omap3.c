@@ -231,8 +231,10 @@ struct arm_board omap3_beagleboard_board = {
 	.bd_name = "BeagleBoard",
 	.bd_dev = omap3_beagleboard_devs,
 	.bd_soc = omap3_devs,
+	.bd_early_init = NULL,
 	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x49020000,
+	.bd_smc_write = NULL,
 };
 
 struct arm_board omap3_overo_board = {
@@ -240,6 +242,8 @@ struct arm_board omap3_overo_board = {
 	.bd_name = "Gumstix Overo",
 	.bd_dev = omap3_overo_devs,
 	.bd_soc = omap3_devs,
+	.bd_early_init = NULL,
 	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x49020000,
+	.bd_smc_write = NULL,
 };

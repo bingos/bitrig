@@ -33,6 +33,7 @@ file	arch/armv7/armv7/armv7_devices.c
 file	arch/armv7/imx/imx6.c
 file	arch/armv7/beagle/omap3.c
 file	arch/armv7/beagle/omap4.c
+file	arch/armv7/beagle/omap4_asm.S
 
 # serial ports
 device imxuart

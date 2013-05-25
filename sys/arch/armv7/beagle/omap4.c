@@ -83,6 +83,15 @@
 #define USBOHCI_SIZE                            0x400
 #define USBEHCI_IRQ                                     77
 
+extern void omap4_smc_call(uint32_t, uint32_t);
+void omap4_early_init(void);
+void
+omap4_early_init(void)
+{
+	/* disable external L2 cache */
+	omap4_smc_call(0x102, 0);
+}
+
 struct arm_dev omap4_devs[] = {
 
 	/*
@@ -214,6 +223,8 @@ struct arm_board omap4_pandaboard_board = {
 	.bd_name = "PandaBorad",
 	.bd_dev = omap4_pandaboard_devs,
 	.bd_soc = omap4_devs,
+	.bd_early_init = omap4_early_init,
 	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x48020000,
+	.bd_smc_write = NULL,
 };
