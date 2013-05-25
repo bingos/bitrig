@@ -239,8 +239,7 @@ int   safepri = 0;
 /* Prototypes */
 
 void	imxdog_reset(void);
-void	imx_powerdown(void);
-void	imx_reset(void);
+void	arm_powerdown(void);
 
 char	bootargs[MAX_BOOT_STRING];
 void	process_kernel_args(char *);
@@ -274,7 +273,7 @@ extern int32_t amptimer_frequency;
  *
  */
 void
-imx_powerdown(void)
+arm_powerdown(void)
 {
 }
 
@@ -307,7 +306,8 @@ boot(int howto)
 		}
 		printf("rebooting...\n");
 		delay(500000);
-		imxdog_reset();
+		if (board->bd_dog_reset)
+			board->bd_dog_reset();
 		printf("reboot failed; spinning\n");
 		while(1);
 		/*NOTREACHED*/
@@ -345,7 +345,7 @@ boot(int howto)
 
 			printf("\nAttempting to power down...\n");
 			delay(500000);
-			imx_powerdown();
+			arm_powerdown();
 		}
 
 		printf("The operating system has halted.\n");
@@ -355,7 +355,8 @@ boot(int howto)
 
 	printf("rebooting...\n");
 	delay(500000);
-	imxdog_reset();
+	if (board->bd_dog_reset)
+		board->bd_dog_reset();
 	printf("reboot failed; spinning\n");
 	while(1);
 	/*NOTREACHED*/
@@ -429,15 +430,6 @@ copy_io_area_map(pd_entry_t *new_pd)
 }
 
 void parse_uboot_tags(void *);
-void imx_reset() {
-	uint16_t* wcr = (uint16_t*)0x020bc000;
-	uint16_t* wsr = (uint16_t*)0x020bc002;
-	*wcr = 0;
-	*wsr = 0x5555;
-	*wsr = 0xaaaa;
-	*wcr = 1;
-	*wcr = 1;
-}
 
 /*
  * u_int initarm(...)

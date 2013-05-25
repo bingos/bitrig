@@ -43,6 +43,7 @@ struct arm_board {
 	struct board_dev	*bd_dev;	/* board devices */
 	struct arm_dev		*bd_soc;	/* soc devices */
 	void			(*bd_early_init)(void);
+	void			(*bd_dog_reset)(void);
 	u_int32_t		 bd_console_addr; /* console addr */
 	int (*bd_cnattach)(bus_space_tag_t iot, bus_addr_t iobase, int rate,
 	    int frequency, tcflag_t cflag);

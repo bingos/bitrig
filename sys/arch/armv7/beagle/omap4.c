@@ -83,6 +83,7 @@
 #define USBOHCI_SIZE                            0x400
 #define USBEHCI_IRQ                                     77
 
+extern void omdog_reset(void);
 extern void omap4_smc_call(uint32_t, uint32_t);
 void omap4_early_init(void);
 void
@@ -224,6 +225,7 @@ struct arm_board omap4_pandaboard_board = {
 	.bd_dev = omap4_pandaboard_devs,
 	.bd_soc = omap4_devs,
 	.bd_early_init = omap4_early_init,
+	.bd_dog_reset = omdog_reset,
 	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x48020000,
 	.bd_smc_write = NULL,

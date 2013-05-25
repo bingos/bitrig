@@ -72,6 +72,8 @@
 #define USBTLL_ADDR	0x48062000
 #define USBTLL_SIZE	0x1000
 
+extern void omdog_reset(void);
+
 struct arm_dev omap3_devs[] = {
 
 	/*
@@ -232,6 +234,7 @@ struct arm_board omap3_beagleboard_board = {
 	.bd_dev = omap3_beagleboard_devs,
 	.bd_soc = omap3_devs,
 	.bd_early_init = NULL,
+	.bd_dog_reset = omdog_reset,
 	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x49020000,
 	.bd_smc_write = NULL,
@@ -243,6 +246,7 @@ struct arm_board omap3_overo_board = {
 	.bd_dev = omap3_overo_devs,
 	.bd_soc = omap3_devs,
 	.bd_early_init = NULL,
+	.bd_dog_reset = omdog_reset,
 	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x49020000,
 	.bd_smc_write = NULL,

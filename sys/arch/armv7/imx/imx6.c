@@ -154,6 +154,8 @@
 #define PCIE_IRQ2	122
 #define PCIE_IRQ3	123
 
+
+extern void imxdog_reset(void);
 void imx6_smc_write(bus_space_tag_t, bus_space_handle_t, bus_size_t,
     uint32_t, uint32_t);
 
@@ -415,6 +417,7 @@ struct arm_board imx6_phyflex_board = {
 	.bd_dev = imx6_phyflex_devs,
 	.bd_soc = imx6_devs,
 	.bd_early_init = NULL,
+	.bd_dog_reset = imxdog_reset,
 	.bd_cnattach = imxuartcnattach,
 	.bd_console_addr = 0x021f0000,
 	.bd_smc_write = imx6_smc_write,
@@ -426,6 +429,7 @@ struct arm_board imx6_sabrelite_board = {
 	.bd_dev = imx6_sabrelite_devs,
 	.bd_soc = imx6_devs,
 	.bd_early_init = NULL,
+	.bd_dog_reset = imxdog_reset,
 	.bd_cnattach = imxuartcnattach,
 	.bd_console_addr = 0x021e8000,
 	.bd_smc_write = imx6_smc_write,
