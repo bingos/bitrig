@@ -45,7 +45,7 @@
 
 #include <arm/param.h>
 
-#define	_MACHINE	imx
-#define	MACHINE		"imx"
+#define	_MACHINE	armv7
+#define	MACHINE		"armv7"
 
 #endif	/* _MACHINE_PARAM_H_ */

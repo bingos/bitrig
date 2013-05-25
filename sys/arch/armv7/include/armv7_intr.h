@@ -36,12 +36,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef IMX_INTR_H
-#define IMX_INTR_H
+#ifndef ARMv7_INTR_H
+#define ARMv7_INTR_H
 
 #ifndef _LKM
 
-#include <imx/dev/intc.h>
+#include <armv7/beagle/intc.h>
 
 #endif
 
@@ -116,4 +116,4 @@ void intc_splassert_check(int, const char *);
 
 #endif /* ! _LOCORE */
 
-#endif /* IMX_INTR_H */
+#endif /* ARMV7_INTR_H */
