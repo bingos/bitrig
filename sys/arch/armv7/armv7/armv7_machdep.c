@@ -500,9 +500,6 @@ initarm(void *arg0, void *arg1, void *arg2)
 	if (board->bd_early_init)
 		board->bd_early_init();
 
-	/* setup a serial console for very early boot */
-	consinit();
-
 	/* Talk to the user */
 	printf("\nBitrig/imx booting ...\n");
 
@@ -944,16 +941,7 @@ process_kernel_args(char *args)
 void
 consinit(void)
 {
-	static int consinit_called = 0;
-
-	if (consinit_called != 0)
-		return;
-
-	consinit_called = 1;
-
-	board->bd_cnattach(&armv7_bs_tag, board->bd_console_addr, comcnspeed, 48000000, comcnmode);
 }
-
 
 //int glass_console = 0;
 

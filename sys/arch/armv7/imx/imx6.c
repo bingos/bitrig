@@ -156,8 +156,16 @@
 
 
 extern void imxdog_reset(void);
+void imx6_early_init(void);
 void imx6_smc_write(bus_space_tag_t, bus_space_handle_t, bus_size_t,
     uint32_t, uint32_t);
+
+void imx6_early_init(void)
+{
+	int comcnspeed = B115200;
+	int comcnmode = ((TTYDEF_CFLAG & ~(CSIZE | CSTOPB | PARENB)) | CS8); /* 8N1 */
+	imxuartcnattach(&armv7_bs_tag, board->bd_console_addr, comcnspeed, 48000000, comcnmode);
+}
 
 void
 imx6_smc_write(bus_space_tag_t iot, bus_space_handle_t ioh, bus_size_t off,
@@ -416,9 +424,8 @@ struct arm_board imx6_phyflex_board = {
 	.bd_name = "PhyFLEX-i.MX6",
 	.bd_dev = imx6_phyflex_devs,
 	.bd_soc = imx6_devs,
-	.bd_early_init = NULL,
+	.bd_early_init = imx6_early_init,
 	.bd_dog_reset = imxdog_reset,
-	.bd_cnattach = imxuartcnattach,
 	.bd_console_addr = 0x021f0000,
 	.bd_smc_write = imx6_smc_write,
 };
@@ -428,9 +435,8 @@ struct arm_board imx6_sabrelite_board = {
 	.bd_name = "i.MX6 SABRE Lite",
 	.bd_dev = imx6_sabrelite_devs,
 	.bd_soc = imx6_devs,
-	.bd_early_init = NULL,
+	.bd_early_init = imx6_early_init,
 	.bd_dog_reset = imxdog_reset,
-	.bd_cnattach = imxuartcnattach,
 	.bd_console_addr = 0x021e8000,
 	.bd_smc_write = imx6_smc_write,
 };

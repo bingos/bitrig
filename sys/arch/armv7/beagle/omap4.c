@@ -89,6 +89,11 @@ void omap4_early_init(void);
 void
 omap4_early_init(void)
 {
+	/* console init */
+	int comcnspeed = B115200;
+	int comcnmode = ((TTYDEF_CFLAG & ~(CSIZE | CSTOPB | PARENB)) | CS8); /* 8N1 */
+	comcnattach(&armv7_a4x_bs_tag, board->bd_console_addr, comcnspeed, 48000000, comcnmode);
+
 	/* disable external L2 cache */
 	omap4_smc_call(0x102, 0);
 }
@@ -221,12 +226,11 @@ struct board_dev omap4_pandaboard_devs[] = {
 
 struct arm_board omap4_pandaboard_board = {
 	.bd_id = 2791,
-	.bd_name = "PandaBorad",
+	.bd_name = "PandaBoard",
 	.bd_dev = omap4_pandaboard_devs,
 	.bd_soc = omap4_devs,
 	.bd_early_init = omap4_early_init,
 	.bd_dog_reset = omdog_reset,
-	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x48020000,
 	.bd_smc_write = NULL,
 };

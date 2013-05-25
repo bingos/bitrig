@@ -73,6 +73,15 @@
 #define USBTLL_SIZE	0x1000
 
 extern void omdog_reset(void);
+void omap3_early_init(void);
+void
+omap3_early_init(void)
+{
+	/* console init */
+	int comcnspeed = B115200;
+	int comcnmode = ((TTYDEF_CFLAG & ~(CSIZE | CSTOPB | PARENB)) | CS8); /* 8N1 */
+	comcnattach(&armv7_a4x_bs_tag, board->bd_console_addr, comcnspeed, 48000000, comcnmode);
+}
 
 struct arm_dev omap3_devs[] = {
 
@@ -233,9 +242,8 @@ struct arm_board omap3_beagleboard_board = {
 	.bd_name = "BeagleBoard",
 	.bd_dev = omap3_beagleboard_devs,
 	.bd_soc = omap3_devs,
-	.bd_early_init = NULL,
+	.bd_early_init = omap3_early_init,
 	.bd_dog_reset = omdog_reset,
-	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x49020000,
 	.bd_smc_write = NULL,
 };
@@ -245,9 +253,8 @@ struct arm_board omap3_overo_board = {
 	.bd_name = "Gumstix Overo",
 	.bd_dev = omap3_overo_devs,
 	.bd_soc = omap3_devs,
-	.bd_early_init = NULL,
+	.bd_early_init = omap3_early_init,
 	.bd_dog_reset = omdog_reset,
-	.bd_cnattach = comcnattach,
 	.bd_console_addr = 0x49020000,
 	.bd_smc_write = NULL,
 };
