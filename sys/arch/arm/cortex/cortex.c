@@ -49,7 +49,7 @@
 #define _ARM32_BUS_DMA_PRIVATE
 #include <machine/bus.h>
 #include <arm/cpufunc.h>
-#include <arm/armv7/armv7var.h>
+#include <armv7/armv7/armv7var.h>
 #include <arm/cortex/cortex.h>
 
 struct arm32_bus_dma_tag cortex_bus_dma_tag = {

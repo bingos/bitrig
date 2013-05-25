@@ -1,0 +1,183 @@
+#	$OpenBSD: files.beagle,v 1.11 2011/11/10 19:37:01 uwe Exp $
+#
+# First try for arm-specific configuration info
+#
+
+maxpartitions	16
+maxusers	2 8 64
+
+major	{wd = 16}
+major	{sd = 24}
+major	{cd = 26}
+major	{rd = 18}
+
+file	arch/arm/arm/conf.c
+
+#interrupt API layer
+file	arch/armv7/armv7/intr.c
+
+# u-boot argument support
+file	arch/armv7/armv7/uboot_tags.c
+
+# note that the order of the devices in _this_ file
+# affects the order that the devices will configure.
+#
+
+# XXX arch/arm/imx
+define soc {}
+device arm: soc
+attach arm at mainbus
+file	arch/armv7/armv7/armv7_machdep.c
+file	arch/armv7/armv7/arm.c
+file	arch/armv7/armv7/armv7_devices.c
+file	arch/armv7/imx/imx6.c
+file	arch/armv7/beagle/omap3.c
+file	arch/armv7/beagle/omap4.c
+
+# serial ports
+device imxuart
+attach	imxuart at soc
+file	arch/armv7/imx/imxuart.c		imxuart
+
+device imxccm
+attach imxccm at soc
+file	arch/armv7/imx/imxccm.c			imxccm
+
+device imxiomuxc
+attach imxiomuxc at soc
+file	arch/armv7/imx/imxiomuxc.c		imxiomuxc
+
+device imxdog
+attach imxdog at soc
+file	arch/armv7/imx/imxdog.c			imxdog
+
+device imxocotp
+attach imxocotp at soc
+file	arch/armv7/imx/imxocotp.c		imxocotp
+
+device imxgpio
+attach imxgpio at soc
+file	arch/armv7/imx/imxgpio.c		imxgpio
+
+device	imxiic: i2cbus
+attach	imxiic at soc
+file	arch/armv7/imx/imxiic.c			imxiic
+
+device imxenet: ether, ifnet, mii, ifmedia
+attach imxenet at soc
+file	arch/armv7/imx/imxenet.c		imxenet
+
+attach ehci at soc with imxehci
+file	arch/armv7/imx/imxehci.c		imxehci
+
+include "dev/sdmmc/files.sdmmc"
+
+device imxesdhc: sdmmcbus
+attach imxesdhc at soc
+file	arch/armv7/imx/imxesdhc.c		imxesdhc
+
+device imxpchb
+attach imxpchb at soc
+file	arch/armv7/imx/imxpchb.c		imxpchb
+
+device ommmc: sdmmcbus
+attach ommmc at soc
+file	arch/armv7/beagle/ommmc.c		ommmc
+
+device prcm
+attach prcm at soc
+file	arch/armv7/beagle/prcm.c		prcm
+
+device omgpio
+attach omgpio at soc
+file	arch/armv7/beagle/omgpio.c		omgpio
+
+device intc
+attach intc at soc
+file	arch/armv7/beagle/intc.c		intc
+
+device gptimer
+attach gptimer at soc
+file	arch/armv7/beagle/gptimer.c		gptimer
+
+device omapid
+attach omapid at soc
+file	arch/armv7/beagle/omapid.c		omapid
+
+device omdog
+attach omdog at soc
+file	arch/armv7/beagle/omdog.c		omdog
+
+attach ohci at soc with omohci
+file	arch/armv7/beagle/omohci.c		omohci
+
+#attach ehci at soc with omehci
+#file	arch/armv7/beagle/omehci.c		omehci
+
+# NS16550 compatible serial ports
+attach com at soc with com_omap
+file	arch/armv7/beagle/omap_com.c		com_omap
+
+# Machine-independent SCSI drivers
+#
+include "scsi/files.scsi"
+include "dev/atapiscsi/files.atapiscsi"
+
+# CPU support and integrated peripherals
+file	arch/arm/arm/irq_dispatch.S
+file	arch/arm/arm/softintr.c
+
+#
+# Machine-independent ATA drivers
+#
+include "dev/ata/files.ata"
+
+# Generic MD files
+file	arch/armv7/armv7/autoconf.c
+
+file	arch/arm/arm/disksubr.c			disk
+
+
+# ARM FPE
+file	arch/arm/fpe-arm/armfpe_glue.S		armfpe
+file	arch/arm/fpe-arm/armfpe_init.c		armfpe
+file	arch/arm/fpe-arm/armfpe.s		armfpe
+
+
+# Machine-independent I2O drivers.
+include "dev/i2o/files.i2o"
+
+# Include WSCONS stuff
+include "dev/wscons/files.wscons"
+include "dev/rasops/files.rasops"
+include "dev/wsfont/files.wsfont"
+
+# Include USB stuff
+include "dev/usb/files.usb"
+
+# Bluetooth
+include "dev/bluetooth/files.bluetooth"
+
+# Media Independent Interface (mii)
+include "dev/mii/files.mii"
+
+# Machine-independent I2C drivers
+include "dev/i2c/files.i2c"
+
+# Machine-independent I2C drivers
+include "dev/gpio/files.gpio"
+
+# Maxim MAX7301 GPIO extender
+device	maxgpio: gpiobus
+attach	maxgpio at i2c
+file	arch/armv7/imx/maxim7301.c		maxgpio
+
+# PCI
+include "dev/pci/files.pci"
+
+device	imxpcibr {} : pcibus
+attach	imxpcibr at soc
+file	arch/armv7/imx/imxpcibr.c		imxpcibr
+
+attach ahci at soc with imxahci
+file	arch/armv7/imx/imxahci.c		imxahci
