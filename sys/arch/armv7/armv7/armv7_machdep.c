@@ -522,6 +522,7 @@ initarm(void *arg0, void *arg1, void *arg2)
 	if (bootconfig.dramblocks == 0) {
 		/* XXX: make this MI */
 		panic("%s: u-boot didn't set us up", __func__);
+#if 0
 		memstart = SDRAM_START;
 		memsize = 0x10000000; /* 256 MB */
 		/* Fake bootconfig structure for the benefit of pmap.c */
@@ -529,6 +530,7 @@ initarm(void *arg0, void *arg1, void *arg2)
 		bootconfig.dram[0].address = memstart;
 		bootconfig.dram[0].pages = memsize / PAGE_SIZE;
 		bootconfig.dramblocks = 1;
+#endif
 	} else {
 		memstart = bootconfig.dram[0].address;
 		memsize = bootconfig.dram[0].pages * PAGE_SIZE;
