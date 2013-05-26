@@ -25,7 +25,7 @@
 
 #include <machine/intr.h> 	/* XXX */
 
-#define ITHREAD_DEBUG
+//#define ITHREAD_DEBUG
 #ifdef ITHREAD_DEBUG
 int ithread_debug = 10;
 #define DPRINTF(l, x...)	do { if ((l) <= ithread_debug) printf(x); } while (0)
@@ -68,7 +68,8 @@ ithread(void *v_is)
 		splx(s);
 		
 		if (!rc)
-			printf("stray interrupt pin %d ?\n", is->is_pin);
+			DPRINTF(10, "ithread stray interrupt pin %d ?\n",
+			    is->is_pin);
 
 		pic->pic_hwunmask(pic, is->is_pin);
 
@@ -99,7 +100,7 @@ ithread(void *v_is)
 int
 ithread_handler(struct intrsource *is)
 {
-	struct cpu_info *ci = curcpu();
+	//struct cpu_info *ci = curcpu();
 	struct proc *p = is->is_proc;
 	int s;
 
@@ -108,6 +109,16 @@ ithread_handler(struct intrsource *is)
 	DPRINTF(10, "ithread accepted interrupt pin %d "
 	    "(ilevel = %d, maxlevel = %d)\n",
 	    is->is_pin, ci->ci_ilevel, is->is_maxlevel);
+
+	if (p == NULL) {
+		/*
+		 * If we still haven't forked yet, but already
+		 * got interrupts, just return and don't schedule.
+		 * If the interrupt got masked, it'll be unmasked
+		 * once the fork is done.
+		 */
+		return (0);
+	}
 
 	is->is_scheduled = 1;
 
@@ -172,5 +183,8 @@ ithread_forkall(void)
 		if (kthread_create(ithread, is, &is->is_proc,
 		    "ithread pin %d", is->is_pin))
 			panic("ithread_forkall");
+
+		/* Unmask interrupts who already called before. */
+		is->is_pic->pic_hwunmask(is->is_pic, is->is_pin);
 	}
 }

@@ -41,7 +41,6 @@
 
 #ifdef _KERNEL
 
-
 /* Interrupt priority "levels". */
 #define	IPL_NONE	0	/* nothing */
 #define	IPL_SOFT	1	/* generic software interrupts */
@@ -62,6 +61,8 @@
 
 /* Interrupt priority "flags". */
 #define	IPL_MPSAFE	0	/* no "mpsafe" interrupts */
+#define	IPL_DIRECT	0x200
+#define	IPL_FLAGS	(IPL_MPSAFE | IPL_DIRECT)
 
 /* Interrupt sharing types. */
 #define	IST_NONE	0	/* none */
@@ -78,6 +79,7 @@
 #ifndef _LOCORE
 #include <sys/device.h>
 #include <sys/queue.h>
+#include <sys/evcount.h>
 
 int     splraise(int);
 int     spllower(int);
@@ -162,6 +164,33 @@ void arm_splassert_check(int, const char *);
 #define splassert(wantipl)      do { /* nothing */ } while (0)
 #define splsoftassert(wantipl)  do { /* nothing */ } while (0)
 #endif
+
+struct intrsource {
+	int is_maxlevel;		/* max. IPL for this source */
+	int is_pin;			/* IRQ for legacy; pin for IO APIC */
+	struct intrhand *is_handlers;	/* handler chain */
+	int is_flags;
+	int is_idtvec;
+	int is_scheduled;		/* proc is runnable */
+	struct proc *is_proc;		/* ithread proc */
+	struct pic *is_pic;		/* XXX PIC for ithread */
+	TAILQ_ENTRY(intrsource) entry;	/* entry in ithreads list */
+};
+
+struct intrhand {
+	int (*ih_fun)(void *);		/* handler */
+	void *ih_arg;			/* arg for handler */
+	int ih_level;			/* IPL_* */
+	int ih_flags;
+	int ih_irq;			/* IRQ number */
+	struct evcount ih_count;
+	char *ih_name;
+	struct intrhand *ih_next;
+};
+
+struct pic {
+	void (*pic_hwunmask)(struct pic *, int);
+};
 
 #endif /* ! _LOCORE */
 

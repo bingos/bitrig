@@ -190,14 +190,16 @@ struct cpu_info {
 	int	ci_mutex_level;
 #endif
 	struct device *ci_dev;		/* Device corresponding to this CPU */
+	u_int32_t ci_cpuid;
 	u_int32_t ci_arm_cpuid;		/* aggregate CPU id */
 	u_int32_t ci_arm_cputype;	/* CPU type */
 	u_int32_t ci_arm_cpurev;	/* CPU revision */
 	u_int32_t ci_ctrl;		/* The CPU control register */
 	u_int32_t ci_randseed;
 
-	uint32_t ci_cpl;
+	uint32_t ci_ilevel;
 	uint32_t ci_ipending;
+	uint32_t ci_spending;
 #ifdef GPROF
 	struct gmonparam *ci_gmon;
 #endif
@@ -205,6 +207,7 @@ struct cpu_info {
 
 #ifndef MULTIPROCESSOR
 extern struct cpu_info cpu_info_store;
+#define cpu_info_primary cpu_info_store
 #define	curcpu()	(&cpu_info_store)
 #define cpu_number()	0
 #define CPU_IS_PRIMARY(ci)	1

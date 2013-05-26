@@ -86,12 +86,12 @@ arm_dflt_splraise(int newcpl)
 	struct cpu_info *ci = curcpu();
 	int oldcpl;
 
-	oldcpl = ci->ci_cpl;
+	oldcpl = ci->ci_ilevel;
 
 	if (newcpl < oldcpl)
 		newcpl = oldcpl;
 
-	ci->ci_cpl = newcpl;
+	ci->ci_ilevel = newcpl;
 
 	return oldcpl;
 }
@@ -102,7 +102,7 @@ arm_dflt_spllower(int newcpl)
 	struct cpu_info *ci = curcpu();
 	int oldcpl;
 
-	oldcpl = ci->ci_cpl;
+	oldcpl = ci->ci_ilevel;
 
 	splx(newcpl);
 
@@ -114,9 +114,9 @@ arm_dflt_splx(int newcpl)
 {
 	struct cpu_info *ci = curcpu();
 
-	if (ci->ci_ipending & arm_smask[newcpl])
+	if (ci->ci_spending & arm_smask[newcpl])
 		arm_do_pending_intr(newcpl);
-	ci->ci_cpl = newcpl;
+	ci->ci_ilevel = newcpl;
 }
 
 void
@@ -124,7 +124,7 @@ arm_dflt_setipl(int newcpl)
 {
 	struct cpu_info *ci = curcpu();
 
-	ci->ci_cpl = newcpl;
+	ci->ci_ilevel = newcpl;
 }
 
 void *arm_dflt_intr_establish(int irqno, int level, int (*func)(void *),
@@ -152,13 +152,13 @@ arm_setsoftintr(int si)
 
         /* XXX atomic? */
         oldirqstate = disable_interrupts(I32_bit);
-        ci->ci_ipending |= SI_TO_IRQBIT(si);
+        ci->ci_spending |= SI_TO_IRQBIT(si);
 
         restore_interrupts(oldirqstate);
 
         /* Process unmasked pending soft interrupts. */
-        if (ci->ci_ipending & arm_smask[ci->ci_cpl])
-                arm_do_pending_intr(ci->ci_cpl);
+        if (ci->ci_spending & arm_smask[ci->ci_ilevel])
+                arm_do_pending_intr(ci->ci_ilevel);
 }
 
 void
@@ -178,9 +178,9 @@ arm_do_pending_intr(int pcpl)
 	}
 
 #define DO_SOFTINT(si, ipl) \
-	if ((ci->ci_ipending & arm_smask[pcpl]) &	\
+	if ((ci->ci_spending & arm_smask[pcpl]) &	\
 	    SI_TO_IRQBIT(si)) {						\
-		ci->ci_ipending &= ~SI_TO_IRQBIT(si);			\
+		ci->ci_spending &= ~SI_TO_IRQBIT(si);			\
 		arm_intr_func.setipl(ipl);				\
 		restore_interrupts(oldirqstate);			\
 		softintr_dispatch(si);					\
@@ -192,7 +192,7 @@ arm_do_pending_intr(int pcpl)
 		DO_SOFTINT(SI_SOFTNET, IPL_SOFTNET);
 		DO_SOFTINT(SI_SOFTCLOCK, IPL_SOFTCLOCK);
 		DO_SOFTINT(SI_SOFT, IPL_SOFT);
-	} while (ci->ci_ipending & arm_smask[pcpl]);
+	} while (ci->ci_spending & arm_smask[pcpl]);
 		
 	/* Don't use splx... we are here already! */
 	arm_intr_func.setipl(pcpl);
@@ -276,7 +276,7 @@ void
 arm_splassert_check(int wantipl, const char *func)
 {
 	struct cpu_info *ci = curcpu();
-        int oldipl = ci->ci_cpl;
+        int oldipl = ci->ci_ilevel;
 
         if (oldipl < wantipl) {
                 splassert_fail(wantipl, oldipl, func);

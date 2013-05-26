@@ -357,14 +357,14 @@ amptimer_cpu_initclocks()
 	sc->sc_ticks_err_cnt = sc->sc_ticks_per_second % hz;
 	pc->pc_ticks_err_sum = 0;; 
 
-	/* establish interrupts */
+	/* establish interrupts, not threaded */
 	/* XXX - irq */
 #if defined(USE_GTIMER_CMP)
-	ampintc_intr_establish(27, IPL_CLOCK, amptimer_intr,
-	    NULL, "tick");
+	ampintc_intr_establish(27, IPL_CLOCK | IPL_DIRECT,
+	    amptimer_intr, NULL, "tick");
 #else
-	ampintc_intr_establish(29, IPL_CLOCK, amptimer_intr,
-	    NULL, "tick");
+	ampintc_intr_establish(29, IPL_CLOCK | IPL_DIRECT,
+	    amptimer_intr, NULL, "tick");
 #endif
 
 	next = amptimer_readcnt64(sc) + sc->sc_ticks_per_intr;

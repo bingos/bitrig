@@ -72,6 +72,8 @@ cpu_attach(struct device *dv)
 
 	/* Get the CPU ID from coprocessor 15 */
 
+	/* XXX: multiprocessor? */
+	curcpu()->ci_cpuid = 0;
 	curcpu()->ci_arm_cpuid = cpu_id();
 	curcpu()->ci_arm_cputype = curcpu()->ci_arm_cpuid & CPU_ID_CPU_MASK;
 	curcpu()->ci_arm_cpurev =

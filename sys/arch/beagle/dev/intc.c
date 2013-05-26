@@ -91,26 +91,9 @@
 
 #define NIRQ	INTC_NUM_IRQ
 
-struct intrhand {
-	TAILQ_ENTRY(intrhand) ih_list;	/* link on intrq list */
-	int (*ih_func)(void *);		/* handler */
-	void *ih_arg;			/* arg for handler */
-	int ih_ipl;			/* IPL_* */
-	int ih_irq;			/* IRQ number */
-	struct evcount	ih_count;
-	char *ih_name;
-};
-
-struct intrq {
-	TAILQ_HEAD(, intrhand) iq_list;	/* handler list */
-	int iq_irq;			/* IRQ to mask while handling */
-	int iq_levels;			/* IPL_*'s this IRQ has */
-	int iq_ist;			/* share type */
-};
-
 volatile int softint_pending;
 
-struct intrq intc_handler[NIRQ];
+struct intrsource intc_handler[NIRQ];
 u_int32_t intc_smask[NIPL];
 u_int32_t intc_imask[3][NIPL];
 
@@ -122,6 +105,7 @@ int	intc_spllower(int new);
 int	intc_splraise(int new);
 void	intc_setipl(int new);
 void	intc_calc_mask(void);
+void	intc_pic_hwunmask(struct pic *, int);
 
 struct cfattach	intc_ca = {
 	sizeof (struct device), NULL, intc_attach
@@ -163,11 +147,16 @@ intc_attach(struct device *parent, struct device *self, void *args)
 	bus_space_write_4(intc_iot, intc_ioh, INTC_MIR1, 0xffffffff);
 	bus_space_write_4(intc_iot, intc_ioh, INTC_MIR2, 0xffffffff);
 
+	struct pic *pic = malloc(sizeof(struct pic),
+	    M_DEVBUF, M_ZERO | M_NOWAIT);
+	pic->pic_hwunmask = intc_pic_hwunmask;
+
 	for (i = 0; i < NIRQ; i++) {
 		bus_space_write_4(intc_iot, intc_ioh, INTC_ILRn(i),
 		    INTC_ILR_PRIs(INTC_MIN_PRI)|INTC_ILR_IRQ);
 
-		TAILQ_INIT(&intc_handler[i].iq_list);
+		intc_handler[i].is_pin = i;
+		intc_handler[i].is_pic = pic;
 	}
 
 	intc_calc_mask();
@@ -197,15 +186,15 @@ intc_calc_mask(void)
 	for (irq = 0; irq < NIRQ; irq++) {
 		int max = IPL_NONE;
 		int min = IPL_HIGH;
-		TAILQ_FOREACH(ih, &intc_handler[irq].iq_list, ih_list) {
-			if (ih->ih_ipl > max)
-				max = ih->ih_ipl;
+		for (ih = intc_handler[irq].is_handlers; ih != NULL; ih = ih->ih_next) {
+			if (ih->ih_level > max)
+				max = ih->ih_level;
 
-			if (ih->ih_ipl < min)
-				min = ih->ih_ipl;
+			if (ih->ih_level < min)
+				min = ih->ih_level;
 		}
 
-		intc_handler[irq].iq_irq = max;
+		intc_handler[irq].is_maxlevel = max;
 
 		if (max == IPL_NONE)
 			min = IPL_NONE;
@@ -229,7 +218,7 @@ intc_calc_mask(void)
 		    INTC_ILR_PRIs(NIPL-max)|INTC_ILR_IRQ);
 	}
 	arm_init_smask();
-	intc_setipl(ci->ci_cpl);
+	intc_setipl(ci->ci_ilevel);
 }
 
 void
@@ -238,15 +227,15 @@ intc_splx(int new)
 	struct cpu_info *ci = curcpu();
 	intc_setipl(new);
 
-	if (ci->ci_ipending & arm_smask[ci->ci_cpl])
-		arm_do_pending_intr(ci->ci_cpl);
+	if (ci->ci_ipending & arm_smask[ci->ci_ilevel])
+		arm_do_pending_intr(ci->ci_ilevel);
 }
 
 int
 intc_spllower(int new)
 {
 	struct cpu_info *ci = curcpu();
-	int old = ci->ci_cpl;
+	int old = ci->ci_ilevel;
 	intc_splx(new);
 	return (old);
 }
@@ -256,7 +245,7 @@ intc_splraise(int new)
 {
 	struct cpu_info *ci = curcpu();
 	int old;
-	old = ci->ci_cpl;
+	old = ci->ci_ilevel;
 
 	/*
 	 * setipl must always be called because there is a race window
@@ -294,7 +283,7 @@ intc_setipl(int new)
 		}
 	}
 #endif
-	ci->ci_cpl = new;
+	ci->ci_ilevel = new;
 	for (i = 0; i < 3; i++)
 		bus_space_write_4(intc_iot, intc_ioh,
 		    INTC_MIRn(i), intc_imask[i][new]);
@@ -327,18 +316,19 @@ intc_irq_handler(void *frame)
 	printf("irq %d fired\n", irq);
 #endif
 
-	pri = intc_handler[irq].iq_irq;
+	pri = intc_handler[irq].is_maxlevel;
 	s = intc_splraise(pri);
-	TAILQ_FOREACH(ih, &intc_handler[irq].iq_list, ih_list) {
+	for (ih = intc_handler[irq].is_handlers; ih != NULL; ih = ih->ih_next) {
 		if (ih->ih_arg != 0)
 			arg = ih->ih_arg;
 		else
 			arg = frame;
 
-		if (ih->ih_func(arg)) 
+		if (ih->ih_fun(arg)) 
 			ih->ih_count.ec_count++;
 
 	}
+
 	bus_space_write_4(intc_iot, intc_ioh, INTC_CONTROL,
 	    INTC_CONTROL_NEWIRQ);
 
@@ -362,13 +352,23 @@ intc_intr_establish(int irqno, int level, int (*func)(void *),
 	    cold ? M_NOWAIT : M_WAITOK);
 	if (ih == NULL)
 		panic("intr_establish: can't malloc handler info");
-	ih->ih_func = func;
+	ih->ih_fun = func;
 	ih->ih_arg = arg;
-	ih->ih_ipl = level;
+	ih->ih_level = level & ~IPL_FLAGS;
+	ih->ih_flags = level & IPL_FLAGS;
 	ih->ih_irq = irqno;
 	ih->ih_name = name;
 
-	TAILQ_INSERT_TAIL(&intc_handler[irqno].iq_list, ih, ih_list);
+	/* XXX: add flags to interrupt source? */
+	intc_handler[irqno].is_flags |= ih->ih_flags;
+
+	if (intc_handler[irqno].is_handlers != NULL) {
+		struct intrhand		*tmp;
+		for (tmp = intc_handler[irqno].is_handlers; tmp->ih_next != NULL; tmp = tmp->ih_next);
+		tmp->ih_next = ih;
+	} else {
+		intc_handler[irqno].is_handlers = ih;
+	}
 
 	if (name != NULL)
 		evcount_attach(&ih->ih_count, name, &ih->ih_irq);
@@ -388,9 +388,21 @@ intc_intr_disestablish(void *cookie)
 {
 	int psw;
 	struct intrhand *ih = cookie;
+	struct intrhand *tmp = NULL;
 	int irqno = ih->ih_irq;
 	psw = disable_interrupts(I32_bit);
-	TAILQ_REMOVE(&intc_handler[irqno].iq_list, ih, ih_list);
+
+	if (intc_handler[irqno].is_handlers == ih)
+		intc_handler[irqno].is_handlers = NULL;
+	else {
+		for (tmp = intc_handler[irqno].is_handlers; tmp->ih_next != NULL; tmp++) {
+			if (tmp->ih_next == ih) {
+				tmp->ih_next = tmp->ih_next->ih_next;
+				break;
+			}
+		}
+	}
+
 	if (ih->ih_name != NULL)
 		evcount_detach(&ih->ih_count);
 	free(ih, M_DEVBUF);
@@ -403,6 +415,11 @@ intc_intr_string(void *cookie)
 	return "huh?";
 }
 
+void
+intc_pic_hwunmask(struct pic *pic, int pin)
+{
+	/* XXX: ??? */
+}
 
 #if 0
 int intc_tst(void *a);

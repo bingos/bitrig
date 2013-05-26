@@ -25,9 +25,11 @@
 #include <sys/queue.h>
 #include <sys/malloc.h>
 #include <sys/device.h>
+#include <sys/ithread.h>
 #include <sys/evcount.h>
 #include <arm/cpufunc.h>
 #include <machine/bus.h>
+#include <machine/intr.h>
 #include <arm/cortex/cortex.h>
 
 /* offset from periphbase */
@@ -133,31 +135,12 @@
 
 struct ampintc_softc {
 	struct device		 sc_dev;
-	struct intrq 		*sc_ampintc_handler;
+	struct intrsource	*sc_ampintc_handler;
 	int			 sc_nintr;
 	bus_space_tag_t		 sc_iot;
 	bus_space_handle_t	 sc_d_ioh, sc_p_ioh;
 };
 struct ampintc_softc *ampintc;
-
-
-struct intrhand {
-	TAILQ_ENTRY(intrhand) ih_list;	/* link on intrq list */
-	int (*ih_func)(void *);		/* handler */
-	void *ih_arg;			/* arg for handler */
-	int ih_ipl;			/* IPL_* */
-	int ih_irq;			/* IRQ number */
-	struct evcount	ih_count;
-	char *ih_name;
-};
-
-struct intrq {
-	TAILQ_HEAD(, intrhand) iq_list;	/* handler list */
-	int iq_irq;			/* IRQ to mask while handling */
-	int iq_levels;			/* IPL_*'s this IRQ has */
-	int iq_ist;			/* share type */
-};
-
 
 int		 ampintc_match(struct device *, void *, void *);
 void		 ampintc_attach(struct device *, struct device *, void *);
@@ -179,6 +162,7 @@ void		 ampintc_set_priority(int, int);
 void		 ampintc_intr_enable(int);
 void		 ampintc_intr_disable(int);
 void		 ampintc_route(int, int , int);
+void		 ampintc_pic_hwunmask(struct pic *, int);
 
 struct cfattach	ampintc_ca = {
 	sizeof (struct ampintc_softc), ampintc_match, ampintc_attach
@@ -252,8 +236,14 @@ ampintc_attach(struct device *parent, struct device *self, void *args)
 	sc->sc_ampintc_handler = malloc(
 	    (sizeof (*sc->sc_ampintc_handler) * nintr),
 	    M_DEVBUF, M_ZERO | M_NOWAIT);
+
+	struct pic *pic = malloc(sizeof(struct pic),
+	    M_DEVBUF, M_ZERO | M_NOWAIT);
+	pic->pic_hwunmask = ampintc_pic_hwunmask;
+
 	for (i = 0; i < nintr; i++) {
-		TAILQ_INIT(&sc->sc_ampintc_handler[i].iq_list);
+		sc->sc_ampintc_handler[i].is_pin = i;
+		sc->sc_ampintc_handler[i].is_pic = pic;
 	}
 
 	ampintc_setipl(IPL_HIGH);  /* XXX ??? */
@@ -293,9 +283,9 @@ ampintc_setipl(int new)
 	struct ampintc_softc	*sc = ampintc;
 	int			 psw;
 
-	/* disable here is only to keep hardware in sync with ci->ci_cpl */
+	/* disable here is only to keep hardware in sync with ci->ci_ilevel */
 	psw = disable_interrupts(I32_bit);
-	ci->ci_cpl = new;
+	ci->ci_ilevel = new;
 
 	/* low values are higher priority thus IPL_HIGH - pri */
 	bus_space_write_4(sc->sc_iot, sc->sc_p_ioh, ICPIPMR,
@@ -331,26 +321,25 @@ void
 ampintc_calc_mask(void)
 {
 	struct cpu_info		*ci = curcpu();
-        struct ampintc_softc	*sc = ampintc;
+	struct ampintc_softc	*sc = ampintc;
 	struct intrhand		*ih;
 	int			 irq;
 
 	for (irq = 0; irq < sc->sc_nintr; irq++) {
 		int max = IPL_NONE;
 		int min = IPL_HIGH;
-		TAILQ_FOREACH(ih, &sc->sc_ampintc_handler[irq].iq_list,
-		    ih_list) {
-			if (ih->ih_ipl > max)
-				max = ih->ih_ipl;
+		for (ih = sc->sc_ampintc_handler[irq].is_handlers; ih != NULL; ih = ih->ih_next) {
+			if (ih->ih_level > max)
+				max = ih->ih_level;
 
-			if (ih->ih_ipl < min)
-				min = ih->ih_ipl;
+			if (ih->ih_level < min)
+				min = ih->ih_level;
 		}
 
-		if (sc->sc_ampintc_handler[irq].iq_irq == max) {
+		if (sc->sc_ampintc_handler[irq].is_maxlevel == max) {
 			continue;
 		}
-		sc->sc_ampintc_handler[irq].iq_irq = max;
+		sc->sc_ampintc_handler[irq].is_maxlevel = max;
 
 		if (max == IPL_NONE)
 			min = IPL_NONE;
@@ -374,7 +363,7 @@ ampintc_calc_mask(void)
 
 		}
 	}
-	ampintc_setipl(ci->ci_cpl);
+	ampintc_setipl(ci->ci_ilevel);
 }
 
 void
@@ -382,7 +371,7 @@ ampintc_splx(int new)
 {
 	struct cpu_info *ci = curcpu();
 
-	if (ci->ci_ipending & arm_smask[new])
+	if (ci->ci_spending & arm_smask[new])
 		arm_do_pending_intr(new);
 
 	ampintc_setipl(new);
@@ -392,7 +381,7 @@ int
 ampintc_spllower(int new)
 {
 	struct cpu_info *ci = curcpu();
-	int old = ci->ci_cpl;
+	int old = ci->ci_ilevel;
 	ampintc_splx(new);
 	return (old);
 }
@@ -402,7 +391,7 @@ ampintc_splraise(int new)
 {
 	struct cpu_info *ci = curcpu();
 	int old;
-	old = ci->ci_cpl;
+	old = ci->ci_ilevel;
 
 	/*
 	 * setipl must always be called because there is a race window
@@ -465,13 +454,13 @@ ampintc_irq_handler(void *frame)
 	iack_val = ampintc_iack();
 //#define DEBUG_INTC
 #ifdef DEBUG_INTC
-	if (iack_val != 27)
+	if (iack_val != 27 && iack_val != 29)
 	printf("irq  %d fired\n", iack_val);
 	else {
 		static int cnt = 0;
 		if ((cnt++ % 100) == 0) {
 			printf("irq  %d fired * _100\n", iack_val);
-			Debugger();
+			//Debugger();
 		}
 
 	}
@@ -483,32 +472,39 @@ ampintc_irq_handler(void *frame)
 	}
 	irq = iack_val & ((1 << sc->sc_nintr) - 1);
 
-	pri = sc->sc_ampintc_handler[irq].iq_irq;
+	pri = sc->sc_ampintc_handler[irq].is_maxlevel;
 	s = ampintc_splraise(pri);
-	TAILQ_FOREACH(ih, &sc->sc_ampintc_handler[irq].iq_list, ih_list) {
-		if (ih->ih_arg != 0)
-			arg = ih->ih_arg;
-		else
-			arg = frame;
 
-		if (ih->ih_func(arg)) 
-			ih->ih_count.ec_count++;
+	if (sc->sc_ampintc_handler[irq].is_flags & IPL_DIRECT) {
+		for (ih = sc->sc_ampintc_handler[irq].is_handlers; ih != NULL; ih = ih->ih_next) {
+			if (ih->ih_arg != 0)
+				arg = ih->ih_arg;
+			else
+				arg = frame;
 
+			if (ih->ih_fun(arg))
+				ih->ih_count.ec_count++;
+
+		}
+		/* ack it now */
+		ampintc_eoi(iack_val);
+	} else {
+		ithread_handler(&sc->sc_ampintc_handler[irq]);
+		/* ack done after actual execution */
 	}
-	ampintc_eoi(iack_val);
 
 	ampintc_splx(s);
 }
 
 void *
-ampintc_intr_establish_ext(int irqno, int level, int (*func)(void *),
+ampintc_intr_establish_ext(int irqno, int level, int (*fun)(void *),
     void *arg, char *name)
 {
-	return ampintc_intr_establish(irqno+32, level, func, arg, name);
+	return ampintc_intr_establish(irqno+32, level, fun, arg, name);
 }
 
 void *
-ampintc_intr_establish(int irqno, int level, int (*func)(void *),
+ampintc_intr_establish(int irqno, int level, int (*fun)(void *),
     void *arg, char *name)
 {
 	struct ampintc_softc	*sc = ampintc;
@@ -524,21 +520,35 @@ ampintc_intr_establish(int irqno, int level, int (*func)(void *),
 	    cold ? M_NOWAIT : M_WAITOK);
 	if (ih == NULL)
 		panic("intr_establish: can't malloc handler info");
-	ih->ih_func = func;
+	ih->ih_fun = fun;
 	ih->ih_arg = arg;
-	ih->ih_ipl = level;
+	ih->ih_level = level & ~IPL_FLAGS;
+	ih->ih_flags = level & IPL_FLAGS;
 	ih->ih_irq = irqno;
 	ih->ih_name = name;
+	ih->ih_next = NULL;
 
 	psw = disable_interrupts(I32_bit);
 
-	TAILQ_INSERT_TAIL(&sc->sc_ampintc_handler[irqno].iq_list, ih, ih_list);
+	/* XXX: add flags to interrupt source? */
+	sc->sc_ampintc_handler[irqno].is_flags |= ih->ih_flags;
+
+	if (sc->sc_ampintc_handler[irqno].is_handlers != NULL) {
+		struct intrhand		*tmp;
+		for (tmp = sc->sc_ampintc_handler[irqno].is_handlers; tmp->ih_next != NULL; tmp = tmp->ih_next);
+		tmp->ih_next = ih;
+	} else {
+		sc->sc_ampintc_handler[irqno].is_handlers = ih;
+	}
+
+	if (!(ih->ih_flags & IPL_DIRECT))
+		ithread_register(&sc->sc_ampintc_handler[irqno]);
 
 	if (name != NULL)
 		evcount_attach(&ih->ih_count, name, &ih->ih_irq);
 
 #ifdef DEBUG_INTC
-	printf("ampintc_intr_establish irq %d level %d [%s]\n", irqno, level,
+	printf("ampintc_intr_establish irq %d level %d [%s]\n", ih->ih_irq, ih->ih_level,
 	    name);
 #endif
 	ampintc_calc_mask();
@@ -571,4 +581,10 @@ ampintc_intr_string(void *cookie)
 
 	snprintf(irqstr, sizeof irqstr, "ampintc irq %d", ih->ih_irq);
 	return irqstr;
+}
+
+void
+ampintc_pic_hwunmask(struct pic *pic, int pin)
+{
+	ampintc_eoi(pin);
 }
