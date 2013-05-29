@@ -479,17 +479,23 @@ uao_free(struct uvm_aobj *aobj)
  * Shrink an aobj to a given number of pages. The procedure is always the same:
  * assess the necessity of data structure conversion (hash to array), secure
  * resources, flush pages and drop swap slots.
- *
- * XXX pedro: We need a uao_flush() that returns success only when the
- * requested pages have been free'd.
  */
 
 void
 uao_shrink_flush(struct uvm_object *uobj, int startpg, int endpg)
 {
+	voff_t start, end;
+
 	KASSERT(startpg < endpg);
 	KASSERT(uobj->uo_refs == 1);
-	uao_flush(uobj, startpg << PAGE_SHIFT, endpg << PAGE_SHIFT, PGO_FREE);
+
+	start = startpg << PAGE_SHIFT;
+	end = endpg << PAGE_SHIFT;
+
+	if (uao_flush(uobj, start, end, PGO_FREE) != TRUE)
+		panic("uao_shrink_flush: uao_flush(%p, %lld, %lld) failed",
+		    uobj, start, end);
+
 	uao_dropswap_range(uobj, startpg, endpg);
 }
 
@@ -1022,9 +1028,6 @@ uao_detach_locked(struct uvm_object *uobj)
  * => NOTE: we are allowed to lock the page queues, so the caller
  *	must not be holding the lock on them [e.g. pagedaemon had
  *	better not call us with the queues locked]
- * => we return TRUE unless we encountered some sort of I/O error
- *	XXXJRT currently never happens, as we never directly initiate
- *	XXXJRT I/O
  */
 
 #define	UAO_HASH_PENALTY 4	/* XXX: a guess */
@@ -1035,6 +1038,7 @@ uao_flush(struct uvm_object *uobj, voff_t start, voff_t stop, int flags)
 	struct uvm_aobj *aobj = (struct uvm_aobj *) uobj;
 	struct vm_page *pp;
 	voff_t curoff;
+	int skipped = 0;
 
 	UVM_ASSERT_OBJLOCKED(&aobj->u_obj);
 	if (flags & PGO_ALLPAGES) {
@@ -1092,8 +1096,10 @@ uao_flush(struct uvm_object *uobj, voff_t start, voff_t stop, int flags)
  deactivate_it:
 			/* skip the page if it's loaned or wired */
 			if (pp->loan_count != 0 ||
-			    pp->wire_count != 0)
+			    pp->wire_count != 0) {
+			    	skipped = 1;
 				continue;
+			}
 
 			uvm_lock_pageq();
 			uvm_pagedeactivate(pp);
@@ -1111,8 +1117,10 @@ uao_flush(struct uvm_object *uobj, voff_t start, voff_t stop, int flags)
 
 			/* XXX skip the page if it's loaned or wired */
 			if (pp->loan_count != 0 ||
-			    pp->wire_count != 0)
+			    pp->wire_count != 0) {
+			    	skipped = 1;
 				continue;
+			}
 
 			/* zap all mappings for the page. */
 			pmap_page_protect(pp, VM_PROT_NONE);
@@ -1128,6 +1136,9 @@ uao_flush(struct uvm_object *uobj, voff_t start, voff_t stop, int flags)
 			panic("uao_flush: weird flags");
 		}
 	}
+
+	if (skipped)
+		return (FALSE);
 
 	return (TRUE);
 }
