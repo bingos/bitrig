@@ -432,6 +432,7 @@ IDTVEC(resume_lapic_ltimer)
  * for specific PICs.
  */
 
+
 #define	INTRSTUB(name, num, early_ack, late_ack, mask, unmask, level_mask) \
 IDTVEC(recurse_##name##num)						;\
 	INTR_RECURSE_HWFRAME						;\
@@ -461,38 +462,11 @@ IDTVEC(intr_##name##num)						;\
 1:									\
 	pushq	%r13							;\
 	movl	%ebx,CPUVAR(ILEVEL)					;\
-	sti								;\
-	incl	CPUVAR(IDEPTH)						;\
-	movq	IS_HANDLERS(%r14),%rbx					;\
-6:									\
-	movl	IH_LEVEL(%rbx),%r12d					;\
-	cmpl	%r13d,%r12d						;\
-	jle	7f							;\
-	movl	%r12d,CPUVAR(ILEVEL)					;\
-	movq	%rbx, %rsi						;\
-	movq	%rsp, %rdi						;\
-	call	_C_LABEL(intr_handler)	/* call it */			;\
-	orl	%eax,%eax		/* should it be counted? */	;\
-	jz	4f			/* no, skip it */		;\
-	incq	IH_COUNT(%rbx)		/* count the intrs */		;\
-	cmpl	$0,_C_LABEL(intr_shared_edge)				;\
-	jne	4f			/* if no shared edges ... */	;\
-	orl	%eax,%eax		/* 1 means stop trying */	;\
-	jns	5f							;\
-4:	movq	IH_NEXT(%rbx),%rbx	/* next handler in chain */	;\
-	testq	%rbx,%rbx						;\
-	jnz	6b							;\
-5:									\
 	cli								;\
-	unmask(num)			/* unmask it in hardware */	;\
-	late_ack(num)							;\
-	sti								;\
-	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
-7:									\
-	cli								;\
-	movq	$(1 << num),%rax					;\
-	orq     %rax,CPUVAR(IPENDING)					;\
 	level_mask(num)							;\
+	incl	CPUVAR(IDEPTH)						;\
+	movq	%r14, %rdi						;\
+	call	_C_LABEL(ithread_handler)				;\
 	late_ack(num)							;\
 	sti								;\
 	jmp	_C_LABEL(Xdoreti)	/* lower spl and do ASTs */	;\
@@ -980,7 +954,6 @@ _C_LABEL(ioapic_level_stubs):
 	.quad _C_LABEL(Xintr_ioapic_level63), _C_LABEL(Xrecurse_ioapic_level63)
 	.quad _C_LABEL(Xresume_ioapic_level63)
 #endif
-
 	.data
 /*
  * Soft interrupt handlers
