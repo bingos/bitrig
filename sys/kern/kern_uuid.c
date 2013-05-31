@@ -55,7 +55,7 @@
  * sequence fields are written in the native byte order.
  */
 
-CTASSERT(sizeof(struct uuid) == 16);
+/* CTASSERT(sizeof(struct uuid) == 16); */
 
 /* We use an alternative, more convenient representation in the generator. */
 struct uuid_private {
@@ -71,7 +71,7 @@ struct uuid_private {
 	uint16_t	node[UUID_NODE_LEN>>1];
 };
 
-CTASSERT(sizeof(struct uuid_private) == 16);
+/* CTASSERT(sizeof(struct uuid_private) == 16); */
 
 static struct uuid_private uuid_last;
 
