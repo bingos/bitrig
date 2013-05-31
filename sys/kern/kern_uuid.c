@@ -208,6 +208,7 @@ kern_uuidgen(struct uuid *store, int count, bool to_user)
 	return error;
 }
 
+#ifdef notyet
 int
 sys_uuidgen(struct lwp *l, const struct sys_uuidgen_args *uap, register_t *retval)
 {
@@ -222,6 +223,7 @@ sys_uuidgen(struct lwp *l, const struct sys_uuidgen_args *uap, register_t *retva
 
 	return kern_uuidgen(SCARG(uap, store), SCARG(uap,count), true);
 }
+#endif
 
 int
 uuidgen(struct uuid *store, int count)
