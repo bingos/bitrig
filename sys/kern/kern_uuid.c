@@ -239,8 +239,8 @@ uuid_snprintf(char *buf, size_t sz, const struct uuid *uuid)
 
 	id = (const struct uuid_private *)uuid;
 	cnt = snprintf(buf, sz, "%08x-%04x-%04x-%04x-%04x%04x%04x",
-	    id->time.x.low, id->time.x.mid, id->time.x.hi, be16toh(id->seq),
-	    be16toh(id->node[0]), be16toh(id->node[1]), be16toh(id->node[2]));
+	    id->time.x.low, id->time.x.mid, id->time.x.hi, betoh16(id->seq),
+	    betoh16(id->node[0]), betoh16(id->node[1]), betoh16(id->node[2]));
 	return (cnt);
 }
 
