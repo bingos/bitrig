@@ -42,6 +42,8 @@
 #include <sys/syscallargs.h>
 #include <sys/uio.h>
 
+#include <dev/rndvar.h>
+
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
@@ -104,26 +106,26 @@ uuid_node(uint16_t *node)
 	int i, s;
 
 	s = splnet();
-	KERNEL_LOCK(1, NULL);
-	IFNET_FOREACH(ifp) {
+	KERNEL_LOCK();
+	TAILQ_FOREACH(ifp, &ifnet, if_list) {
 		/* Walk the address list */
-		IFADDR_FOREACH(ifa, ifp) {
+		TAILQ_FOREACH(ifa, &ifp->if_addrlist, ifa_list) {
 			sdl = (struct sockaddr_dl*)ifa->ifa_addr;
 			if (sdl != NULL && sdl->sdl_family == AF_LINK &&
 			    sdl->sdl_type == IFT_ETHER) {
 				/* Got a MAC address. */
-				memcpy(node, CLLADDR(sdl), UUID_NODE_LEN);
-				KERNEL_UNLOCK_ONE(NULL);
+				memcpy(node, LLADDR(sdl), UUID_NODE_LEN);
+				KERNEL_UNLOCK();
 				splx(s);
 				return;
 			}
 		}
 	}
-	KERNEL_UNLOCK_ONE(NULL);
+	KERNEL_UNLOCK();
 	splx(s);
 
 	for (i = 0; i < (UUID_NODE_LEN>>1); i++)
-		node[i] = (uint16_t)cprng_fast32();
+		node[i] = (uint16_t)arc4random();
 	*((uint8_t*)node) |= 0x01;
 }
 
