@@ -164,7 +164,7 @@ uuid_generate(struct uuid_private *uuid, uint64_t *timep, int count)
 	if (uuid_last.time.ll == 0LL || uuid_last.node[0] != uuid->node[0] ||
 	    uuid_last.node[1] != uuid->node[1] ||
 	    uuid_last.node[2] != uuid->node[2])
-		uuid->seq = (uint16_t)cprng_fast32() & 0x3fff;
+		uuid->seq = (uint16_t)arc4random() & 0x3fff;
 	else if (uuid_last.time.ll >= xtime)
 		uuid->seq = (uuid_last.seq + 1) & 0x3fff;
 	else
