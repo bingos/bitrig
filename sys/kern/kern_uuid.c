@@ -31,7 +31,7 @@
 #include <sys/param.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
-#include <sys/mutex.h>
+#include <sys/rwlock.h>
 #include <sys/socket.h>
 #include <sys/systm.h>
 #include <sys/uuid.h>
@@ -76,13 +76,13 @@ struct uuid_private {
 static struct uuid_private uuid_last;
 
 /* "UUID generator mutex lock" */
-static kmutex_t uuid_mutex;
+struct rwlock uuid_mutex;
 
 void
 uuid_init(void)
 {
 
-	mutex_init(&uuid_mutex, MUTEX_DEFAULT, IPL_NONE);
+	rw_init(&uuid_mutex, "uuidmtx");
 }
 
 /*
@@ -153,7 +153,7 @@ uuid_generate(struct uuid_private *uuid, uint64_t *timep, int count)
 {
 	uint64_t xtime;
 
-	mutex_enter(&uuid_mutex);
+	rw_enter_write(&uuid_mutex);
 
 	uuid_node(uuid->node);
 	xtime = uuid_time();
@@ -171,7 +171,7 @@ uuid_generate(struct uuid_private *uuid, uint64_t *timep, int count)
 	uuid_last = *uuid;
 	uuid_last.time.ll = (xtime + count - 1) & ((1LL << 60) - 1LL);
 
-	mutex_exit(&uuid_mutex);
+	rw_exit_write(&uuid_mutex);
 }
 
 static int
