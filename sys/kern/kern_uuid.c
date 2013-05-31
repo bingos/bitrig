@@ -28,9 +28,6 @@
  * $FreeBSD: /repoman/r/ncvs/src/sys/kern/kern_uuid.c,v 1.7 2004/01/12 13:34:11 rse Exp $
  */
 
-#include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: kern_uuid.c,v 1.18 2011/11/19 22:51:25 tls Exp $");
-
 #include <sys/param.h>
 #include <sys/endian.h>
 #include <sys/kernel.h>
@@ -44,7 +41,6 @@ __KERNEL_RCSID(0, "$NetBSD: kern_uuid.c,v 1.18 2011/11/19 22:51:25 tls Exp $");
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
 #include <sys/uio.h>
-#include <sys/cprng.h>
 
 #include <net/if.h>
 #include <net/if_dl.h>
