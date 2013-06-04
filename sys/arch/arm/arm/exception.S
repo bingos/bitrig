@@ -54,6 +54,8 @@
 	.text	
 	.align	0
 
+#define RESTOREVFP
+
 AST_LOCALS
 
 /*
@@ -82,6 +84,7 @@ ASENTRY_NP(swi_entry)
 	bl	_C_LABEL(swi_handler)	/* It's a SWI ! */
 
 	DO_AST
+	RESTOREVFP
 	PULLFRAME
 	movs	pc, lr			/* Exit */
 
@@ -194,6 +197,7 @@ Laddress_exception_msg:
 
 exception_exit:
 	DO_AST
+	RESTOREVFP
 	PULLFRAMEFROMSVCANDEXIT
 
 /*
