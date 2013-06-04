@@ -22,6 +22,8 @@
 #include <arm/include/vfp.h>
 #include <arm/include/undefined.h>
 
+void vfp_store(struct vfp_sp_state *vfpsave);
+
 #define set_vfp_fpexc(val)						\
         __asm __volatile("mcr p10, 7, %0, cr8, c0, 0" :: 		\
 	    "r" (val))
@@ -64,12 +66,33 @@ vfp_init(void)
 }
 
 void
+vfp_store(struct vfp_sp_state *vfpsave)
+{
+	uint32_t                 scratch;
+
+	if (get_vfp_fpexc() & VFPEXC_EN) {
+		__asm __volatile(
+		    "stc   p11, c0, [%1], #128\n" /* d0-d31 */
+#ifndef VFPv2
+		    "stcl   p11, c0, [%1], #128\n"
+#else
+		    "add    %1, %1, #128\n"
+#endif
+		    "mrc    p10, 7, %0, cr1, c0, 0\n"
+		    "str    %0, [%1]\n"
+		: "=&r" (scratch) : "r" (vfpsave));
+	}
+
+	/* disable FPU */
+	set_vfp_fpexc(0);
+}
+
+void
 vfp_save(void)
 {
 	struct cpu_info		*ci = curcpu();
 	struct pcb 		*pcb;
 	struct proc		*p;
-	uint32_t		 scratch;
 
 	uint32_t cr_8;
 
@@ -94,19 +117,7 @@ vfp_save(void)
 		panic("FPU unit enabled when curproc and curcpu dont agree %p %p %p", pcb->pcb_fpcpu, ci->ci_fpuproc == p, ci);
 	}
 
-	__asm __volatile(
-	    "stc   p11, c0, [%1], #128\n" /* d0-d31 */
-#ifndef VFPv2
-	    "stcl   p11, c0, [%1], #128\n"
-#else
-	    "add    %1, %1, #128\n"
-#endif
-	    "mrc    p10, 7, %0, cr1, c0, 0\n"
-	    "str    %0, [%1]\n"
-	    : "=&r" (scratch) : "r" (&p->p_addr->u_pcb.pcb_fpstate));
-
-	/* disable FPU unit */
-	set_vfp_fpexc(0);
+	vfp_store(&p->p_addr->u_pcb.pcb_fpstate);
 
 	/* NOTE: fpu state is saved but remains 'valid', as long as
 	 * curpcb()->pcb_fpucpu == ci && ci->ci_fpuproc == curproc()
@@ -164,14 +175,14 @@ vfp_load(struct proc *p)
 
 	enable_interrupts(I32_bit);
 	/* enable FPU unit - XXX this early? */
-	/* XXX - or should on user exit this be turned on before 
+	/* XXX - or should on user exit this be turned on before
 	 * return to userland (if the pointers match)
 	 */
 //	set_vfp_fpexc(VFPEXC_EN);
 }
 
 
-int 
+int
 vfp_fault(unsigned int pc, unsigned int insn, trapframe_t *tf, int fault_code)
 {
 	struct proc		*p;
@@ -183,10 +194,18 @@ vfp_fault(unsigned int pc, unsigned int insn, trapframe_t *tf, int fault_code)
 	ci = curcpu();
 
 	printf("%s pcb %p\n", __func__, pcb);
+	if (get_vfp_fpexc() & VFPEXC_EN) {
+		set_vfp_fpexc(0);
+		panic("%s: we shall not fault when FPU is enabled exc 0x%x",
+		    __func__, get_vfp_fpexc());
+	}
 
 	/* we should be able to ignore old state of pcb_fpcpu ci_fpuproc */
 	if ((pcb->pcb_flags & PCB_FPU) == 0) {
+		pcb->pcb_flags |= PCB_FPU;
+
 		bzero (&pcb->pcb_fpstate, sizeof (pcb->pcb_fpstate));
+
 		/* XXX - setround()? */
 	}
 	vfp_load(p);

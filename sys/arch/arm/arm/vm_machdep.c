@@ -63,6 +63,8 @@
 #include <machine/reg.h>
 #include <machine/vmparam.h>
 
+#include <arm/include/vfp.h>
+
 extern pv_addr_t systempage;
 
 int process_read_regs	(struct proc *p, struct reg *regs);
@@ -175,6 +177,7 @@ cpu_exit(struct proc *p)
 #if 0
 printf("cpu_exit %p %s\n", p, p->p_comm);
 #endif
+	vfp_discard();
 	pmap_deactivate(p);
 	sched_exit(p);
 }
