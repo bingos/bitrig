@@ -109,8 +109,8 @@ vfp_save(void)
 	p = curproc;
 	pcb = curpcb;
 
-	if ((p != NULL && pcb != NULL) &&
-	    (pcb->pcb_fpcpu == ci && ci->ci_fpuproc == p)) {
+	if (pcb->pcb_fpcpu == NULL || ci->ci_fpuproc == NULL ||
+	    !(pcb->pcb_fpcpu == ci && ci->ci_fpuproc == p)) {
 		/* disable fpu before panic, otherwise recurse */
 		set_vfp_fpexc(0);
 
@@ -126,16 +126,18 @@ vfp_save(void)
 }
 
 void
-vfp_enable(struct proc *p)
+vfp_enable()
 {
 	struct cpu_info		*ci = curcpu();
 
-	if (p->p_addr->u_pcb.pcb_fpcpu == ci && ci->ci_fpuproc == p) {
+	if (curproc->p_addr->u_pcb.pcb_fpcpu == ci &&
+	    ci->ci_fpuproc == curproc) {
 		/* FPU state is still valid, just enable and go */
 		set_vfp_fpexc(VFPEXC_EN);
 		return;
 	}
 }
+
 void
 vfp_load(struct proc *p)
 {
@@ -143,7 +145,7 @@ vfp_load(struct proc *p)
 	struct pcb		*pcb = curpcb;
 	uint32_t		 scratch = 0;
 
-	printf("%s pcb %p\n", __func__, pcb);
+	//printf("%s pcb %p\n", __func__, pcb);
 	/* do not allow a partially synced state here */
 	disable_interrupts(I32_bit);
 
@@ -153,6 +155,7 @@ vfp_load(struct proc *p)
 	 * instead of signalling and waiting for it to save
 	 */
 
+	/* enable to be able to load ctx */
 	set_vfp_fpexc(VFPEXC_EN);
 
 	__asm __volatile(
@@ -193,7 +196,7 @@ vfp_fault(unsigned int pc, unsigned int insn, trapframe_t *tf, int fault_code)
 	pcb = curpcb;
 	ci = curcpu();
 
-	printf("%s pcb %p\n", __func__, pcb);
+	//printf("%s pcb %p\n", __func__, pcb);
 	if (get_vfp_fpexc() & VFPEXC_EN) {
 		set_vfp_fpexc(0);
 		panic("%s: we shall not fault when FPU is enabled exc 0x%x",
@@ -210,7 +213,7 @@ vfp_fault(unsigned int pc, unsigned int insn, trapframe_t *tf, int fault_code)
 	}
 	vfp_load(p);
 
-	printf("%s returning", __func__);
+	//printf("%s returning", __func__);
 	return 0;
 }
 

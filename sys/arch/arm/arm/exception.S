@@ -54,7 +54,8 @@
 	.text	
 	.align	0
 
-#define RESTOREVFP
+#define RESTOREVFP			\
+	bl	_C_LABEL(vfp_enable)
 
 AST_LOCALS
 
