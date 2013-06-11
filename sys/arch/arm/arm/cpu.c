@@ -71,14 +71,23 @@ void identify_arm_cpu(struct device *dv, struct cpu_info *);
 void
 cpu_attach(struct device *dv)
 {
-	curcpu()->ci_dev = dv;
+	cpuid_t id = dv->dv_unit;
+	struct cpu_info *ci;
 
-	/* Get the CPU ID from coprocessor 15 */
+	if (id == 0) {
+		ci = curcpu();
 
-	curcpu()->ci_arm_cpuid = cpu_id();
-	curcpu()->ci_arm_cputype = curcpu()->ci_arm_cpuid & CPU_ID_CPU_MASK;
-	curcpu()->ci_arm_cpurev =
-	    curcpu()->ci_arm_cpuid & CPU_ID_REVISION_MASK;
+		/* Get the CPU ID from coprocessor 15 */
+
+		ci->ci_arm_cpuid = cpu_id();
+		ci->ci_arm_cputype = ci->ci_arm_cpuid & CPU_ID_CPU_MASK;
+		ci->ci_arm_cpurev = ci->ci_arm_cpuid & CPU_ID_REVISION_MASK;
+	} else {
+		printf(": disabled (uniprocessor kernel)\n");
+		return;
+	}
+
+	ci->ci_dev = dv;
 
 	identify_arm_cpu(dv, curcpu());
 

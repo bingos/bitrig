@@ -74,7 +74,7 @@ ampscu_attach(struct device *parent, struct device *self, void *args)
 {
 	struct ampscu_softc *sc = (struct ampscu_softc *)self;
 	struct cortex_attach_args *ca = args;
-#ifdef notyet
+#ifdef MULTIPROCESSOR
 	struct device *mainbus = self->dv_parent->dv_parent;
 	int i;
 #endif
@@ -103,9 +103,7 @@ ampscu_attach(struct device *parent, struct device *self, void *args)
 	cpu_idcache_wbinv_all();
 	cpu_sdcache_wbinv_all();
 	cpu_drain_writebuf();
-#endif
 
-#ifdef notyet
 	struct mainbus_attach_args ma;
 	ma.ma_name = "cpu";
 
