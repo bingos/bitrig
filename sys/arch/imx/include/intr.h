@@ -192,6 +192,8 @@ struct pic {
 	void (*pic_hwunmask)(struct pic *, int);
 };
 
+extern struct pic softintr_pic;
+
 #endif /* ! _LOCORE */
 
 #define ARM_IRQ_HANDLER arm_intr

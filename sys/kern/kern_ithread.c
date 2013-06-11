@@ -210,9 +210,9 @@ ithread_softregister(int level, int (*handler)(void *), void *arg, int flags)
 	if (is == NULL)
 		panic("ithread_softregister");
 
-	is->is_type = IST_LEVEL; /* XXX more like level than EDGE */
+	//is->is_type = IST_LEVEL; /* XXX more like level than EDGE */
 	is->is_pic = &softintr_pic;
-	is->is_minlevel = IPL_HIGH;
+	//is->is_minlevel = IPL_HIGH;
 
 	ih = malloc(sizeof(*ih), M_DEVBUF, M_NOWAIT | M_ZERO);
 	if (ih == NULL)
@@ -222,8 +222,8 @@ ithread_softregister(int level, int (*handler)(void *), void *arg, int flags)
 	ih->ih_arg = arg;
 	ih->ih_level = level;
 	ih->ih_flags = flags;
-	ih->ih_pin = 0;
-	ih->ih_cpu = &cpu_info_primary;
+	//ih->ih_pin = 0;
+	//ih->ih_cpu = &cpu_info_primary;
 
 	/* Just prepend it */
 	ih->ih_next = is->is_handlers;
@@ -231,8 +231,8 @@ ithread_softregister(int level, int (*handler)(void *), void *arg, int flags)
 
 	if (ih->ih_level > is->is_maxlevel)
 		is->is_maxlevel = ih->ih_level;
-	if (ih->ih_level < is->is_minlevel) /* XXX minlevel will be gone */
-		is->is_minlevel = ih->ih_level;
+	//if (ih->ih_level < is->is_minlevel) /* XXX minlevel will be gone */
+	//	is->is_minlevel = ih->ih_level;
 
 	ithread_register(is);
 

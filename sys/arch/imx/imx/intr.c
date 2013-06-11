@@ -434,3 +434,6 @@ setstatclockrate(int new)
 	}
 	arm_clock_func.setstatclockrate(new);
 }
+
+static void softintr_pic_hwunmask(struct pic *pic, int pin) { return; }
+struct pic softintr_pic = { softintr_pic_hwunmask };
