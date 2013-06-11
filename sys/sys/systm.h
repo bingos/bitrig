@@ -237,7 +237,7 @@ void	realitexpire(void *);
 
 struct clockframe;
 void	hardclock(struct clockframe *);
-void	softclock(void *);
+int	softclock(void *);
 void	statclock(struct clockframe *);
 
 void	initclocks(void);
