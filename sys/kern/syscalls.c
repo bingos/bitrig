@@ -1,5 +1,3 @@
-/*	$OpenBSD: syscalls.c,v 1.146 2013/06/09 13:10:27 miod Exp $	*/
-
 /*
  * System call names.
  *
@@ -406,4 +404,5 @@ char *syscallnames[] = {
 	"compat_o51___tfork",	/* 328 = compat_o51 __tfork */
 	"__set_tcb",			/* 329 = __set_tcb */
 	"__get_tcb",			/* 330 = __get_tcb */
+	"uuidgen",			/* 331 = uuidgen */
 };

@@ -1,5 +1,3 @@
-/*	$OpenBSD: syscallargs.h,v 1.147 2013/06/09 13:10:27 miod Exp $	*/
-
 /*
  * System call argument lists.
  *
@@ -1061,6 +1059,11 @@ struct sys___set_tcb_args {
 	syscallarg(void *) tcb;
 };
 
+struct sys_uuidgen_args {
+	syscallarg(struct uuid *) store;
+	syscallarg(int) count;
+};
+
 /*
  * System call prototypes.
  */
@@ -1317,3 +1320,4 @@ int	sys_futimens(struct proc *, void *, register_t *);
 int	compat_o51_sys___tfork(struct proc *, void *, register_t *);
 int	sys___set_tcb(struct proc *, void *, register_t *);
 int	sys___get_tcb(struct proc *, void *, register_t *);
+int	sys_uuidgen(struct proc *, void *, register_t *);
