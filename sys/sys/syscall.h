@@ -1,5 +1,3 @@
-/*	$OpenBSD: syscall.h,v 1.145 2013/06/09 13:10:27 miod Exp $	*/
-
 /*
  * System call numbers.
  *
@@ -683,4 +681,7 @@
 /* syscall: "__get_tcb" ret: "void *" args: */
 #define	SYS___get_tcb	330
 
-#define	SYS_MAXSYSCALL	331
+/* syscall: "uuidgen" ret: "int" args: "struct uuid *" "int" */
+#define	SYS_uuidgen	331
+
+#define	SYS_MAXSYSCALL	332
