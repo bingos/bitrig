@@ -177,7 +177,7 @@ uuid_generate(struct uuid_private *uuid, uint64_t *timep, int count)
 }
 
 static int
-kern_uuidgen(struct uuid *store, int count, bool to_user)
+kern_uuidgen(struct uuid *store, int count, int to_user)
 {
 	struct uuid_private uuid;
 	uint64_t xtime;
@@ -222,13 +222,13 @@ sys_uuidgen(struct proc *p, void *v, register_t *retval)
 	if (SCARG(uap,count) < 1 || SCARG(uap,count) > 2048)
 		return (EINVAL);
 
-	return kern_uuidgen(SCARG(uap, store), SCARG(uap,count), true);
+	return kern_uuidgen(SCARG(uap, store), SCARG(uap,count), 1);
 }
 
 int
 uuidgen(struct uuid *store, int count)
 {
-	return kern_uuidgen(store,count, false);
+	return kern_uuidgen(store,count, 0);
 }
 
 int
