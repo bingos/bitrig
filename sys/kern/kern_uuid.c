@@ -208,10 +208,11 @@ kern_uuidgen(struct uuid *store, int count, bool to_user)
 	return error;
 }
 
-#ifdef notyet
 int
-sys_uuidgen(struct lwp *l, const struct sys_uuidgen_args *uap, register_t *retval)
+sys_uuidgen(struct proc *p, void *v, register_t *retval)
 {
+	struct sys_uuidgen_args *uap = v;
+
 	/*
 	 * Limit the number of UUIDs that can be created at the same time
 	 * to some arbitrary number. This isn't really necessary, but I
@@ -223,7 +224,6 @@ sys_uuidgen(struct lwp *l, const struct sys_uuidgen_args *uap, register_t *retva
 
 	return kern_uuidgen(SCARG(uap, store), SCARG(uap,count), true);
 }
-#endif
 
 int
 uuidgen(struct uuid *store, int count)
