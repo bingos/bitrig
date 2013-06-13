@@ -3,7 +3,7 @@
 
 ;	@(#)syscalls.master	8.2 (Berkeley) 1/13/94
 
-; OpenBSD system call name/number "master" file.
+; bitrig system call name/number "master" file.
 ; (See syscalls.conf to see what it is processed into.)
 ;
 ; Fields: number type [type-dependent ...]
@@ -575,3 +575,4 @@
 328	COMPAT_O51	{ int sys___tfork(struct __tfork51 *param); }
 329	STD NOLOCK	{ void sys___set_tcb(void *tcb); }
 330	STD NOLOCK	{ void *sys___get_tcb(void); }
+331	STD		{ int sys_uuidgen(struct uuid *store, int count); }
