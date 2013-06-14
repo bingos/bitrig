@@ -69,10 +69,16 @@ struct uuid_private {
 
 /* CTASSERT(sizeof(struct uuid_private) == 16); */
 
-static struct uuid_private uuid_last;
+struct uuid_private uuid_last;
 
-/* "UUID generator mutex lock" */
+/* UUID generator mutex lock */
 struct rwlock uuid_mutex;
+
+/* Local function prototypes */
+void uuid_node(uint16_t *);
+void uuid_generate(struct uuid_private *, uint64_t *, int);
+int kern_uuidgen(struct uuid *, int, int);
+uint64_t uuid_time(void);
 
 void
 uuid_init(void)
@@ -84,7 +90,7 @@ uuid_init(void)
 /*
  * Construct a sufficiently random multicast address.
  */
-static void
+void
 uuid_node(uint16_t *node)
 {
 	int i;
@@ -101,7 +107,7 @@ uuid_node(uint16_t *node)
  * the Unix time since 00:00:00.00, January 1, 1970 to the date of the
  * Gregorian reform to the Christian calendar.
  */
-static uint64_t
+uint64_t
 uuid_time(void)
 {
 	struct timespec tsp;
@@ -116,7 +122,7 @@ uuid_time(void)
 /*
  * Internal routine to actually generate the UUID.
  */
-static void
+void
 uuid_generate(struct uuid_private *uuid, uint64_t *timep, int count)
 {
 	uint64_t xtime;
@@ -142,7 +148,7 @@ uuid_generate(struct uuid_private *uuid, uint64_t *timep, int count)
 	rw_exit_write(&uuid_mutex);
 }
 
-static int
+int
 kern_uuidgen(struct uuid *store, int count, int to_user)
 {
 	struct uuid_private uuid;
