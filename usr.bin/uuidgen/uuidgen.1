@@ -40,12 +40,14 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility generates a single universally unique identifier (UUID),
-also known as a globally unique identifier (GUID).
+utility uses the
+.Xr uuidgen 2
+system call to generate universally unique identifiers (UUIDs).
 By default,
 .Nm
 generates a single UUID and outputs it in the standard string representation
-to stdout.
+to
+.Em stdout .
 The following options can be used to change the behavior of
 .Nm :
 .Bl -tag -offset indent -width XoXfilenameXX
@@ -60,7 +62,8 @@ By default, multiple identifiers are generated in batch.
 .It Fl o Ar filename
 Redirect output to
 .Ar filename
-instead of stdout.
+instead of
+.Em stdout .
 .It Fl s
 Output UUIDs as initialized C structures, rather than in the standard
 string format.
