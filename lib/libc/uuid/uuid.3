@@ -62,8 +62,6 @@
 .Nm uuid_from_string , uuid_hash , uuid_is_nil , uuid_to_string ,
 .Nm uuid_enc_le , uuid_dec_le , uuid_enc_be , uuid_dec_be
 .Nd Universally Unique Identifier routines
-.Sh LIBRARY
-.Lb libc
 .Sh SYNOPSIS
 .In uuid.h
 .Ft int32_t
@@ -155,7 +153,7 @@ The
 and
 .Fn uuid_enc_be
 functions encode a binary representation of a UUID into an octet stream
-in little-endian and big-endian byte-order, respectively.
+in little-endian and big-endian byte order, respectively.
 The destination buffer must be pre-allocated by the caller, and must be
 large enough to hold the 16-octet binary UUID.
 .Pp
@@ -164,7 +162,7 @@ The
 and
 .Fn uuid_dec_be
 functions decode a UUID from an octet stream in little-endian and
-big-endian byte-order, respectively.
+big-endian byte order, respectively.
 .Sh RETURN VALUES
 The
 .Fn uuid_compare ,
@@ -206,6 +204,3 @@ The
 and
 .Fn uuid_to_string
 functions are compatible with the DCE 1.1 RPC specification.
-.Sh HISTORY
-The UUID functions first appeared in
-.Nx 3.0 .
