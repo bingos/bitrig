@@ -53,7 +53,7 @@ The following options can be used to change the behavior of
 This option only has effect if multiple identifiers are to be generated and
 instructs
 .Nm
-to not generate them in batch, but one at a time.
+not to generate them in batch, but one at a time.
 .It Fl n Ar count
 This option controls the number of identifiers generated.
 By default, multiple identifiers are generated in batch.
@@ -66,17 +66,12 @@ Output UUIDs as initialized C structures, rather than in the standard
 string format.
 .El
 .Pp
-Batched generation yields a set of consecutive identifiers.
+Batched generation yields a set of numerically consecutive identifiers.
 .Pp
-Generating identifiers one at a time might yield identifiers that are similar,
-but not necessarily consecutive.
+Generating UUIDs one at a time might yield identifiers that are
+numerically close, but not necessarily consecutive.
 .Sh DIAGNOSTICS
 .Ex -std
 .Sh SEE ALSO
 .Xr uuidgen 2 ,
 .Xr uuid 3
-.Sh HISTORY
-The
-.Nm
-command first appeared in
-.Nx 3.0 .
