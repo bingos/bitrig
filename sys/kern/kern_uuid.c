@@ -32,21 +32,15 @@
 #include <sys/endian.h>
 #include <sys/kernel.h>
 #include <sys/rwlock.h>
-#include <sys/socket.h>
 #include <sys/systm.h>
 #include <sys/uuid.h>
 
-/* NetBSD */
 #include <sys/proc.h>
 #include <sys/mount.h>
 #include <sys/syscallargs.h>
 #include <sys/uio.h>
 
 #include <dev/rndvar.h>
-
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
 
 /*
  * See also:
@@ -88,44 +82,16 @@ uuid_init(void)
 }
 
 /*
- * Return the first MAC address we encounter or, if none was found,
- * construct a sufficiently random multicast address. We don't try
- * to return the same MAC address as previously returned. We always
- * generate a new multicast address if no MAC address exists in the
- * system.
- * It would be nice to know if 'ifnet' or any of its sub-structures
- * has been changed in any way. If not, we could simply skip the
- * scan and safely return the MAC address we returned before.
+ * Construct a sufficiently random multicast address.
  */
 static void
 uuid_node(uint16_t *node)
 {
-	struct ifnet *ifp;
-	struct ifaddr *ifa;
-	struct sockaddr_dl *sdl;
-	int i, s;
-
-	s = splnet();
-	KERNEL_LOCK();
-	TAILQ_FOREACH(ifp, &ifnet, if_list) {
-		/* Walk the address list */
-		TAILQ_FOREACH(ifa, &ifp->if_addrlist, ifa_list) {
-			sdl = (struct sockaddr_dl*)ifa->ifa_addr;
-			if (sdl != NULL && sdl->sdl_family == AF_LINK &&
-			    sdl->sdl_type == IFT_ETHER) {
-				/* Got a MAC address. */
-				memcpy(node, LLADDR(sdl), UUID_NODE_LEN);
-				KERNEL_UNLOCK();
-				splx(s);
-				return;
-			}
-		}
-	}
-	KERNEL_UNLOCK();
-	splx(s);
+	int i;
 
 	for (i = 0; i < (UUID_NODE_LEN>>1); i++)
 		node[i] = (uint16_t)arc4random();
+
 	*((uint8_t*)node) |= 0x01;
 }
 
