@@ -13,8 +13,6 @@ CFLAGS+= -I. -DMD_INCLUDE=\"${TARGET_MACHINE_CPU}.h\"
 # XXX - need support for multiple archs.
 .if (${ELF_TOOLCHAIN:L} == "yes")
 SRCS+=elf.c
-.else
-SRCS+=aout.c
 .endif
 
 beforeinstall:
