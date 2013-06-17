@@ -58,7 +58,6 @@
 #include <unistd.h>
 
 #ifndef STANDALONE
-#include <a.out.h>
 #include <stdio.h>
 #include <errno.h>
 #endif
