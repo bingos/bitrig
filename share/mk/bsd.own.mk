@@ -22,12 +22,7 @@ TCP_WRAPPERS?=	yes
 # Set `DEBUGLIBS' to `yes' to build libraries with debugging symbols
 DEBUGLIBS?=	no
 # Set toolchain to be able to know differences.
-.if ${MACHINE_ARCH} == "m68k" || ${MACHINE_ARCH} == "m88k" || \
-    ${MACHINE_ARCH} == "vax"
-ELF_TOOLCHAIN?=	no
-.else
 ELF_TOOLCHAIN?=	yes
-.endif
 
 GCC2_ARCH=m68k m88k vax
 GCC4_ARCH=alpha amd64 arm hppa hppa64 i386 ia64 mips64 mips64el powerpc sparc sparc64 sh
