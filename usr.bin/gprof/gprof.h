@@ -36,7 +36,6 @@
 #include <sys/stat.h>
 #include <sys/gmon.h>
 
-#include <a.out.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
