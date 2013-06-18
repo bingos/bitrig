@@ -9,9 +9,6 @@ SRCS=	modload.c
 
 .if (${ELF_TOOLCHAIN:L} == "yes")
 SRCS+=	elf.c
-.else
-SRCS+=	a.out.c
-CFLAGS+=	-DUSE_AOUT
 .endif
 
 .include <bsd.prog.mk>

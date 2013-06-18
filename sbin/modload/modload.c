@@ -143,11 +143,7 @@ verify_entry(const char *entry, char *filename)
 	memset(names, 0, sizeof(names));
 	if (asprintf(&s, "_%s", entry) == -1)
 		err(1, "malloc");
-#ifdef	_AOUT_INCLUDE_
-	names[0].n_un.n_name = s;
-#else
 	names[0].n_name = s;
-#endif
 
 	n = nlist(filename, names);
 	if (n == -1)
