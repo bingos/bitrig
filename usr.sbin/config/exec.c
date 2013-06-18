@@ -31,14 +31,6 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#ifdef AOUT_SUPPORT
-int	aout_check(char *);
-void	aout_loadkernel(char *);
-void	aout_savekernel(char *);
-caddr_t	aout_adjust(caddr_t);
-caddr_t	aout_readjust(caddr_t);
-#endif
-
 #ifdef ECOFF_SUPPORT
 int	ecoff_check(char *);
 void	ecoff_loadkernel(char *);
@@ -55,7 +47,6 @@ caddr_t	elf_adjust(caddr_t);
 caddr_t	elf_readjust(caddr_t);
 #endif
 
-#define DO_AOUT	0
 #define DO_ECOFF 1
 #define	DO_ELF 2
 
@@ -65,11 +56,6 @@ caddr_t
 adjust(caddr_t x)
 {
 	switch (current_exec) {
-#ifdef AOUT_SUPPORT
-	case DO_AOUT:
-		return(aout_adjust(x));
-		break;
-#endif
 #ifdef ECOFF_SUPPORT
 	case DO_ECOFF:
 		return(ecoff_adjust(x));
@@ -89,11 +75,6 @@ caddr_t
 readjust(caddr_t x)
 {
 	switch (current_exec) {
-#ifdef AOUT_SUPPORT
-	case DO_AOUT:
-		return(aout_readjust(x));
-		break;
-#endif
 #ifdef ECOFF_SUPPORT
 	case DO_ECOFF:
 		return(ecoff_readjust(x));
@@ -119,12 +100,6 @@ loadkernel(char *file)
 
 	current_exec = -1;
 
-#ifdef AOUT_SUPPORT
-	if (aout_check(file)) {
-		current_exec = DO_AOUT;
-	}
-#endif
-
 #ifdef ECOFF_SUPPORT
 	if (ecoff_check(file)) {
 		current_exec = DO_ECOFF;
@@ -138,11 +113,6 @@ loadkernel(char *file)
 #endif
 
 	switch (current_exec) {
-#ifdef AOUT_SUPPORT
-	case DO_AOUT:
-		aout_loadkernel(file);
-		break;
-#endif
 #ifdef ECOFF_SUPPORT
 	case DO_ECOFF:
 		ecoff_loadkernel(file);
@@ -162,11 +132,6 @@ void
 savekernel(char *outfile)
 {
 	switch (current_exec) {
-#ifdef AOUT_SUPPORT
-	case DO_AOUT:
-		aout_savekernel(outfile);
-		break;
-#endif
 #ifdef ECOFF_SUPPORT
 	case DO_ECOFF:
 		ecoff_savekernel(outfile);

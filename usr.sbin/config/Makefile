@@ -9,9 +9,6 @@ SRCS=	files.c gram.y hash.c main.c mkheaders.c mkioconf.c mkmakefile.c \
 .if (${ELF_TOOLCHAIN:L} == "yes")
 CFLAGS+=-DELF_SUPPORT
 SRCS+=  exec_elf.c
-.else
-CFLAGS+=-DAOUT_SUPPORT
-SRCS+=  exec_aout.c
 .endif
 
 CFLAGS+=-I${.CURDIR} -I.
