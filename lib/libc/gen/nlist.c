@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <a.out.h>		/* pulls in nlist.h */
+#include <nlist.h>
 
 #ifdef _NLIST_DO_ELF
 #include <elf_abi.h>
@@ -50,116 +50,13 @@
 #endif
 
 int	__fdnlist(int, struct nlist *);
-int	__aout_fdnlist(int, struct nlist *);
 int	__ecoff_fdnlist(int, struct nlist *);
 int	__elf_fdnlist(int, struct nlist *);
 #ifdef _NLIST_DO_ELF
 int	__elf_is_okay__(Elf_Ehdr *ehdr);
 #endif
 
-#define	ISLAST(p)	(p->n_un.n_name == 0 || p->n_un.n_name[0] == 0)
-
-#ifdef _NLIST_DO_AOUT
-int
-__aout_fdnlist(int fd, struct nlist *list)
-{
-	struct nlist *p, *s;
-	char *strtab;
-	off_t symoff, stroff;
-	u_long symsize;
-	int nent, cc;
-	int strsize, usemalloc = 0;
-	struct nlist nbuf[1024];
-	struct exec exec;
-
-	if (pread(fd, &exec, sizeof(exec), (off_t)0) != sizeof(exec) ||
-	    N_BADMAG(exec) || exec.a_syms == 0)
-		return (-1);
-
-	stroff = N_STROFF(exec);
-	symoff = N_SYMOFF(exec);
-	symsize = exec.a_syms;
-
-	/* Read in the size of the string table. */
-	if (pread(fd, (void *)&strsize, sizeof(strsize), stroff) !=
-	    sizeof(strsize))
-		return (-1);
-	else
-		stroff += sizeof(strsize);
-
-	/*
-	 * Read in the string table.  We try mmap, but that will fail
-	 * for /dev/ksyms so fall back on malloc.  Since OpenBSD's malloc(3)
-	 * returns memory to the system on free this does not cause bloat.
-	 */
-	strsize -= sizeof(strsize);
-	strtab = mmap(NULL, (size_t)strsize, PROT_READ, MAP_SHARED|MAP_FILE,
-	    fd, stroff);
-	if (strtab == MAP_FAILED) {
-		usemalloc = 1;
-		if ((strtab = (char *)malloc(strsize)) == NULL)
-			return (-1);
-		errno = EIO;
-		if (pread(fd, strtab, strsize, stroff) != strsize) {
-			nent = -1;
-			goto aout_done;
-		}
-	}
-
-	/*
-	 * clean out any left-over information for all valid entries.
-	 * Type and value defined to be 0 if not found; historical
-	 * versions cleared other and desc as well.  Also figure out
-	 * the largest string length so don't read any more of the
-	 * string table than we have to.
-	 *
-	 * XXX clearing anything other than n_type and n_value violates
-	 * the semantics given in the man page.
-	 */
-	nent = 0;
-	for (p = list; !ISLAST(p); ++p) {
-		p->n_type = 0;
-		p->n_other = 0;
-		p->n_desc = 0;
-		p->n_value = 0;
-		++nent;
-	}
-
-	while (symsize > 0) {
-		cc = MIN(symsize, sizeof(nbuf));
-		if (pread(fd, nbuf, cc, symoff) != cc)
-			break;
-		symsize -= cc;
-		symoff += cc;
-		for (s = nbuf; cc > 0; ++s, cc -= sizeof(*s)) {
-			char *sname = strtab + s->n_un.n_strx - sizeof(int);
-
-			if (s->n_un.n_strx == 0 || (s->n_type & N_STAB) != 0)
-				continue;
-			for (p = list; !ISLAST(p); p++) {
-				char *pname = p->n_un.n_name;
-
-				if (*sname != '_' && *pname == '_')
-					pname++;
-				if (!strcmp(sname, pname)) {
-					p->n_value = s->n_value;
-					p->n_type = s->n_type;
-					p->n_desc = s->n_desc;
-					p->n_other = s->n_other;
-					if (--nent <= 0)
-						break;
-				}
-			}
-		}
-	}
-aout_done:
-	if (usemalloc)
-		free(strtab);
-	else
-		munmap(strtab, strsize);
-	return (nent);
-}
-#endif /* _NLIST_DO_AOUT */
+#define	ISLAST(p)	(p->n_name == 0 || p->n_name[0] == 0)
 
 #ifdef _NLIST_DO_ECOFF
 #define check(off, size)	((off < 0) || (off + size > mappedsize))
@@ -238,7 +135,7 @@ __ecoff_fdnlist(int fd, struct nlist *list)
 			char *nlistname;
 			char *symtabname;
 
-			nlistname = p->n_un.n_name;
+			nlistname = p->n_name;
 			if (*nlistname == '_')
 				nlistname++;
 			symtabname =
@@ -434,7 +331,7 @@ __elf_fdnlist(int fd, struct nlist *list)
 				 *       for both 'foo' and '_foo' in the
 				 *	 table and 'foo' is first?
 				 */
-				sym = p->n_un.n_name;
+				sym = p->n_name;
 				if (strcmp(&strtab[soff], sym) != 0 &&
 				    (sym[0] != '_' ||
 				     strcmp(&strtab[soff], sym + 1) != 0))
@@ -494,9 +391,6 @@ elf_done:
 static struct nlist_handlers {
 	int	(*fn)(int fd, struct nlist *list);
 } nlist_fn[] = {
-#ifdef _NLIST_DO_AOUT
-	{ __aout_fdnlist },
-#endif
 #ifdef _NLIST_DO_ELF
 	{ __elf_fdnlist },
 #endif
