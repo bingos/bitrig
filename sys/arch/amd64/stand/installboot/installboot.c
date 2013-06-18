@@ -59,7 +59,6 @@
 #include <machine/biosvar.h>
 
 #include <err.h>
-#include <a.out.h>
 #include <sys/exec_elf.h>
 #include <fcntl.h>
 #include <nlist.h>
@@ -599,7 +598,7 @@ pbr_set_symbols(char *fname, char *proto, struct sym_data *sym_list)
 		if (nl == NULL)
 			err(1, NULL);
 
-		nl->n_un.n_name = sym->sym_name;
+		nl->n_name = sym->sym_name;
 
 		if (nlist(fname, nl) != 0)
 			errx(1, "%s: symbol %s not found",

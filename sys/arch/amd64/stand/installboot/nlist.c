@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <a.out.h>		/* pulls in nlist.h */
 
 #ifdef _NLIST_DO_ELF
 #include <elf_abi.h>
@@ -50,14 +49,13 @@
 #endif
 
 int	__fdnlist(int, struct nlist *);
-int	__aout_fdnlist(int, struct nlist *);
 int	__ecoff_fdnlist(int, struct nlist *);
 int	__elf_fdnlist(int, struct nlist *);
 #ifdef _NLIST_DO_ELF
 int	__elf_is_okay__(Elf_Ehdr *ehdr);
 #endif
 
-#define	ISLAST(p)	(p->n_un.n_name == 0 || p->n_un.n_name[0] == 0)
+#define	ISLAST(p)	(p->n_name == 0 || p->n_name[0] == 0)
 
 #ifdef _NLIST_DO_ECOFF
 #define check(off, size)	((off < 0) || (off + size > mappedsize))
@@ -136,7 +134,7 @@ __ecoff_fdnlist(int fd, struct nlist *list)
 			char *nlistname;
 			char *symtabname;
 
-			nlistname = p->n_un.n_name;
+			nlistname = p->n_name;
 			if (*nlistname == '_')
 				nlistname++;
 			symtabname =
@@ -327,7 +325,7 @@ __elf_fdnlist(int fd, struct nlist *list)
 				 *       for both 'foo' and '_foo' in the
 				 *	 table and 'foo' is first?
 				 */
-				sym = p->n_un.n_name;
+				sym = p->n_name;
 				if (strcmp(&strtab[soff], sym) != 0 &&
 				    (sym[0] != '_' ||
 				     strcmp(&strtab[soff], sym + 1) != 0))
