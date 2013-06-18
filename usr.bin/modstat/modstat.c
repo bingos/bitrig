@@ -39,7 +39,6 @@
 #include <sys/mount.h>
 #include <sys/lkm.h>
 
-#include <a.out.h>
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
