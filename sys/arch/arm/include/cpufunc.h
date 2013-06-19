@@ -463,10 +463,9 @@ void	xscale_context_switch	(u_int);
 void	xscale_setup		(void);
 #endif	/* CPU_XSCALE_80200 || CPU_XSCALE_80321 || CPU_XSCALE_PXA2X0 || CPU_XSCALE_IXP425 */
 
-/* still used by bus_dma */
 #define tlb_flush	cpu_tlb_flushID
-/* still used by machdep */
 #define setttb		cpu_setttb
+#define drain_writebuf	cpu_drain_writebuf
 
 /*
  * Macros for manipulating CPU interrupts
