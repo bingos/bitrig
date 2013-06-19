@@ -33,26 +33,6 @@
 
 static int _isexec(int);
 
-#if	EXE_TYPE == EXE_AOUT
-/*
- * BSD style A.OUT
- */
-#include <a.out.h>
-
-static int
-_isexec(int fd)
-{
-	struct exec ehdr;
-
-	if ((read(fd, &ehdr, sizeof(ehdr)) == sizeof(ehdr)) && 
-	    !N_BADMAG(ehdr))
-		return(TRUE);
-	else
-		return(FALSE);
-}
-#endif /* EXE_AOUT */
-
-
 #if	EXE_TYPE == EXE_ELF_AND_COFF || EXE_TYPE == EXE_ELF
 /*
  * Elf
@@ -191,7 +171,6 @@ _isexec(int fd)
 
 #ifdef hp9000s300
 
-#include <a.out.h>
 #define header exec
 #define ISEXEC(a) ((a.file_type)==EXEC_MAGIC || (a.file_type)==SHARE_MAGIC || \
 		   (a.file_type)==DEMAND_MAGIC)
