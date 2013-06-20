@@ -1,7 +1,6 @@
 /* $OpenBSD: ld.h,v 1.7 2006/05/13 05:59:28 deraadt Exp $ */
 /*
  * Header file to make code compatible with ELF version
- * ldconfig was taken from the a.out ld.
  */
 #include <link.h>
 

@@ -44,7 +44,6 @@
 #include <fcntl.h>
 #include <ar.h>
 #include <ranlib.h>
-#include <a.out.h>
 #include <stab.h>
 #include <stdio.h>
 #include <stdlib.h>
