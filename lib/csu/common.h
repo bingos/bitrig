@@ -38,7 +38,6 @@
 #ifdef DYNAMIC
 
 #include <sys/syscall.h>
-#include <a.out.h>
 #ifndef N_GETMAGIC
 #define N_GETMAGIC(x)	((x).a_magic)
 #endif
