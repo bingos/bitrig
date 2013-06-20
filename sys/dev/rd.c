@@ -41,7 +41,7 @@
 
 /*
  * This array will be patched to contain a file-system image.
- * See the program:  src/distrib/common/rdsetroot.c
+ * See the program:  src/distrib/common/elfrdsetroot.c
  */
 u_int32_t rd_root_size = ROOTBYTES;
 char rd_root_image[ROOTBYTES] = "|This is the root ramdisk!\n";
