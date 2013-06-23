@@ -28,8 +28,8 @@
 
 #include <sys/param.h>
 #include <sys/mman.h>
+#include <nlist.h>
 #include <unistd.h>
-#include <a.out.h>
 #include <elf_abi.h>
 #include <errno.h>
 #include <err.h>
@@ -506,7 +506,7 @@ elf_symloadx(const char *name, FILE *fp, off_t foff, Elf_Ehdr *eh,
 
 				elf2nlist(&sbuf, eh, shdr, shstr, np);
 				np->n_value = sbuf.st_value;
-				np->n_un.n_strx = sbuf.st_name;
+				np->n_name = sbuf.st_name;
 				np++;
 			}
 			*pnrawnames = np - *pnames;
