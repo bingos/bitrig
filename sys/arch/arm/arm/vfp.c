@@ -125,6 +125,13 @@ vfp_save(void)
 	 */
 }
 
+/*
+ * Warning: vfp_enable disables interrupts if it enables the fpu
+ * to prevent the kernel from taking an interrupt between enabling the
+ * fpu and switching to userland.
+ * this should only be called from the exception return code just
+ * a few dozen instructions before return, so this should be safe.
+ */
 void
 vfp_enable()
 {
@@ -132,9 +139,10 @@ vfp_enable()
 
 	if (curproc->p_addr->u_pcb.pcb_fpcpu == ci &&
 	    ci->ci_fpuproc == curproc) {
+		disable_interrupts(I32_bit);
+
 		/* FPU state is still valid, just enable and go */
 		set_vfp_fpexc(VFPEXC_EN);
-		return;
 	}
 }
 
