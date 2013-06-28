@@ -64,6 +64,7 @@ ampscu*		at cortex?
 imx0		at mainbus?
 
 # iMX on-chip devices
+imxsrc*		at soc?			# system reset controller, for SMP
 imxccm*		at soc?			# clock control module
 imxiomuxc*	at soc?			# iomux controller
 imxdog*		at soc?			# watchdog timer

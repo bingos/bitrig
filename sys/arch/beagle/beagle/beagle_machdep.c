@@ -429,6 +429,7 @@ copy_io_area_map(pd_entry_t *new_pd)
 }
 
 void parse_uboot_tags(void *);
+u_int l1pagetable;
 
 /*
  * u_int initarm(...)
@@ -448,7 +449,6 @@ initarm(void *arg0, void *arg1, void *arg2)
 {
 	int loop;
 	int loop1;
-	u_int l1pagetable;
 	pv_addr_t kernel_l1pt;
 	paddr_t memstart;
 	psize_t memsize;
@@ -1026,3 +1026,5 @@ platform_smc_write(bus_space_tag_t iot, bus_space_handle_t ioh, bus_size_t off,
 
 	omap4_smc_call(op, val);
 }
+
+volatile u_int arm_cpu_hatched = 0;

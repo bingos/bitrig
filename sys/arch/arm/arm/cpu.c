@@ -48,6 +48,7 @@
 #include <sys/systm.h>
 #include <sys/malloc.h>
 #include <sys/device.h>
+#include <sys/user.h>
 #include <sys/proc.h>
 #include <sys/conf.h>
 #include <uvm/uvm_extern.h>
@@ -83,7 +84,13 @@ cpu_attach(struct device *dv)
 		ci->ci_arm_cputype = ci->ci_arm_cpuid & CPU_ID_CPU_MASK;
 		ci->ci_arm_cpurev = ci->ci_arm_cpuid & CPU_ID_REVISION_MASK;
 	} else {
+#ifndef MULTIPROCESSOR
 		printf(": disabled (uniprocessor kernel)\n");
+#else
+		printf(": enabled\n");
+		cpu_info[id] = malloc(sizeof(struct cpu_info), M_DEVBUF,
+		    M_WAITOK|M_ZERO);
+#endif
 		return;
 	}
 
@@ -537,18 +544,20 @@ cpu_boot_secondary_processors(void)
 	u_long i;
 
 	for (i=0; i < MAXCPUS; i++) {
+		printf("%s: Checking Core %i\n", __func__, i);
 		ci = cpu_info[i];
 		if (ci == NULL)
 			continue;
-		if (ci->ci_idle_pcb == NULL)
-			continue;
+		//if (ci->ci_idle_pcb == NULL)
+		//	continue;
 		if ((ci->ci_flags & CPUF_PRESENT) == 0)
 			continue;
-		if (ci->ci_flags & (CPUF_BSP|CPUF_SP|CPUF_PRIMARY))
-			continue;
+		//if (ci->ci_flags & (CPUF_BSP|CPUF_SP|CPUF_PRIMARY))
+		//	continue;
 		ci->ci_randseed = random();
 		/* XXX: Not yet, my dear. */
 		//cpu_boot_secondary(ci);
+		printf("%s: Core %i is there\n", __func__, i);
 	}
 }
 

@@ -250,6 +250,8 @@ void	early_clkman(u_int, int);
 void	kgdb_port_init(void);
 void	change_clock(uint32_t v);
 
+void	cpu_hatch(uint32_t);
+
 bs_protos(bs_notimpl);
 
 #include <imx/dev/imxuartvar.h>
@@ -270,6 +272,7 @@ int comcnspeed = CONSPEED;
 int comcnmode = CONMODE;
 
 extern int32_t amptimer_frequency;
+u_int l1pagetable;
 
 /*
  *
@@ -458,7 +461,6 @@ initarm(void *arg0, void *arg1, void *arg2)
 {
 	int loop;
 	int loop1;
-	u_int l1pagetable;
 	pv_addr_t kernel_l1pt;
 	paddr_t memstart;
 	psize_t memsize;
@@ -629,10 +631,10 @@ initarm(void *arg0, void *arg1, void *arg2)
 	systempage.pv_va = vector_page;
 
 	/* Allocate stacks for all modes */
-	valloc_pages(irqstack, IRQ_STACK_SIZE);
-	valloc_pages(abtstack, ABT_STACK_SIZE);
-	valloc_pages(undstack, UND_STACK_SIZE);
-	valloc_pages(kernelstack, UPAGES);
+	valloc_pages(irqstack, IRQ_STACK_SIZE * MAXCPUS);
+	valloc_pages(abtstack, ABT_STACK_SIZE * MAXCPUS);
+	valloc_pages(undstack, UND_STACK_SIZE * MAXCPUS);
+	valloc_pages(kernelstack, UPAGES * MAXCPUS);
 
 	/* Allocate enough pages for cleaning the Mini-Data cache. */
 
@@ -715,13 +717,13 @@ initarm(void *arg0, void *arg1, void *arg2)
 
 	/* Map the stack pages */
 	pmap_map_chunk(l1pagetable, irqstack.pv_va, irqstack.pv_pa,
-	    IRQ_STACK_SIZE * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, PTE_CACHE);
+	    IRQ_STACK_SIZE * PAGE_SIZE * MAXCPUS, VM_PROT_READ|VM_PROT_WRITE, PTE_CACHE);
 	pmap_map_chunk(l1pagetable, abtstack.pv_va, abtstack.pv_pa,
-	    ABT_STACK_SIZE * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, PTE_CACHE);
+	    ABT_STACK_SIZE * PAGE_SIZE * MAXCPUS, VM_PROT_READ|VM_PROT_WRITE, PTE_CACHE);
 	pmap_map_chunk(l1pagetable, undstack.pv_va, undstack.pv_pa,
-	    UND_STACK_SIZE * PAGE_SIZE, VM_PROT_READ|VM_PROT_WRITE, PTE_CACHE);
+	    UND_STACK_SIZE * PAGE_SIZE * MAXCPUS, VM_PROT_READ|VM_PROT_WRITE, PTE_CACHE);
 	pmap_map_chunk(l1pagetable, kernelstack.pv_va, kernelstack.pv_pa,
-	    UPAGES * PAGE_SIZE, VM_PROT_READ | VM_PROT_WRITE, PTE_CACHE);
+	    UPAGES * PAGE_SIZE * MAXCPUS, VM_PROT_READ | VM_PROT_WRITE, PTE_CACHE);
 
 	pmap_map_chunk(l1pagetable, kernel_l1pt.pv_va, kernel_l1pt.pv_pa,
 	    L1_TABLE_SIZE, VM_PROT_READ | VM_PROT_WRITE, PTE_PAGETABLE);
@@ -763,7 +765,7 @@ initarm(void *arg0, void *arg1, void *arg2)
 	/* Switch tables */
 
 	cpu_domains((DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2)) | DOMAIN_CLIENT);
-	setttb(kernel_l1pt.pv_pa);
+	setttb(kernel_l1pt.pv_pa | 0x2); // shareability flag
 	cpu_tlb_flushID();
 	cpu_domains(DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2));
 
@@ -979,4 +981,56 @@ platform_smc_write(bus_space_tag_t iot, bus_space_handle_t ioh, bus_size_t off,
     uint32_t op, uint32_t val)
 {
 	bus_space_write_4(iot, ioh, off, val);
+}
+
+extern void imxuartcnputc(dev_t dev, int c);
+void
+cpu_hatch(uint32_t id)
+{
+	int cpuctrl, cpuctrlmask, auxctl;
+
+	/* Before we do anything stupid, set stack pointers. */
+	set_stackptr(PSR_IRQ32_MODE,
+	    irqstack.pv_va + IRQ_STACK_SIZE * PAGE_SIZE * (id + 1));
+	set_stackptr(PSR_ABT32_MODE,
+	    abtstack.pv_va + ABT_STACK_SIZE * PAGE_SIZE * (id + 1));
+	set_stackptr(PSR_UND32_MODE,
+	    undstack.pv_va + UND_STACK_SIZE * PAGE_SIZE * (id + 1));
+
+	curcpu()->ci_cpuid = id;
+
+	/* Now, set the core to use the settings from the primary */
+	cpuctrl = CPU_CONTROL_MMU_ENABLE | CPU_CONTROL_SYST_ENABLE
+	    | CPU_CONTROL_IC_ENABLE | CPU_CONTROL_DC_ENABLE
+	    | CPU_CONTROL_BPRD_ENABLE | CPU_CONTROL_AFLT_ENABLE;
+	cpuctrlmask = CPU_CONTROL_MMU_ENABLE | CPU_CONTROL_SYST_ENABLE
+	    | CPU_CONTROL_IC_ENABLE | CPU_CONTROL_DC_ENABLE
+	    | CPU_CONTROL_ROM_ENABLE | CPU_CONTROL_BPRD_ENABLE
+	    | CPU_CONTROL_BEND_ENABLE | CPU_CONTROL_AFLT_ENABLE
+	    | CPU_CONTROL_ROUNDROBIN | CPU_CONTROL_CPCLK
+	    | CPU_CONTROL_VECRELOC | CPU_CONTROL_FI | CPU_CONTROL_VE
+	    | CPU_CONTROL_TRE | CPU_CONTROL_AFE;
+
+	/* Set the control register */
+	curcpu()->ci_ctrl = cpuctrl;
+	cpu_control(cpuctrlmask, cpuctrl);
+
+	/* XXX */
+	if ((cputype & CPU_ID_CORTEX_A9_MASK) == CPU_ID_CORTEX_A9
+			|| 1) {
+		__asm __volatile("mrc p15, 0, %0, c1, c0, 1"
+			: "=r" (auxctl));
+		auxctl |= CORTEX_A9_AUXCTL_FW; /* Cache and TLB maintenance broadcast */
+		auxctl |= CORTEX_A9_AUXCTL_L1_PREFETCH_ENABLE;
+		auxctl |= CORTEX_A9_AUXCTL_L2_PREFETCH_ENABLE;
+		auxctl |= CORTEX_A9_AUXCTL_SMP; /* needed for ldrex/strex */
+		__asm __volatile("mcr p15, 0, %0, c1, c0, 1"
+			: : "r" (auxctl));
+	}
+
+	curcpu()->ci_flags |= CPUF_PRESENT;
+
+	//printf("Core %d is here!\n", id);
+
+	while (1);
 }

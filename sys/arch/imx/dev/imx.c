@@ -72,6 +72,7 @@ struct board_dev phyflex_imx6_devs[] = {
 };
 
 struct board_dev sabrelite_devs[] = {
+	{ "imxsrc",	0 },
 	{ "imxccm",	0 },
 	{ "imxiomuxc",	0 },
 	{ "imxdog",	0 },

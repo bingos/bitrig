@@ -26,6 +26,9 @@
 
 /* IRQs are defined without the 32 cpu IRQs */
 
+#define SRC_ADDR	0x020d8000
+#define SRC_SIZE	0x4000
+
 #define CCM_ADDR	0x020c4000
 #define CCM_SIZE	0x5000
 
@@ -154,6 +157,14 @@
 #define PCIE_IRQ3	123
 
 struct imx_dev imx6_devs[] = {
+
+	/*
+	 * System Reset Controller
+	 */
+	{ .name = "imxsrc",
+	  .unit = 0,
+	  .mem = { { SRC_ADDR, SRC_SIZE } },
+	},
 
 	/*
 	 * Clock Control Module

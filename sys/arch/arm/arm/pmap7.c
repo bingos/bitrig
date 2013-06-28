@@ -2311,7 +2311,8 @@ pmap_activate(struct proc *p)
 		}
 
 		cpu_domains(pcb->pcb_dacr);
-		cpu_setttb(pcb->pcb_pagedir);
+		cpu_setttb(pcb->pcb_pagedir | 0x2); // shareability flag
+		//cpu_setttb(pcb->pcb_pagedir);
 
 		enable_interrupts(I32_bit | F32_bit);
 
