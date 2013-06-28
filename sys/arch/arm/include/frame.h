@@ -169,10 +169,18 @@ struct frame {
 .Laflt_astpending:							;\
 	.word	_C_LABEL(astpending)
 
+#ifdef ARMV7
+#define RESTOREVFP                     \
+	bl      _C_LABEL(vfp_enable)
+#else
+#define RESTOREVFP
+#endif
+
 #define	DO_AST								 \
 	ldr	r0, [sp]		/* Get the SPSR from stack */	;\
 	mrs	r4, cpsr		/* save CPSR */			;\
 	and	r0, r0, #(PSR_MODE)	/* Returning to USR mode? */	;\
+	bne	3f							;\
 	teq	r0, #(PSR_USR32_MODE)					;\
 	ldreq	r5, .Laflt_astpending					;\
 	bne	2f			/* Nope, get out now */		;\
@@ -188,7 +196,9 @@ struct frame {
 	mov	r0, sp							;\
 	adr	lr, 1b							;\
 	b	_C_LABEL(ast)		/* ast(frame) */		;\
-2:
+2:									;\
+	RESTOREVFP							;\
+3:
 
 /*
  * ASM macros for pushing and pulling trapframes from the stack
