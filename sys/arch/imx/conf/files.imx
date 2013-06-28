@@ -36,6 +36,10 @@ device imxuart
 attach	imxuart at soc
 file	arch/imx/dev/imxuart.c		imxuart
 
+device imxsrc
+attach imxsrc at soc
+file	arch/imx/dev/imxsrc.c		imxsrc
+
 device imxccm
 attach imxccm at soc
 file	arch/imx/dev/imxccm.c		imxccm

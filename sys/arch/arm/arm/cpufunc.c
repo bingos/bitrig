@@ -1426,6 +1426,11 @@ armv7_setup()
 			: : "r" (auxctl));
 	}
 
+#define CORTEXA9_AUXCTL_SMP (1 << 6)
+#define CORTEXA9_AUXCTL_FW (1 << 0)
+	aux_control(CORTEXA9_AUXCTL_SMP | CORTEXA9_AUXCTL_FW,
+		    CORTEXA9_AUXCTL_SMP | CORTEXA9_AUXCTL_FW);
+
 	/* And again. */
 	cpu_idcache_wbinv_all();
 }

@@ -467,6 +467,7 @@ vaddr_t virtual_avail;
 vaddr_t virtual_end;
 vaddr_t pmap_curmaxkvaddr;
 
+pd_entry_t *kernel_l1pt;
 extern pv_addr_t systempage;
 
 static __inline boolean_t
@@ -2311,7 +2312,8 @@ pmap_activate(struct proc *p)
 		}
 
 		cpu_domains(pcb->pcb_dacr);
-		cpu_setttb(pcb->pcb_pagedir);
+		cpu_setttb(pcb->pcb_pagedir | 0x2); // shareability flag
+		//cpu_setttb(pcb->pcb_pagedir);
 
 		enable_interrupts(I32_bit | F32_bit);
 
@@ -2760,7 +2762,7 @@ pmap_init_l1(struct l1_ttable *l1, pd_entry_t *l1pt)
  */
 #define	PMAP_STATIC_L2_SIZE 16
 void
-pmap_bootstrap(pd_entry_t *kernel_l1pt, vaddr_t vstart, vaddr_t vend)
+pmap_bootstrap(pd_entry_t *_kernel_l1pt, vaddr_t vstart, vaddr_t vend)
 {
 	static struct l1_ttable static_l1;
 	static struct l2_dtable static_l2[PMAP_STATIC_L2_SIZE];
@@ -2774,6 +2776,11 @@ pmap_bootstrap(pd_entry_t *kernel_l1pt, vaddr_t vstart, vaddr_t vend)
 	vaddr_t va;
 	vsize_t size;
 	int l1idx, l2idx, l2next = 0;
+
+	/*
+	 * Set the kernel_l1pt pointer.
+	 */
+	kernel_l1pt = _kernel_l1pt;
 
 	/*
 	 * Initialise the kernel pmap object

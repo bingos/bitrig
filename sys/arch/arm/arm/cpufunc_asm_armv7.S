@@ -17,6 +17,7 @@
 
 #include <arm/armreg.h>
 #include <machine/asm.h>
+#include "assym.h"
 
 #define	DSB	.long	0xf57ff040
 #define	ISB	.long	0xf57ff060
@@ -255,9 +256,107 @@ ENTRY(armv7_context_switch)
 	ISB
 	mov	pc, lr
 
+#define SCU_CTL 0x0
+#define SCU_CTL_SCU_ENA 0x1
+#define CORTEXA9_AUXCTL_SMP (1 << 6)
+#define CORTEXA9_AUXCTL_FW (1 << 0)
+ENTRY(armv7_mpstart)
+	mov r2, #0x02000000
+	add r2, r2, #0x001e0000
+	add r2, r2, #0x00008000
+	add r2, r2, #0x00000040
+
+	/* print "Core " */
+	mov	r3, #0x43
+	strb	r3, [r2]
+	mov	r3, #0x6F
+	strb	r3, [r2]
+	mov	r3, #0x72
+	strb	r3, [r2]
+	mov	r3, #0x65
+	strb	r3, [r2]
+	mov	r3, #0x20
+	strb	r3, [r2]
+
+	/*
+	 * Step 1, invalidate the caches
+	 */
+	/*
+	bl	_C_LABEL(armv7_idcache_wbinv_all)	@ toss d-cache
+	*/
+
+	/*
+	 * Step 2, wait for the SCU to be enabled
+	 */
+	mrc	p15, 4, r3, c15, c0, 0		@ read cbar
+1:	ldr	r0, [r3, #SCU_CTL]		@ read scu control
+	and	r0, r0, #SCU_CTL_SCU_ENA
+	cmp	r0, #SCU_CTL_SCU_ENA
+	bne	1b				@ try again
+
+	/*
+	 * Step 3, set ACTLR.SMP=1 (and ACTRL.FX=1)
+	 */
+	mrc	p15, 0, r0, c1, c0, 1		@ read aux ctl
+	orr	r0, #CORTEXA9_AUXCTL_SMP	@ enable SMP
+	mcr	p15, 0, r0, c1, c0, 1		@ write aux ctl
+	mov	r0, r0
+	orr	r0, #CORTEXA9_AUXCTL_FW		@ enable cache/tlb/coherency
+	mcr	p15, 0, r0, c1, c0, 1		@ write aux ctl
+	mov	r0, r0
+
+	/*
+	 * We should be in SMP mode now.
+	 */
+	mrc	p15, 0, r4, c0, c0, 5		@ get MPIDR
+	and	r4, r4, #7			@ get our cpu numder
+
+	/* print number and newline */
+	add	r3, r4, #0x30
+	strb	r3, [r2]
+	mov	r3, #0x0D
+	strb	r3, [r2]
+	mov	r3, #0x0A
+	strb	r3, [r2]
+
+	b	loop				@ XXX: not there yet
+
+	ldr	r0, .Lcpu_hatched		@ now show we've hatched
+	mov	r5, #1
+	lsl	r5, r5, r4
+	mov	r1, r5
+	ldr	r4, [r0]
+	orr	r1, r1, r4
+	str	r1, [r0]			@ make this atomic
+
+	ldr	r0, .Lkernel_l1pt		/* get address of l1pt pvaddr */
+	ldr	r0, [r0, #PV_PA]		/* Now get the phys addr */
+
+	mcr	p15, 0, r0, c2, c0, 0		/* Set TTB */
+	mcr	p15, 0, r0, c8, c7, 0		/* Flush TLB */
+
+loop:
+	WFI
+	b	loop
+
+ENTRY(aux_control)
+	mrc	p15, 0, r3, c1, c0, 1	/* Read the control register */
+	bic	r2, r3, r0		/* Clear bits */
+	eor	r2, r2, r1		/* XOR bits */
+
+	teq	r2, r3			/* Only write if there is a change */
+	mcrne	p15, 0, r2, c1, c0, 1	/* Write new control register */
+	mov	r0, r3			/* Return old value */
+	mov	pc, lr
+
 /* XXX The following macros should probably be moved to asm.h */
 #define _DATA_OBJECT(x) .globl x; .type x,_ASM_TYPE_OBJECT; x:
 #define C_OBJECT(x)	_DATA_OBJECT(_C_LABEL(x))
+
+.Lkernel_l1pt:
+	.word	_C_LABEL(kernel_l1pt)
+.Lcpu_hatched:
+	.word	_C_LABEL(arm_cpu_hatched)
 
 	.align 2
 C_OBJECT(armv7_dcache_sets_max)

@@ -763,7 +763,7 @@ initarm(void *arg0, void *arg1, void *arg2)
 	/* Switch tables */
 
 	cpu_domains((DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2)) | DOMAIN_CLIENT);
-	setttb(kernel_l1pt.pv_pa);
+	setttb(kernel_l1pt.pv_pa | 0x2); // shareability flag
 	cpu_tlb_flushID();
 	cpu_domains(DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2));
 

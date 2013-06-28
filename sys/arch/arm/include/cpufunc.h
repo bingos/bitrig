@@ -366,6 +366,11 @@ extern unsigned armv5_dcache_index_inc;
 #endif
 
 #ifdef CPU_ARMv7
+u_int	armv7_periphbase	(void);
+u_int	aux_control		(u_int clear, u_int bic);
+
+void	armv7_mpstart		(void);
+
 void	armv7_setttb		(u_int);
 
 void	armv7_tlb_flushID_SE	(u_int);
