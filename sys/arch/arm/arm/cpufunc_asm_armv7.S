@@ -17,6 +17,7 @@
 
 #include <arm/armreg.h>
 #include <machine/asm.h>
+#include "assym.h"
 
 #define	DSB	.long	0xf57ff040
 #define	ISB	.long	0xf57ff060
@@ -270,8 +271,6 @@ ENTRY(armv7_context_switch)
 
 #define SCU_CTL 0x0
 #define SCU_CTL_SCU_ENA 0x1
-#define CORTEXA9_AUXCTL_SMP (1 << 6)
-#define CORTEXA9_AUXCTL_FW (1 << 0)
 ENTRY(armv7_mpstart)
 	mov r2, #0x02000000
 	add r2, r2, #0x001e0000
@@ -310,10 +309,10 @@ ENTRY(armv7_mpstart)
 	 * Step 3, set ACTLR.SMP=1 (and ACTRL.FX=1)
 	 */
 	mrc	p15, 0, r0, c1, c0, 1		@ read aux ctl
-	orr	r0, #CORTEXA9_AUXCTL_SMP	@ enable SMP
+	orr	r0, #CORTEX_A9_AUXCTL_SMP	@ enable SMP
 	mcr	p15, 0, r0, c1, c0, 1		@ write aux ctl
 	mov	r0, r0
-	orr	r0, #CORTEXA9_AUXCTL_FW		@ enable cache/tlb/coherency
+	orr	r0, #CORTEX_A9_AUXCTL_FW		@ enable cache/tlb/coherency
 	mcr	p15, 0, r0, c1, c0, 1		@ write aux ctl
 	mov	r0, r0
 
@@ -379,16 +378,6 @@ ENTRY(armv7_mpstart)
 loop:
 	WFI
 	b	loop
-
-ENTRY(aux_control)
-	mrc	p15, 0, r3, c1, c0, 1	/* Read the control register */
-	bic	r2, r3, r0		/* Clear bits */
-	eor	r2, r2, r1		/* XOR bits */
-
-	teq	r2, r3			/* Only write if there is a change */
-	mcrne	p15, 0, r2, c1, c0, 1	/* Write new control register */
-	mov	r0, r3			/* Return old value */
-	mov	pc, lr
 
 /* XXX The following macros should probably be moved to asm.h */
 #define _DATA_OBJECT(x) .globl x; .type x,_ASM_TYPE_OBJECT; x:
