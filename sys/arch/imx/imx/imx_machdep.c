@@ -270,6 +270,7 @@ int comcnspeed = CONSPEED;
 int comcnmode = CONMODE;
 
 extern int32_t amptimer_frequency;
+u_int l1pagetable;
 
 /*
  *
@@ -458,7 +459,6 @@ initarm(void *arg0, void *arg1, void *arg2)
 {
 	int loop;
 	int loop1;
-	u_int l1pagetable;
 	pv_addr_t kernel_l1pt;
 	paddr_t memstart;
 	psize_t memsize;

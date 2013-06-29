@@ -256,6 +256,19 @@ ENTRY(armv7_context_switch)
 	ISB
 	mov	pc, lr
 
+/*
+ * CPWAIT -- Canonical method to wait for CP15 update.
+ * NOTE: Clobbers the specified temp reg.
+ * copied from arm/arm/cpufunc_asm_xscale.S
+ * XXX: better be in a common header file.
+ */
+#define CPWAIT_BRANCH							\
+	sub	pc, pc, #4
+#define CPWAIT(tmp)							\
+	mrc	p15, 0, tmp, c2, c0, 0	/* arbitrary read of CP15 */	;\
+	mov	tmp, tmp		/* wait for it to complete */	;\
+	CPWAIT_BRANCH			/* branch to next insn */
+
 #define SCU_CTL 0x0
 #define SCU_CTL_SCU_ENA 0x1
 #define CORTEXA9_AUXCTL_SMP (1 << 6)
@@ -309,7 +322,7 @@ ENTRY(armv7_mpstart)
 	 * We should be in SMP mode now.
 	 */
 	mrc	p15, 0, r4, c0, c0, 5		@ get MPIDR
-	and	r4, r4, #7			@ get our cpu numder
+	and	r4, r4, #7			@ get our cpu number
 
 	/* print number and newline */
 	add	r3, r4, #0x30
@@ -319,21 +332,50 @@ ENTRY(armv7_mpstart)
 	mov	r3, #0x0A
 	strb	r3, [r2]
 
-	b	loop				@ XXX: not there yet
+	ldr	r0, Lstartup_pagetable
+
+	mcr	p15, 0, r0, c2, c0, 0		/* Set TTB */
+	mcr	p15, 0, r0, c8, c7, 0		/* Flush TLB */
+
+	/* Set the Domain Access register.  Very important! */
+	mov	r0, #((DOMAIN_CLIENT << (PMAP_DOMAIN_KERNEL*2)) | DOMAIN_CLIENT)
+	mcr	p15, 0, r0, c3, c0, 0
+
+	/* Enable MMU */
+	mrc	p15, 0, r0, c1, c0, 0
+	orr	r0, r0, #CPU_CONTROL_MMU_ENABLE
+	mcr	p15, 0, r0, c1, c0, 0
+	CPWAIT(r0)
+
+	mov	r0, #0xB0000000			/* XXX: SDRAM_START is 0x10000000 */
+	add	pc, pc, r0			/* jump into our space */
+	mov	r0, r0				/* nop, not used */
+
+	ldr	r0, .Ll1pagetable		/* get address of l1pt pvaddr */
+	ldr	r0, [r0]
+
+	bl	armv7_setttb
+
+	/* print number and newline, this time to the mapped console */
+	mov	r2, #0xfd000000
+	add	r2, r2, #0x000e0000
+	add	r2, r2, #0x00008000
+	add	r2, r2, #0x00000040
+	add	r3, r4, #0x30
+	strb	r3, [r2]
+	mov	r3, #0x0D
+	strb	r3, [r2]
+	mov	r3, #0x0A
+	strb	r3, [r2]
 
 	ldr	r0, .Lcpu_hatched		@ now show we've hatched
 	mov	r5, #1
-	lsl	r5, r5, r4
-	mov	r1, r5
+	lsl	r1, r5, r4
 	ldr	r4, [r0]
 	orr	r1, r1, r4
 	str	r1, [r0]			@ make this atomic
 
-	ldr	r0, .Lkernel_l1pt		/* get address of l1pt pvaddr */
-	ldr	r0, [r0, #PV_PA]		/* Now get the phys addr */
-
-	mcr	p15, 0, r0, c2, c0, 0		/* Set TTB */
-	mcr	p15, 0, r0, c8, c7, 0		/* Flush TLB */
+	b	loop				@ XXX: not there yet
 
 loop:
 	WFI
@@ -353,8 +395,9 @@ ENTRY(aux_control)
 #define _DATA_OBJECT(x) .globl x; .type x,_ASM_TYPE_OBJECT; x:
 #define C_OBJECT(x)	_DATA_OBJECT(_C_LABEL(x))
 
-.Lkernel_l1pt:
-	.word	_C_LABEL(kernel_l1pt)
+Lstartup_pagetable:     .word   STARTUP_PAGETABLE_ADDR
+.Ll1pagetable:
+	.word	_C_LABEL(l1pagetable)
 .Lcpu_hatched:
 	.word	_C_LABEL(arm_cpu_hatched)
 

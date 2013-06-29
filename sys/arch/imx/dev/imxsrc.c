@@ -121,9 +121,7 @@ imxsrc_reset_cpu(int id)
 	    | SCR_CORE_ENABLE(id) | SCR_CORE_RESET(id));
 
 	/* wait for hatch */
-	/*
 	while(!arm_cpu_hatched)
 		cpu_drain_writebuf();
 	printf("cpu hatched!\n");
-	*/
 }
