@@ -17,7 +17,6 @@
 
 #include <arm/armreg.h>
 #include <machine/asm.h>
-#include "assym.h"
 
 #define	DSB	.long	0xf57ff040
 #define	ISB	.long	0xf57ff060
