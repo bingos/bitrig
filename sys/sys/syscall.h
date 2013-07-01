@@ -673,13 +673,13 @@
 /* syscall: "futimens" ret: "int" args: "int" "const struct timespec *" */
 #define	SYS_futimens	327
 
+/* syscall: "uuidgen" ret: "int" args: "struct uuid *" "int" */
+#define	SYS_uuidgen	328
+
 /* syscall: "__set_tcb" ret: "void" args: "void *" */
 #define	SYS___set_tcb	329
 
 /* syscall: "__get_tcb" ret: "void *" args: */
 #define	SYS___get_tcb	330
 
-/* syscall: "uuidgen" ret: "int" args: "struct uuid *" "int" */
-#define	SYS_uuidgen	331
-
-#define	SYS_MAXSYSCALL	332
+#define	SYS_MAXSYSCALL	331

@@ -1051,13 +1051,13 @@ struct sys_futimens_args {
 	syscallarg(const struct timespec *) times;
 };
 
-struct sys___set_tcb_args {
-	syscallarg(void *) tcb;
-};
-
 struct sys_uuidgen_args {
 	syscallarg(struct uuid *) store;
 	syscallarg(int) count;
+};
+
+struct sys___set_tcb_args {
+	syscallarg(void *) tcb;
 };
 
 /*
@@ -1313,6 +1313,6 @@ int	sys_symlinkat(struct proc *, void *, register_t *);
 int	sys_unlinkat(struct proc *, void *, register_t *);
 int	sys_utimensat(struct proc *, void *, register_t *);
 int	sys_futimens(struct proc *, void *, register_t *);
+int	sys_uuidgen(struct proc *, void *, register_t *);
 int	sys___set_tcb(struct proc *, void *, register_t *);
 int	sys___get_tcb(struct proc *, void *, register_t *);
-int	sys_uuidgen(struct proc *, void *, register_t *);
