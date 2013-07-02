@@ -1,0 +1,6 @@
+- look into RB_PROTOTYPE2 and RB_PROTOTYPEX.
+- research tokens. it's an interesting idea, but adapting it to bitrig
+  is a project on its own.
+- fix hammer_signal_check().
+- choose between libz's or libkern's crc32 implementation.
+- fix all the 9725 occurences of 'XXX pedro'.

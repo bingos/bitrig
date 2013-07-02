@@ -55,6 +55,8 @@ struct uuid {
 	uint8_t		node[_UUID_NODE_LEN];
 };
 
+typedef struct uuid uuid_t;
+
 #ifdef _KERNEL
 
 #define	UUID_NODE_LEN	_UUID_NODE_LEN
@@ -70,8 +72,6 @@ void	uuid_init(void);
 int	uuidgen(struct uuid *, int);
 
 #else	/* _KERNEL */
-
-typedef struct uuid uuid_t;
 
 __BEGIN_DECLS
 int	uuidgen(struct uuid *, int);

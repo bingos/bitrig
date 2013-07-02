@@ -740,6 +740,28 @@ file tmpfs/tmpfs_vfsops.c		tmpfs
 file tmpfs/tmpfs_vnops.c		tmpfs
 file tmpfs/tmpfs_specops.c		tmpfs
 file tmpfs/tmpfs_fifoops.c		tmpfs & fifo
+file hammer/hammer_freemap.c
+file hammer/hammer_signal.c
+file hammer/hammer_transaction.c
+file hammer/hammer_redo.c
+file hammer/hammer_prune.c
+file hammer/hammer_pfs.c
+file hammer/hammer_dedup.c
+file hammer/hammer_undo.c
+file hammer/hammer_reblock.c
+file hammer/hammer_rebalance.c
+file hammer/hammer_volume.c
+file hammer/hammer_mirror.c
+file hammer/hammer_flusher.c
+file hammer/hammer_ioctl.c
+file hammer/hammer_subs.c
+file hammer/hammer_cursor.c
+file hammer/hammer_blockmap.c
+file hammer/hammer_recover.c
+file hammer/hammer_ondisk.c
+file hammer/hammer_object.c
+file hammer/hammer_btree.c
+file hammer/hammer_inode.c
 file net/bpf.c				bpfilter		needs-count
 file net/bpf_filter.c			bpfilter
 file net/if.c
@@ -992,6 +1014,7 @@ file lib/libkern/getsn.c
 file lib/libkern/random.c
 file lib/libkern/explicit_bzero.c
 file lib/libkern/timingsafe_bcmp.c
+file lib/libkern/xcrc32.c
 file lib/libkern/arch/${MACHINE_ARCH}/strchr.S | lib/libkern/strchr.c
 file lib/libkern/arch/${MACHINE_ARCH}/strrchr.S | lib/libkern/strrchr.c
 file lib/libkern/arch/${MACHINE_ARCH}/__main.S | lib/libkern/__main.c

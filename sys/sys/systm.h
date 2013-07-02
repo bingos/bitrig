@@ -193,6 +193,10 @@ void	assertwaitok(void);
 #define	assertonemutex()	do { /* nothing */ } while (0)
 #endif
 
+extern uint32_t xcrc32_tab[];
+uint32_t xcrc32(const void *, size_t);
+uint32_t xcrc32_ext(const void *, size_t, uint32_t);
+
 void	tablefull(const char *);
 
 int	kcopy(const void *, void *, size_t)
