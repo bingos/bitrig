@@ -238,7 +238,9 @@ extern struct cpu_info *cpu_info_list;
 #define cpu_unidle(ci)
 
 extern struct cpu_info *cpu_info[MAXCPUS];
-#endif
+
+void cpu_boot_secondary_processors(void);
+#endif /* !MULTIPROCESSOR */
 
 #define curpcb		curcpu()->ci_curpcb
 
@@ -302,6 +304,10 @@ void board_startup(void);
 #endif	/* !_LOCORE */
 
 #endif /* _KERNEL */
+
+#ifdef MULTIPROCESSOR
+#include <sys/mplock.h>
+#endif /* MULTIPROCESSOR */
 
 #endif /* !_ARM_CPU_H_ */
 
