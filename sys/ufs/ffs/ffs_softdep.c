@@ -174,6 +174,14 @@ void softdep_deallocate_dependencies(struct buf *);
 void softdep_move_dependencies(struct buf *, struct buf *);
 int softdep_count_dependencies(struct buf *bp, int, int);
 
+struct bio_ops softdep_bioops = {
+	.io_start	= softdep_disk_io_initiation,
+	.io_complete	= softdep_disk_write_complete,
+	.io_deallocate	= softdep_deallocate_dependencies,
+	.io_movedeps	= softdep_move_dependencies,
+	.io_countdeps	= softdep_count_dependencies,
+};
+
 /*
  * Locking primitives.
  *
@@ -468,6 +476,10 @@ softdep_freequeue_process(void)
 	(item)->wk_state &= ~ONWORKLIST;	\
 	LIST_REMOVE(item, wk_list);		\
 } while (0)
+#define WORKLIST_INSERT_BUF(bp, item) do {	\
+	(bp)->b_ops = &softdep_bioops;		\
+	WORKLIST_INSERT(&(bp)->b_dep, (item));	\
+} while (0)
 #define WORKITEM_FREE(item, type) softdep_freequeue_add((struct worklist *)item)
 
 #else /* DEBUG */
@@ -476,6 +488,10 @@ STATIC	void worklist_remove(struct worklist *);
 STATIC	void workitem_free(struct worklist *);
 
 #define WORKLIST_INSERT(head, item) worklist_insert(head, item)
+#define WORKLIST_INSERT_BUF(bp, item) do {	\
+	(bp)->b_ops = &softdep_bioops;		\
+	WORKLIST_INSERT(&(bp)->b_dep, (item));	\
+} while (0)
 #define WORKLIST_REMOVE(item) worklist_remove(item)
 #define WORKITEM_FREE(item, type) workitem_free((struct worklist *)item)
 
@@ -833,6 +849,7 @@ softdep_move_dependencies(struct buf *oldbp, struct buf *newbp)
 		else
 			LIST_INSERT_AFTER(wktail, wk, wk_list);
 		wktail = wk;
+		newbp->b_ops = &softdep_bioops;
 	}
 	FREE_LOCK(&lk);
 }
@@ -1140,13 +1157,6 @@ top:
 void 
 softdep_initialize(void)
 {
-
-	bioops.io_start = softdep_disk_io_initiation;
-	bioops.io_complete = softdep_disk_write_complete;
-	bioops.io_deallocate = softdep_deallocate_dependencies;
-	bioops.io_movedeps = softdep_move_dependencies;
-	bioops.io_countdeps = softdep_count_dependencies;
-
 	LIST_INIT(&mkdirlisthd);
 	LIST_INIT(&softdep_workitem_pending);
 #ifdef KMEMSTATS
@@ -1357,7 +1367,7 @@ bmsafemap_lookup(struct buf *bp)
 	LIST_INIT(&bmsafemap->sm_inodedephd);
 	LIST_INIT(&bmsafemap->sm_newblkhd);
 	ACQUIRE_LOCK(&lk);
-	WORKLIST_INSERT(&bp->b_dep, &bmsafemap->sm_list);
+	WORKLIST_INSERT_BUF(bp, &bmsafemap->sm_list);
 	return (bmsafemap);
 }
 
@@ -1447,7 +1457,7 @@ softdep_setup_allocdirect(struct inode *ip, daddr_t lbn, daddr_t newblkno,
 		 */
 		panic("softdep_setup_allocdirect: Bonk art in the head");
 	}
-	WORKLIST_INSERT(&bp->b_dep, &adp->ad_list);
+	WORKLIST_INSERT_BUF(bp, &adp->ad_list);
 	if (lbn >= NDADDR) {
 		/* allocating an indirect block */
 		if (oldblkno != 0) {
@@ -1464,7 +1474,7 @@ softdep_setup_allocdirect(struct inode *ip, daddr_t lbn, daddr_t newblkno,
 		 */
 		if ((DIP(ip, mode) & IFMT) == IFDIR &&
 		    pagedep_lookup(ip, lbn, DEPALLOC, &pagedep) == 0)
-			WORKLIST_INSERT(&bp->b_dep, &pagedep->pd_list);
+			WORKLIST_INSERT_BUF(bp, &pagedep->pd_list);
 	}
 	/*
 	 * The list of allocdirects must be kept in sorted and ascending
@@ -1690,14 +1700,14 @@ softdep_setup_allocindir_page(struct inode *ip, daddr_t lbn, struct buf *bp,
 	 */
 	if ((DIP(ip, mode) & IFMT) == IFDIR &&
 	    pagedep_lookup(ip, lbn, DEPALLOC, &pagedep) == 0)
-		WORKLIST_INSERT(&nbp->b_dep, &pagedep->pd_list);
+		WORKLIST_INSERT_BUF(nbp, &pagedep->pd_list);
 	if (nbp == NULL) {
 		/*
 		 * XXXUBC - Yes, I know how to fix this, but not right now.
 		 */
 		panic("softdep_setup_allocindir_page: Bonk art in the head");
 	}
-	WORKLIST_INSERT(&nbp->b_dep, &aip->ai_list);
+	WORKLIST_INSERT_BUF(nbp, &aip->ai_list);
 	FREE_LOCK(&lk);
 	setup_allocindir_phase2(bp, ip, aip);
 }
@@ -1719,7 +1729,7 @@ softdep_setup_allocindir_meta(struct buf *nbp, struct inode *ip,
 
 	aip = newallocindir(ip, ptrno, newblkno, 0);
 	ACQUIRE_LOCK(&lk);
-	WORKLIST_INSERT(&nbp->b_dep, &aip->ai_list);
+	WORKLIST_INSERT_BUF(nbp, &aip->ai_list);
 	FREE_LOCK(&lk);
 	setup_allocindir_phase2(bp, ip, aip);
 }
@@ -1754,7 +1764,7 @@ setup_allocindir_phase2(struct buf *bp, struct inode *ip,
 		}
 		if (indirdep == NULL && newindirdep) {
 			indirdep = newindirdep;
-			WORKLIST_INSERT(&bp->b_dep, &indirdep->ir_list);
+			WORKLIST_INSERT_BUF(bp, &indirdep->ir_list);
 			newindirdep = NULL;
 		}
 		FREE_LOCK(&lk);
@@ -2054,7 +2064,7 @@ deallocate_dependencies(struct buf *bp, struct inodedep *inodedep)
 			bcopy(bp->b_data, indirdep->ir_savebp->b_data,
 			    bp->b_bcount);
 			WORKLIST_REMOVE(wk);
-			WORKLIST_INSERT(&indirdep->ir_savebp->b_dep, wk);
+			WORKLIST_INSERT_BUF(indirdep->ir_savebp, wk);
 			continue;
 
 		case D_PAGEDEP:
@@ -2588,7 +2598,7 @@ softdep_setup_directory_add(struct buf *bp, struct inode *dp, off_t diroffset,
 		mkdir1->md_buf = newdirbp;
 		ACQUIRE_LOCK(&lk);
 		LIST_INSERT_HEAD(&mkdirlisthd, mkdir1, md_mkdirs);
-		WORKLIST_INSERT(&newdirbp->b_dep, &mkdir1->md_list);
+		WORKLIST_INSERT_BUF(newdirbp, &mkdir1->md_list);
 		FREE_LOCK(&lk);
 		bdwrite(newdirbp);
 		/*
@@ -2608,7 +2618,7 @@ softdep_setup_directory_add(struct buf *bp, struct inode *dp, off_t diroffset,
 	 * Link into parent directory pagedep to await its being written.
 	 */
 	if (pagedep_lookup(dp, lbn, DEPALLOC, &pagedep) == 0)
-		WORKLIST_INSERT(&bp->b_dep, &pagedep->pd_list);
+		WORKLIST_INSERT_BUF(bp, &pagedep->pd_list);
 	dap->da_pagedep = pagedep;
 	LIST_INSERT_HEAD(&pagedep->pd_diraddhd[DIRADDHASH(offset)], dap,
 	    da_pdlist);
@@ -2879,7 +2889,7 @@ newdirrem(struct buf *bp, struct inode *dp, struct inode *ip, int isrmdir,
 	lbn = lblkno(dp->i_fs, dp->i_offset);
 	offset = blkoff(dp->i_fs, dp->i_offset);
 	if (pagedep_lookup(dp, lbn, DEPALLOC, &pagedep) == 0)
-		WORKLIST_INSERT(&bp->b_dep, &pagedep->pd_list);
+		WORKLIST_INSERT_BUF(bp, &pagedep->pd_list);
 	dirrem->dm_pagedep = pagedep;
 	/*
 	 * Check for a diradd dependency for the same directory entry.
@@ -3848,7 +3858,7 @@ softdep_disk_write_complete(struct buf *bp)
 	 */
 	while ((wk = LIST_FIRST(&reattach)) != NULL) {
 		WORKLIST_REMOVE(wk);
-		WORKLIST_INSERT(&bp->b_dep, wk);
+		WORKLIST_INSERT_BUF(bp, wk);
 	}
 #ifdef DEBUG
 	if (lk.lkt_held != -2)
@@ -4391,7 +4401,7 @@ softdep_update_inodeblock(struct inode *ip, struct buf *bp, int waitfor)
 	 */
 	inodedep->id_state &= ~COMPLETE;
 	if ((inodedep->id_state & ONWORKLIST) == 0)
-		WORKLIST_INSERT(&bp->b_dep, &inodedep->id_list);
+		WORKLIST_INSERT_BUF(bp, &inodedep->id_list);
 	/*
 	 * Any new dependencies associated with the incore inode must 
 	 * now be moved to the list associated with the buffer holding

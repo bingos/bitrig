@@ -1045,6 +1045,7 @@ buf_get(struct vnode *vp, daddr_t blkno, size_t size)
 	bp->b_freelist.tqe_next = NOLIST;
 	bp->b_synctime = time_uptime + 300;
 	bp->b_dev = NODEV;
+	bp->b_ops = NULL;
 	LIST_INIT(&bp->b_dep);
 	bp->b_bcount = size;
 

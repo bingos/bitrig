@@ -130,13 +130,13 @@ union bufq_data {
  * to use these hooks, a pointer to a set of bio_ops could be added
  * to each buffer.
  */
-extern struct bio_ops {
+struct bio_ops {
 	void	(*io_start)(struct buf *);
 	void	(*io_complete)(struct buf *);
 	void	(*io_deallocate)(struct buf *);
 	void	(*io_movedeps)(struct buf *, struct buf *);
 	int	(*io_countdeps)(struct buf *, int, int);
-} bioops;
+};
 
 /* The buffer header describes an I/O operation in the kernel. */
 struct buf {
@@ -174,6 +174,7 @@ struct buf {
 	int	b_validoff;		/* Offset in buffer of valid region. */
 	int	b_validend;		/* Offset of end of valid region. */
 	struct	workhead b_dep;		/* List of filesystem dependencies. */
+	struct	bio_ops *b_ops;		/* buffer operations */
 };
 
 /*
@@ -319,36 +320,36 @@ void buf_print(struct buf *);
 static __inline void
 buf_start(struct buf *bp)
 {
-	if (bioops.io_start)
-		(*bioops.io_start)(bp);
+	if (bp->b_ops != NULL && bp->b_ops->io_start != NULL)
+		(*bp->b_ops->io_start)(bp);
 }
 
 static __inline void
 buf_complete(struct buf *bp)
 {
-	if (bioops.io_complete)
-		(*bioops.io_complete)(bp);
+	if (bp->b_ops != NULL && bp->b_ops->io_complete != NULL)
+		(*bp->b_ops->io_complete)(bp);
 }
 
 static __inline void
 buf_deallocate(struct buf *bp)
 {
-	if (bioops.io_deallocate)
-		(*bioops.io_deallocate)(bp);
+	if (bp->b_ops != NULL && bp->b_ops->io_deallocate != NULL)
+		(*bp->b_ops->io_deallocate)(bp);
 }
 
 static __inline void
 buf_movedeps(struct buf *bp, struct buf *bp2)
 {
-	if (bioops.io_movedeps)
-		(*bioops.io_movedeps)(bp, bp2);
+	if (bp->b_ops != NULL && bp->b_ops->io_movedeps != NULL)
+		(*bp->b_ops->io_movedeps)(bp, bp2);
 }
 
 static __inline int
 buf_countdeps(struct buf *bp, int i, int islocked)
 {
-	if (bioops.io_countdeps)
-		return ((*bioops.io_countdeps)(bp, i, islocked));
+	if (bp->b_ops != NULL && bp->b_ops->io_countdeps != NULL)
+		return ((*bp->b_ops->io_countdeps)(bp, i, islocked));
 	else
 		return (0);
 }
