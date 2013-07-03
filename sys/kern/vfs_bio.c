@@ -706,7 +706,8 @@ bdwrite(struct buf *bp)
 void
 bawrite(struct buf *bp)
 {
-
+	/* XXX pedro: remove eventually */
+	KASSERT(buf_checkwrite(bp) == 0);
 	SET(bp->b_flags, B_ASYNC);
 	VOP_BWRITE(bp);
 }
@@ -1141,6 +1142,14 @@ buf_daemon(struct proc *p)
 			if (!ISSET(bp->b_flags, B_DELWRI))
 				panic("Clean buffer on BQ_DIRTY");
 #endif
+
+			if (LIST_FIRST(&bp->b_dep) != NULL &&
+			    buf_checkwrite(bp) != 0) {
+			    	    brelse(bp);
+			    	    s = splbio();
+			    	    continue;
+			}
+
 			if (LIST_FIRST(&bp->b_dep) != NULL &&
 			    !ISSET(bp->b_flags, B_DEFERRED) &&
 			    buf_countdeps(bp, 0, 0)) {

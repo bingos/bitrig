@@ -136,6 +136,7 @@ struct bio_ops {
 	void	(*io_deallocate)(struct buf *);
 	void	(*io_movedeps)(struct buf *, struct buf *);
 	int	(*io_countdeps)(struct buf *, int, int);
+	int	(*io_checkwrite)(struct buf *);
 };
 
 /* The buffer header describes an I/O operation in the kernel. */
@@ -350,6 +351,15 @@ buf_countdeps(struct buf *bp, int i, int islocked)
 {
 	if (bp->b_ops != NULL && bp->b_ops->io_countdeps != NULL)
 		return ((*bp->b_ops->io_countdeps)(bp, i, islocked));
+	else
+		return (0);
+}
+
+static __inline int
+buf_checkwrite(struct buf *bp)
+{
+	if (bp->b_ops != NULL && bp->b_ops->io_checkwrite != NULL)
+		return ((*bp->b_ops->io_checkwrite)(bp));
 	else
 		return (0);
 }
