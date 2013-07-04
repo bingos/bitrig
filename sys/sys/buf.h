@@ -143,7 +143,6 @@ struct buf {
 	SLIST_ENTRY(buf) b_list;	/* All allocated buffers. */
 	LIST_ENTRY(buf) b_vnbufs;	/* Buffer's associated vnode. */
 	TAILQ_ENTRY(buf) b_freelist;	/* Free list position if not active. */
-	time_t	b_synctime;		/* Time this buffer should be flushed */
 	struct  proc *b_proc;		/* Associated proc; NULL if kernel. */
 	volatile long	b_flags;	/* B_* flags. */
 	int	b_error;		/* Errno value. */

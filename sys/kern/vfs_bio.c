@@ -831,13 +831,10 @@ brelse(struct buf *bp)
 			bcstats.delwribufs++;
 			bufq = &bufqueues[BQ_DIRTY];
 		}
-		if (ISSET(bp->b_flags, B_AGE)) {
+		if (ISSET(bp->b_flags, B_AGE))
 			binsheadfree(bp, bufq);
-			bp->b_synctime = time_uptime + 30;
-		} else {
+		else
 			binstailfree(bp, bufq);
-			bp->b_synctime = time_uptime + 300;
-		}
 	}
 
 	/* Unlock the buffer. */
@@ -1044,7 +1041,6 @@ buf_get(struct vnode *vp, daddr_t blkno, size_t size)
 	}
 
 	bp->b_freelist.tqe_next = NOLIST;
-	bp->b_synctime = time_uptime + 300;
 	bp->b_dev = NODEV;
 	bp->b_ops = NULL;
 	LIST_INIT(&bp->b_dep);
