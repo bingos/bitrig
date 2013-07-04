@@ -49,7 +49,9 @@
  */
 
 #include "hammer.h"
+#include <sys/ioctl.h>
 #include <sys/fcntl.h>
+#include <sys/dkio.h>
 #include <sys/buf.h>
 
 static void hammer_io_modify(hammer_io_t io, int count);
@@ -1249,56 +1251,10 @@ hammer_io_deallocate(struct buf *bp)
 /*
  * bioops callback - hold io_token
  */
-static int
-hammer_io_fsync(struct vnode *vp)
-{
-	/* nothing to do, so io_token not needed */
-	return(0);
-}
-
-/*
- * NOTE: will not be called unless we tell the kernel about the
- * bioops.  Unused... we use the mount's VFS_SYNC instead.
- *
- * bioops callback - hold io_token
- */
-static int
-hammer_io_sync(struct mount *mp)
-{
-	/* nothing to do, so io_token not needed */
-	return(0);
-}
-
-/*
- * bioops callback - hold io_token
- */
 static void
 hammer_io_movedeps(struct buf *bp1, struct buf *bp2)
 {
 	/* nothing to do, so io_token not needed */
-}
-
-/*
- * I/O pre-check for reading and writing.  HAMMER only uses this for
- * B_CACHE buffers so checkread just shouldn't happen, but if it does
- * allow it.
- *
- * Writing is a different case.  We don't want the kernel to try to write
- * out a buffer that HAMMER may be modifying passively or which has a
- * dependancy.  In addition, kernel-demanded writes can only proceed for
- * certain types of buffers (i.e. UNDO and DATA types).  Other dirty
- * buffer types can only be explicitly written by the flusher.
- *
- * checkwrite will only be called for bdwrite()n buffers.  If we return
- * success the kernel is guaranteed to initiate the buffer write.
- *
- * bioops callback - hold io_token
- */
-static int
-hammer_io_checkread(struct buf *bp)
-{
-	/* nothing to do, so io_token not needed */
-	return(0);
 }
 
 /*
@@ -1398,11 +1354,8 @@ struct bio_ops hammer_bioops = {
 	.io_start	= hammer_io_start,
 	.io_complete	= hammer_io_complete,
 	.io_deallocate	= hammer_io_deallocate,
-	.io_fsync	= hammer_io_fsync,
-	.io_sync	= hammer_io_sync,
 	.io_movedeps	= hammer_io_movedeps,
 	.io_countdeps	= hammer_io_countdeps,
-	.io_checkread	= hammer_io_checkread,
 	.io_checkwrite	= hammer_io_checkwrite,
 };
 
@@ -1951,10 +1904,10 @@ hammer_io_direct_uncache_callback(hammer_inode_t ip, void *data)
 	 */
 	hammer_ref(&ip->lock);
 	if (hammer_get_vnode(ip, &vp) == 0) {
-		if ((bp = findblk(ip->vp, file_offset, FINDBLK_TEST)) != NULL &&
-		    bp->b_bio2.bio_offset != NOOFFSET) {
+		if ((bp = incore(ip->vp, file_offset)) != NULL &&
+		    bp->b_blkno != -1) {
 			bp = getblk(ip->vp, file_offset, blksize, 0, 0);
-			bp->b_bio2.bio_offset = NOOFFSET;
+			bp->b_blkno = -1;
 			brelse(bp);
 		}
 		vput(vp);
@@ -1971,7 +1924,7 @@ hammer_io_direct_uncache_callback(hammer_inode_t ip, void *data)
 static void
 hammer_io_flush_mark(hammer_volume_t volume)
 {
-	atomic_set_int(&volume->vol_flags, HAMMER_VOLF_NEEDFLUSH);
+	atomic_setbits_int(&volume->vol_flags, HAMMER_VOLF_NEEDFLUSH);
 }
 
 /*
@@ -1981,29 +1934,15 @@ void
 hammer_io_flush_sync(hammer_mount_t hmp)
 {
 	hammer_volume_t volume;
-	struct buf *bp_base = NULL;
-	struct buf *bp;
+	int force = 1;
 
 	RB_FOREACH(volume, hammer_vol_rb_tree, &hmp->rb_vols_root) {
 		if (volume->vol_flags & HAMMER_VOLF_NEEDFLUSH) {
-			atomic_clear_int(&volume->vol_flags,
-					 HAMMER_VOLF_NEEDFLUSH);
-			bp = getpbuf(NULL);
-			bp->b_bio1.bio_offset = 0;
-			bp->b_bufsize = 0;
-			bp->b_bcount = 0;
-			bp->b_cmd = BUF_CMD_FLUSH;
-			bp->b_bio1.bio_caller_info1.cluster_head = bp_base;
-			bp->b_bio1.bio_done = biodone_sync;
-			bp->b_bio1.bio_flags |= BIO_SYNC;
-			bp_base = bp;
-			vn_strategy(volume->devvp, &bp->b_bio1);
+			atomic_clearbits_int(&volume->vol_flags,
+					HAMMER_VOLF_NEEDFLUSH);
+			VOP_IOCTL(volume->devvp, DIOCCACHESYNC, (caddr_t)&force,
+			    FWRITE, NOCRED);
 		}
-	}
-	while ((bp = bp_base) != NULL) {
-		bp_base = bp->b_bio1.bio_caller_info1.cluster_head;
-		biowait(&bp->b_bio1, "hmrFLS");
-		relpbuf(bp, NULL);
 	}
 }
 
