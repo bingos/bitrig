@@ -268,8 +268,7 @@ typedef uint32_t	pt_entry_t;	/* L2 table entry */
  */
 #define	TEX_XSCALE_X	0x01		/* X modifies C and B */
 
-/* XXX: I don't wanna do MP now, but I want the S bit */
-#ifdef MULTIPROCESSOR
+#ifndef MULTIPROCESSOR
 #define ARM_L1S_STRONG_ORD      (0)
 #define ARM_L1S_DEVICE_NOSHARE  (L1_S_V7_TEX(2))
 #define ARM_L1S_DEVICE_SHARE    (L1_S_B)
