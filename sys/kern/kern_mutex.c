@@ -115,4 +115,5 @@ mtx_leave(struct mutex *mtx)
 	/* Clear interrupt block. */
 	if (mtx->mtx_wantipl != IPL_NONE)
 		splx(s);
+	SPINWAKE();
 }
