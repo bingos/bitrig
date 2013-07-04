@@ -120,8 +120,10 @@ imxsrc_reset_cpu(int id)
 	    bus_space_read_4(imxsrc_sc->sc_iot, imxsrc_sc->sc_ioh, SCR)
 	    | SCR_CORE_ENABLE(id) | SCR_CORE_RESET(id));
 
+#if 0
 	/* wait for hatch */
 	while(!arm_cpu_hatched)
 		cpu_drain_writebuf();
 	printf("cpu hatched!\n");
+#endif
 }
