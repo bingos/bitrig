@@ -188,6 +188,7 @@ struct cpu_info {
 	u_int32_t ci_randseed;
 
 	struct pcb *ci_curpcb;
+	struct pcb *ci_idle_pcb;
 
 	u_int32_t ci_arm_cpuid;		/* aggregate CPU id */
 	u_int32_t ci_arm_cputype;	/* CPU type */
@@ -279,7 +280,7 @@ extern int want_resched;	/* resched() was called */
 
 struct device;
 void	cpu_attach	(struct device *);
-int	cpu_alloc_idlepcb	(struct cpu_info *);
+int	cpu_alloc_idle_pcb	(struct cpu_info *);
 
 /*
  * Random cruft
