@@ -1657,6 +1657,40 @@ vfs_shutdown(void)
 		printf("done\n");
 }
 
+struct vfs_sync_info {
+	int nbusy;
+	int dcount;
+};
+
+int vfs_syncbuf(struct buf *, void *);
+
+int
+vfs_syncbuf(struct buf *bp, void *data)
+{
+	struct vfs_sync_info *info = data;
+	int s;
+
+	if ((bp->b_flags & (B_BUSY | B_INVAL | B_READ)) == B_BUSY)
+		info->nbusy++;
+
+	/*
+	 * With soft updates, some buffers that are written will be remarked as
+	 * dirty until other buffers are written.
+	 */
+	if (bp->b_flags & B_DELWRI) {
+		s = splbio();
+		bremfree(bp);
+		buf_acquire(bp);
+		splx(s);
+		info->nbusy++;
+		bawrite(bp);
+		if (info->dcount-- <= 0)
+			return (1); /* stop */
+	}
+
+	return (0); /* continue */
+}
+
 /*
  * perform sync() operation and wait for buffers to flush.
  * assumptions: called w/ scheduler disabled and physical io enabled
@@ -1665,47 +1699,30 @@ vfs_shutdown(void)
 int
 vfs_syncwait(int verbose)
 {
-	struct buf *bp;
-	int iter, nbusy, dcount, s;
+	int iter, stopped;
+	struct vfs_sync_info info;
 	struct proc *p;
 
-	p = curproc? curproc : &proc0;
+	p = curproc ? curproc : &proc0;
 	sys_sync(p, (void *)0, (register_t *)0);
 
 	/* Wait for sync to finish. */
-	dcount = 10000;
+	info.dcount = 10000;
 	for (iter = 0; iter < 20; iter++) {
-		nbusy = 0;
-		LIST_FOREACH(bp, &bufhead, b_list) {
-			if ((bp->b_flags & (B_BUSY|B_INVAL|B_READ)) == B_BUSY)
-				nbusy++;
-			/*
-			 * With soft updates, some buffers that are
-			 * written will be remarked as dirty until other
-			 * buffers are written.
-			 */
-			if (bp->b_flags & B_DELWRI) {
-				s = splbio();
-				bremfree(bp);
-				buf_acquire(bp);
-				splx(s);
-				nbusy++;
-				bawrite(bp);
-				if (dcount-- <= 0) {
-					if (verbose)
-						printf("softdep ");
-					return 1;
-				}
-			}
+		info.nbusy = 0;
+		stopped = global_buflist_foreach(vfs_syncbuf, &info);
+		if (stopped && verbose) {
+			printf("softdep ");
+			return (1);
 		}
-		if (nbusy == 0)
+		if (info.nbusy == 0)
 			break;
 		if (verbose)
-			printf("%d ", nbusy);
+			printf("%d ", info.nbusy);
 		DELAY(40000 * iter);
 	}
 
-	return nbusy;
+	return info.nbusy;
 }
 
 /*

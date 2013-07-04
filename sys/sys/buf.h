@@ -52,8 +52,6 @@ struct vnode;
 struct buf_rb_bufs;
 RB_PROTOTYPE(buf_rb_bufs, buf, b_rbbufs, rb_buf_compare);
 
-LIST_HEAD(bufhead, buf);
-
 /*
  * To avoid including <ufs/ffs/softdep.h>
  */
@@ -142,7 +140,7 @@ struct bio_ops {
 /* The buffer header describes an I/O operation in the kernel. */
 struct buf {
 	RB_ENTRY(buf) b_rbbufs;		/* vnode "hash" tree */
-	LIST_ENTRY(buf) b_list;		/* All allocated buffers. */
+	SLIST_ENTRY(buf) b_list;	/* All allocated buffers. */
 	LIST_ENTRY(buf) b_vnbufs;	/* Buffer's associated vnode. */
 	TAILQ_ENTRY(buf) b_freelist;	/* Free list position if not active. */
 	time_t	b_synctime;		/* Time this buffer should be flushed */
@@ -262,7 +260,6 @@ __BEGIN_DECLS
 extern struct proc *cleanerproc;
 extern long bufpages;		/* Max number of pages for buffers' data */
 extern struct pool bufpool;
-extern struct bufhead bufhead;
 
 void	bawrite(struct buf *);
 void	bdwrite(struct buf *);
@@ -365,6 +362,11 @@ buf_checkwrite(struct buf *bp)
 }
 
 void	cluster_write(struct buf *, struct cluster_info *, u_quad_t);
+
+void		global_buflist_init(void);
+__inline void	global_buflist_insert(struct buf *);
+__inline void	global_buflist_remove(struct buf *);
+int		global_buflist_foreach(int (*)(struct buf *, void *), void *);
 
 __END_DECLS
 #endif /* _KERNEL */

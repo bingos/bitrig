@@ -120,31 +120,58 @@ ffs_fragacct(struct fs *fs, int fragmap, int32_t fraglist[], int cnt)
 }
 
 #if defined(_KERNEL) && defined(DIAGNOSTIC)
+struct ffs_checkoverlap_info {
+	struct buf *bp;
+	struct inode *ip;
+	daddr_t start;
+	daddr_t last;
+};
+
+int ffs_checkoverlap_buf(struct buf *, void *);
+
+int
+ffs_checkoverlap_buf(struct buf *ep, void *data)
+{
+	struct ffs_checkoverlap_info *info = data;
+	struct buf *bp = info->bp;
+	struct inode *ip = info->ip;
+	struct vnode *vp;
+
+	if (ep == bp || (ep->b_flags & B_INVAL) || ep->b_vp == NULLVP)
+		return (0);
+
+	if (VOP_BMAP(ep->b_vp, (daddr_t)0, &vp, NULL, NULL))
+		return (0);
+
+	if (vp != ip->i_devvp)
+		return (0);
+
+	/* look for overlap */
+	if (ep->b_bcount == 0 || ep->b_blkno > info->last ||
+	    ep->b_blkno + btodb(ep->b_bcount) <= info->start)
+		return (0);
+
+	vprint("Disk overlap", vp);
+	(void)printf("\toverlap start %llu, end %llu ", ep->b_blkno,
+	    ep->b_blkno + btodb(ep->b_bcount) - 1);
+
+	return (1);
+}
+
 void
 ffs_checkoverlap(struct buf *bp, struct inode *ip)
 {
-	daddr_t start, last;
-	struct vnode *vp;
-	struct buf *ep;
+	struct ffs_checkoverlap_info info;
+	int overlap;
 
-	start = bp->b_blkno;
-	last = start + btodb(bp->b_bcount) - 1;
-	LIST_FOREACH(ep, &bufhead, b_list) {
-		if (ep == bp || (ep->b_flags & B_INVAL) ||
-		    ep->b_vp == NULLVP)
-			continue;
-		if (VOP_BMAP(ep->b_vp, (daddr_t)0, &vp, NULL, NULL))
-			continue;
-		if (vp != ip->i_devvp)
-			continue;
-		/* look for overlap */
-		if (ep->b_bcount == 0 || ep->b_blkno > last ||
-		    ep->b_blkno + btodb(ep->b_bcount) <= start)
-			continue;
-		vprint("Disk overlap", vp);
-		(void)printf("\tstart %lld, end %lld overlap start %llu, end %llu\n",
-			start, last, ep->b_blkno,
-			ep->b_blkno + btodb(ep->b_bcount) - 1);
+	info.start = bp->b_blkno;
+	info.last = info.start + btodb(bp->b_bcount) - 1;
+	info.bp = bp;
+	info.ip = ip;
+
+	overlap = global_buflist_foreach(ffs_checkoverlap_buf, &info);
+	if (overlap) {
+		(void)printf("start %lld, end %lld\n", info.start, info.last);
 		panic("Disk buffer overlap");
 	}
 }

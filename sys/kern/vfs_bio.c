@@ -77,7 +77,6 @@ struct bio_ops bioops;
  * Buffer pool for I/O buffers.
  */
 struct pool bufpool;
-struct bufhead bufhead = LIST_HEAD_INITIALIZER(bufhead);
 void buf_put(struct buf *);
 
 /*
@@ -167,8 +166,7 @@ buf_put(struct buf *bp)
 		panic("buf_put: b_dep is not empty");
 #endif
 
-	LIST_REMOVE(bp, b_list);
-	bcstats.numbufs--;
+	global_buflist_remove(bp);
 
 	if (buf_dealloc_mem(bp) != 0)
 		return;
@@ -272,6 +270,8 @@ bufinit(void)
 	 */
 	hipages = bufpages - RESERVE_PAGES;
 	lopages = hipages - (hipages / 10);
+
+	global_buflist_init();
 }
 
 /*
@@ -1077,8 +1077,7 @@ buf_get(struct vnode *vp, daddr_t blkno, size_t size)
 		bp->b_vp = NULL;
 	}
 
-	LIST_INSERT_HEAD(&bufhead, bp, b_list);
-	bcstats.numbufs++;
+	global_buflist_insert(bp);
 
 	if (size) {
 		buf_alloc_pages(bp, round_page(size));
@@ -1281,3 +1280,51 @@ bcstats_print(
 	    bcstats.pendingreads, bcstats.pendingwrites);
 }
 #endif
+
+SLIST_HEAD(buflist, buf) global_buflist;
+struct mutex global_buflist_mtx;
+
+void
+global_buflist_init(void)
+{
+	mtx_init(&global_buflist_mtx, IPL_BIO);
+	SLIST_INIT(&global_buflist);
+	bcstats.numbufs = 0;
+}
+
+__inline void
+global_buflist_insert(struct buf *bp)
+{
+	mtx_enter(&global_buflist_mtx);
+	SLIST_INSERT_HEAD(&global_buflist, bp, b_list);
+	mtx_leave(&global_buflist_mtx);
+	bcstats.numbufs++;
+}
+
+__inline void
+global_buflist_remove(struct buf *bp)
+{
+	mtx_enter(&global_buflist_mtx);
+	SLIST_REMOVE(&global_buflist, bp, buf, b_list);
+	mtx_leave(&global_buflist_mtx);
+	bcstats.numbufs--;
+}
+
+int
+global_buflist_foreach(int (*func)(struct buf *, void *), void *data)
+{
+	struct buf *bp;
+	int stop;
+
+	mtx_enter(&global_buflist_mtx);
+	SLIST_FOREACH(bp, &global_buflist, b_list) {
+		mtx_leave(&global_buflist_mtx);
+		stop = (*func)(bp, data);
+		if (stop)
+			return (stop);
+		mtx_enter(&global_buflist_mtx);
+	}
+	mtx_leave(&global_buflist_mtx);
+
+	return (0);
+}
