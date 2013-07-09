@@ -3,6 +3,7 @@
 
 .include <bsd.own.mk>
 
+SUBDIR+=	cc
 SUBDIR+=	texinfo
 SUBDIR+=	perl
 
