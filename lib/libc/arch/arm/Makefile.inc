@@ -9,7 +9,7 @@ KMSRCS=arch/arm/gen/divsi3.S arch/arm/string/memmove.S \
 
 #SRCS+=	__sigaction14_sigtramp.c __sigtramp1.S
 
-CPPFLAGS += -DSOFTFLOAT
+#CPPFLAGS += -DSOFTFLOAT
 
-SOFTFLOAT_BITS=32
+#SOFTFLOAT_BITS=32
 .include <arch/arm/softfloat/Makefile.inc>

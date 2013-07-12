@@ -18,7 +18,7 @@ CCCROSSOPTS=
 # this variable to work.
 .if	(${TARGET} == "beagle" || ${TARGET} == "imx")
 TARGET_ARCH=	arm
-CCCROSSOPTS+="-march=armv7-a -mfloat-abi=soft"
+CCCROSSOPTS+="-march=armv7-a -mfloat-abi=hard -mfpu=vfp3 -Wa,-march=armv7-a,-mfpu=vfp3,-mfloat-abi=hard" 
 .else
 TARGET_ARCH=	${TARGET}
 .endif
