@@ -2,10 +2,10 @@
 
 .include <bsd.own.mk>
 
-BINDIR=		/usr/bin
+BINDIR=		/usr/libexec
 
 XCFLAGS=	CC="${CC}" CFLAGS="${CFLAGS} ${COPTS}" LDFLAGS="${LDFLAGS}"
-CONFIGURE_OPTS=	--prefix=/usr \
+CONFIGURE_OPTS=	--prefix=/usr
 
 PROG=	mcpp
 
