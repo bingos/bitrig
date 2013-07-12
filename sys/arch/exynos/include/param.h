@@ -1,9 +1,8 @@
-/*	$OpenBSD: cortex.h,v 1.1 2013/05/01 00:16:26 patrick Exp $	*/
-/* $NetBSD: mainbus.h,v 1.1 2001/02/24 19:38:02 reinoud Exp $ */
+/*	$OpenBSD: param.h,v 1.3 2011/03/23 16:54:34 pirofti Exp $	*/
+/*	$NetBSD: param.h,v 1.4 2002/02/12 06:58:19 thorpej Exp $	*/
 
 /*
  * Copyright (c) 1994,1995 Mark Brinicombe.
- * Copyright (c) 1994 Brini.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -16,15 +15,15 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by Brini.
- * 4. The name of the company nor the name of the author may be used to
+ *	This product includes software developed by the RiscBSD team.
+ * 4. The name "RiscBSD" nor the name of the author may be used to
  *    endorse or promote products derived from this software without specific
  *    prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY BRINI ``AS IS'' AND ANY EXPRESS OR IMPLIED
+ * THIS SOFTWARE IS PROVIDED BY RISCBSD ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL BRINI OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * IN NO EVENT SHALL RISCBSD OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
  * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
  * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -32,25 +31,21 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * RiscBSD kernel project
- *
- * mainbus.h
- *
- * mainbus configuration
- *
- * Created      : 15/12/94
  */
+
+#ifndef	_MACHINE_PARAM_H_
+#define	_MACHINE_PARAM_H_
 
 /*
- * cortex driver attach arguments
+ * 1 page should be enough
  */
+#ifndef MSGBUFSIZE
+#define MSGBUFSIZE	(1*NBPG)
+#endif
 
-struct cortex_attach_args {
-	char *ca_name;
-	bus_space_tag_t ca_iot;
-	bus_dma_tag_t ca_dmat;
-	uint32_t ca_periphbase;
-	uint32_t ca_gic_icd;
-	uint32_t ca_gic_icp;
-};
+#include <arm/param.h>
+
+#define	_MACHINE	exynos
+#define	MACHINE		"exynos"
+
+#endif	/* _MACHINE_PARAM_H_ */

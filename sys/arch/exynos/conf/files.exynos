@@ -1,0 +1,123 @@
+#	$OpenBSD: files.beagle,v 1.11 2011/11/10 19:37:01 uwe Exp $
+#
+# First try for arm-specific configuration info
+#
+
+maxpartitions	16
+maxusers	2 8 64
+
+major	{wd = 16}
+major	{sd = 24}
+major	{cd = 26}
+major	{rd = 18}
+
+file	arch/arm/arm/conf.c
+
+file	arch/exynos/exynos/exynos_machdep.c
+
+#interrupt API layer
+file	arch/exynos/exynos/intr.c
+
+# u-boot argument support
+file	arch/exynos/exynos/uboot_tags.c
+
+# note that the order of the devices in _this_ file
+# affects the order that the devices will configure.
+
+# XXX arch/arm/ex
+define soc {}
+device exynos: soc
+attach exynos at mainbus
+file	arch/exynos/dev/exynos.c		exynos
+file	arch/exynos/dev/exynos5.c		exynos
+
+# serial ports
+device exuart
+attach	exuart at soc
+file	arch/exynos/dev/exuart.c		exuart
+
+device exdisplay: wsemuldisplaydev, rasops16
+attach exdisplay at soc
+file	arch/exynos/dev/exdisplay.c		exdisplay
+
+device exccm
+attach exccm at soc
+file	arch/exynos/dev/exccm.c			exccm
+
+device exiomuxc
+attach exiomuxc at soc
+file	arch/exynos/dev/exiomuxc.c		exiomuxc
+
+device exmct
+attach exmct at soc
+file	arch/exynos/dev/exmct.c			exmct
+
+device exdog
+attach exdog at soc
+file	arch/exynos/dev/exdog.c			exdog
+
+device exgpio
+attach exgpio at soc
+file	arch/exynos/dev/exgpio.c		exgpio
+
+device	exiic: i2cbus
+attach	exiic at soc
+file	arch/exynos/dev/exiic.c			exiic
+
+attach ehci at soc with exehci
+file	arch/exynos/dev/exehci.c		exehci
+
+include "dev/sdmmc/files.sdmmc"
+
+device exesdhc: sdmmcbus
+attach exesdhc at soc
+file	arch/exynos/dev/exesdhc.c		exesdhc
+
+# Machine-independent SCSI drivers
+#
+include "scsi/files.scsi"
+include "dev/atapiscsi/files.atapiscsi"
+
+# CPU support and integrated peripherals
+file	arch/arm/arm/irq_dispatch.S
+file	arch/arm/arm/softintr.c
+
+#
+# Machine-independent ATA drivers
+#
+include "dev/ata/files.ata"
+
+# Generic MD files
+file	arch/exynos/exynos/autoconf.c
+
+file	arch/arm/arm/disksubr.c			disk
+
+
+# ARM FPE
+file	arch/arm/fpe-arm/armfpe_glue.S		armfpe
+file	arch/arm/fpe-arm/armfpe_init.c		armfpe
+file	arch/arm/fpe-arm/armfpe.s		armfpe
+
+
+# Machine-independent I2O drivers.
+include "dev/i2o/files.i2o"
+
+# Include WSCONS stuff
+include "dev/wscons/files.wscons"
+include "dev/rasops/files.rasops"
+include "dev/wsfont/files.wsfont"
+
+# Include USB stuff
+include "dev/usb/files.usb"
+
+# Bluetooth
+include "dev/bluetooth/files.bluetooth"
+
+# Media Independent Interface (mii)
+include "dev/mii/files.mii"
+
+# Machine-independent I2C drivers
+include "dev/i2c/files.i2c"
+
+# Machine-independent I2C drivers
+include "dev/gpio/files.gpio"
