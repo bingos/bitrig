@@ -40,9 +40,13 @@ device exdisplay: wsemuldisplaydev, rasops16
 attach exdisplay at soc
 file	arch/exynos/dev/exdisplay.c		exdisplay
 
-device exccm
-attach exccm at soc
-file	arch/exynos/dev/exccm.c			exccm
+device expower
+attach expower at soc
+file	arch/exynos/dev/expower.c		expower
+
+device exsysreg
+attach exsysreg at soc
+file	arch/exynos/dev/exsysreg.c		exsysreg
 
 device exiomuxc
 attach exiomuxc at soc

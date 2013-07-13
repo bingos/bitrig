@@ -74,7 +74,8 @@ exynos0		at mainbus?
 # Exynos on-chip devices
 exdisplay*	at soc?			# display driver
 wsdisplay*	at exdisplay? console ?
-exccm*		at soc?			# clock control module
+expower*	at soc?			# clock control module
+exsysreg*	at soc?			# clock control module
 exiomuxc*	at soc?			# iomux controller
 exmct*		at soc?			# multicore timer
 exdog*		at soc?			# watchdog timer

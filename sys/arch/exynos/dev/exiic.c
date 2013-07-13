@@ -158,7 +158,7 @@ exiic_setspeed(struct exiic_softc *sc, u_int speed)
 		uint32_t div;
 		int i;
 
-		i2c_clk_rate = exccm_get_ipg_perclk();
+		i2c_clk_rate = 0; /* XXX */
 		div = (i2c_clk_rate + speed - 1) / speed;
 		if (div < exiic_clk_div[0][0])
 			i = 0;
@@ -327,7 +327,7 @@ exiic_i2c_exec(void *cookie, i2c_op_t op, i2c_addr_t addr,
 	addr &= 0x7f;
 
 	/* clock gating */
-	exccm_enable_i2c(sc->unit);
+	//exccm_enable_i2c(sc->unit);
 
 	/* set speed to 100kHz */
 	exiic_setspeed(sc, 100);

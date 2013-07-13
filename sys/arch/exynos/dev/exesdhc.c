@@ -274,7 +274,8 @@ exesdhc_attach(struct device *parent, struct device *self, void *args)
 	/*
 	 * Determine the base clock frequency. (2.2.24)
 	 */
-	sc->clkbase = exccm_get_usdhx(ea->ea_dev->unit + 1);
+	//sc->clkbase = exccm_get_usdhx(ea->ea_dev->unit + 1);
+	sc->clkbase = 0;
 
 	/*
 	 * Determine SD bus voltage levels supported by the controller.

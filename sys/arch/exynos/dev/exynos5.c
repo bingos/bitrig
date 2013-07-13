@@ -33,8 +33,11 @@
 #define WD_ADDR		0x101d0000
 #define WD_SIZE		0x400
 
-#define OCOTP_ADDR	0x021bc000
-#define OCOTP_SIZE	0x4000
+#define POWER_ADDR	0x10040000
+#define POWER_SIZE	0x1000
+
+#define SYSREG_ADDR	0x10050000
+#define SYSREG_SIZE	0x1000
 
 #define UARTx_SIZE	0x100
 #define UART1_ADDR	0x12c00000
@@ -51,7 +54,7 @@
 #define USB_PHY_ADDR	0x12130000
 #define USBx_SIZE	0x1000
 
-#define USB_IRQ		70
+#define USB_IRQ		71
 
 #define GPIO1_ADDR	0x11400000
 #define GPIO1_SIZE	0x280
@@ -123,6 +126,26 @@ struct ex_dev exynos5_devs[] = {
 	  .unit = 0,
 	  .mem = {
 	    { WD_ADDR, WD_SIZE },
+	  },
+	},
+
+	/*
+	 * Power
+	 */
+	{ .name = "expower",
+	  .unit = 0,
+	  .mem = {
+	    { POWER_ADDR, POWER_SIZE },
+	  },
+	},
+
+	/*
+	 * Sysreg
+	 */
+	{ .name = "exsysreg",
+	  .unit = 0,
+	  .mem = {
+	    { SYSREG_ADDR, SYSREG_SIZE },
 	  },
 	},
 

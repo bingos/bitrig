@@ -50,11 +50,11 @@ struct board_dev {
 	int unit;
 };
 
-struct board_dev sabrelite_devs[] = {
+struct board_dev chromebook_devs[] = {
 	{ "exmct",	0 },
 	{ "exdog",	0 },
-	{ "ehci",	0 },
-//	{ "exccm",	0 },
+	{ "expower",	0 },
+	{ "exsysreg",	0 },
 //	{ "exiomuxc",	0 },
 //	{ "exuart",	1 },
 	{ "exgpio",	0 },
@@ -62,6 +62,8 @@ struct board_dev sabrelite_devs[] = {
 	{ "exgpio",	2 },
 	{ "exgpio",	3 },
 	{ "exgpio",	4 },
+	{ "ehci",	0 },
+//	{ "exiic",	4 },
 //	{ "exesdhc",	2 },
 //	{ "exesdhc",	3 },
 	{ NULL,		0 }
@@ -103,7 +105,7 @@ exynos_attach(struct device *parent, struct device *self, void *aux)
 	case BOARD_ID_EXYNOS5_CHROMEBOOK:
 		printf(": Exynos 5 Chromebook\n");
 		exynos5_init();
-		board_devs = sabrelite_devs;
+		board_devs = chromebook_devs;
 		break;
 	default:
 		printf("\n");
