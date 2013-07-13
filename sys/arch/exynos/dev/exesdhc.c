@@ -32,7 +32,7 @@
 #include <dev/sdmmc/sdmmcvar.h>
 
 #include <exynos/dev/exvar.h>
-#include <exynos/dev/exccmvar.h>
+#include <exynos/dev/exclockvar.h>
 #include <exynos/dev/exgpiovar.h>
 
 /* registers */

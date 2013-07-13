@@ -53,6 +53,7 @@ struct board_dev {
 struct board_dev chromebook_devs[] = {
 	{ "exmct",	0 },
 	{ "exdog",	0 },
+	{ "exclock",	0 },
 	{ "expower",	0 },
 	{ "exsysreg",	0 },
 //	{ "exiomuxc",	0 },

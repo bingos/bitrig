@@ -40,7 +40,7 @@
 #include <exynos/dev/exuartreg.h>
 #include <exynos/dev/exuartvar.h>
 #include <exynos/dev/exvar.h>
-#include <exynos/dev/exccmvar.h>
+#include <exynos/dev/exclockvar.h>
 
 #define DEVUNIT(x)      (minor(x) & 0x7f)
 #define DEVCUA(x)       (minor(x) & 0x80)

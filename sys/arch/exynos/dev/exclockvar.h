@@ -15,17 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef EXCCMVAR_H
-#define EXCCMVAR_H
+#ifndef EXCLOCKVAR_H
+#define EXCLOCKVAR_H
 
-unsigned int exccm_get_usdhx(int x);
-unsigned int exccm_get_fecclk(void);
-unsigned int exccm_get_uartclk(void);
-unsigned int exccm_get_ipg_perclk(void);
-unsigned int exccm_get_ahbclk(void);
-void exccm_enable_i2c(int x);
-void exccm_enable_usboh3(void);
-void exccm_disable_usb2_chrg_detect(void);
-void exccm_enable_pll_usb2(void);
+unsigned int exclock_get_i2cclk(void);
 
-#endif /* EXCCMVAR_H */
+#endif /* EXCLOCKVAR_H */

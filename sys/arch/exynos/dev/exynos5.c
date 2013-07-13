@@ -33,6 +33,9 @@
 #define WD_ADDR		0x101d0000
 #define WD_SIZE		0x400
 
+#define CLOCK_ADDR	0x10010000
+#define CLOCK_SIZE	0x5000
+
 #define POWER_ADDR	0x10040000
 #define POWER_SIZE	0x1000
 
@@ -126,6 +129,16 @@ struct ex_dev exynos5_devs[] = {
 	  .unit = 0,
 	  .mem = {
 	    { WD_ADDR, WD_SIZE },
+	  },
+	},
+
+	/*
+	 * Clock
+	 */
+	{ .name = "exclock",
+	  .unit = 0,
+	  .mem = {
+	    { CLOCK_ADDR, CLOCK_SIZE },
 	  },
 	},
 
