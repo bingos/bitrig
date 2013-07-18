@@ -60,7 +60,7 @@ do
 
 	case $A in
 	-nostdinc)
-		STDINC=-I-
+		STDINC=
 		;;
 	-traditional)
 		TRAD=-@old
