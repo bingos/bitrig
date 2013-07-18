@@ -40,22 +40,17 @@
 #	doesn't search gcc-include
 #
 PATH=/usr/bin:/bin
-DGNUC="@GNUC@"
+DGNUC="-D__GNUC__"
 STDINC="-I/usr/include"
-DOLLAR="@dollaropt@"
-INCS="-nostdinc"
+INCS="-I-"
 FOUNDFILES=false
 
-CPP=/usr/libexec/cpp
+CPP=/usr/libexec/mcpp
 OPTS=""
-TRAD=-traditional
+TRAD=-@old
 
 if [ ! -x $CPP ]; then
-	CPP=`cc -print-search-dirs | sed -ne '/^install: /s/install: \(.*\)/\1cpp/p'`;
-	if [ ! -x $CPP ]; then
-		echo "$0: installation problem: $CPP not found/executable" >&2
-		exit 1
-	fi
+	echo "installation problem: cpp not found/executable" >&2
 fi
 
 while [ $# -gt 0 ]
@@ -65,10 +60,10 @@ do
 
 	case $A in
 	-nostdinc)
-		STDINC=
+		STDINC=-I-
 		;;
 	-traditional)
-		TRAD=-traditional
+		TRAD=-@old
 		;;
 	-notraditional)
 		TRAD=
@@ -88,7 +83,7 @@ do
 		;;
 	*)
 		FOUNDFILES=true
-		eval $CPP $TRAD $DGNUC $DOLLAR $INCS $STDINC $OPTS $A || exit $?
+		eval $CPP $TRAD $DGNUC $INCS $STDINC $OPTS $A || exit $?
 		;;
 	esac
 done
@@ -96,7 +91,7 @@ done
 if ! $FOUNDFILES
 then
 	# read standard input
-	eval exec $CPP $TRAD $DGNUC $DOLLAR $INCS $STDINC $OPTS
+	eval exec $CPP $TRAD $DGNUC $INCS $STDINC $OPTS
 fi
 
 exit 0
