@@ -47,7 +47,7 @@ FOUNDFILES=false
 
 CPP=/usr/libexec/mcpp
 OPTS=""
-TRAD=-@old
+TRAD="-@old -k"
 
 if [ ! -x $CPP ]; then
 	echo "installation problem: cpp not found/executable" >&2
@@ -63,7 +63,7 @@ do
 		STDINC=
 		;;
 	-traditional)
-		TRAD=-@old
+		TRAD="-@old -k"
 		;;
 	-notraditional)
 		TRAD=
