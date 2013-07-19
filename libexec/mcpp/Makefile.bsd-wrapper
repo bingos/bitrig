@@ -1,15 +1,13 @@
-#	$OpenBSD: Makefile.bsd-wrapper,v 1.8 2013/03/29 12:13:12 sthen Exp $
-
 .include <bsd.own.mk>
 
 BINDIR=		/usr/libexec
 
 XCFLAGS=	CC="${CC}" CFLAGS="${CFLAGS} ${COPTS}" LDFLAGS="${LDFLAGS}"
-CONFIGURE_OPTS=	--prefix=/usr
+CONFIGURE_OPTS=	--prefix=/usr --enable-replace-cpp
 
 PROG=	mcpp
 
-MAN=	mcpp.1  mcpp-gcc.1
+MAN=	${.CURDIR}/mcpp.1 ${.CURDIR}/mcpp-gcc.1
 
 all:	gnu
 
@@ -26,13 +24,13 @@ gnu:	config.status
 
 config: .FORCE
 	-rm -f config.cache
-	PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin" \
+	PATH="/bin:/usr/bin:/sbin:/usr/sbin" \
 	${XCFLAGS} \
 	INSTALL_PROGRAM="${INSTALL} ${INSTALL_COPY} ${INSTALL_STRIP}" \
 	sh ${.CURDIR}/configure ${CONFIGURE_OPTS}
 
 config.status:
-	PATH="/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin" \
+	PATH="/bin:/usr/bin:/sbin:/usr/sbin" \
 	${XCFLAGS} \
 	INSTALL_PROGRAM="${INSTALL} ${INSTALL_COPY} ${INSTALL_STRIP}" \
 	sh ${.CURDIR}/configure ${CONFIGURE_OPTS}
@@ -46,7 +44,7 @@ install: maninstall
 .for file in ${PROG}
 	${INSTALL} ${INSTALL_COPY} ${INSTALL_STRIP} \
 		-o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
-		${file} ${DESTDIR}${BINDIR}
+		src/${file} ${DESTDIR}${BINDIR}
 .endfor
 
 BEFOREMAN= config.status
@@ -55,8 +53,25 @@ clean cleandir:
 	-@if [ -e Makefile ]; then ${MAKE} clean; fi
 	rm -f ${CLEANFILES}
 
+DOTH_MAJOR!=${CC} -E -dM - </dev/null | grep __GNUC__ | awk '{ print $$3 }'
+DOTH_MINOR!=${CC} -E -dM - </dev/null | grep __GNUC_MINOR__ | awk '{ print $$3 }'
+DOTH_FILE=`printf "gcc%d%d_predef_old.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
+DOTH_FILE2=`printf "gcc%d%d_predef_std.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
+DOTH_FILE3=`printf "gxx%d%d_predef_std.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
+ARCHDIR=mcpp-gcc-.`uname -m`
+
 depend:
-	# Nothing here so far...
+	${CC} -E -dM - </dev/null > ${DOTH_FILE}
+
+includes:
+	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m 755 \
+		${DESTDIR}/usr/include/${ARCHDIR}
+	${INSTALL} ${INSTALL_COPY} -m 444 ${DOTH_FILE} \
+		${DESTDIR}/usr/include/${ARCHDIR}
+	ln -f ${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE} \
+		${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE2}
+	ln -f ${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE} \
+		${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE3}
 
 lint:
 	# Nothing here so far...
