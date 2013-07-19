@@ -9,6 +9,14 @@ PROG=	mcpp
 
 MAN=	${.CURDIR}/mcpp.1 ${.CURDIR}/mcpp-gcc.1
 
+# generate #define file mcpp expects during runtime
+DOTH_MAJOR!=${CC} -E -dM - </dev/null | grep __GNUC__ | awk '{ print $$3 }'
+DOTH_MINOR!=${CC} -E -dM - </dev/null | grep __GNUC_MINOR__ | awk '{ print $$3 }'
+DOTH_FILE=`printf "gcc%d%d_predef_old.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
+DOTH_FILE2=`printf "gcc%d%d_predef_std.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
+DOTH_FILE3=`printf "gxx%d%d_predef_std.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
+ARCHDIR=mcpp-gcc-.`uname -m`
+
 all:	gnu
 
 .ifndef NOMAN
@@ -40,7 +48,19 @@ maninstall:
 	@echo NOMAN is set
 .endif
 
-install: maninstall
+runtimeinstall:
+	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m 755 \
+		${DESTDIR}/usr/include/${ARCHDIR}
+	${CC} -E -dM - </dev/null > ${DOTH_FILE}
+	${INSTALL} ${INSTALL_COPY} -m 444 ${DOTH_FILE} \
+		${DESTDIR}/usr/include/${ARCHDIR}
+	ln -f ${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE} \
+		${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE2}
+	ln -f ${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE} \
+		${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE3}
+	rm -f ${DOTH_FILE}
+
+install: maninstall runtimeinstall
 .for file in ${PROG}
 	${INSTALL} ${INSTALL_COPY} ${INSTALL_STRIP} \
 		-o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
@@ -53,25 +73,11 @@ clean cleandir:
 	-@if [ -e Makefile ]; then ${MAKE} clean; fi
 	rm -f ${CLEANFILES}
 
-DOTH_MAJOR!=${CC} -E -dM - </dev/null | grep __GNUC__ | awk '{ print $$3 }'
-DOTH_MINOR!=${CC} -E -dM - </dev/null | grep __GNUC_MINOR__ | awk '{ print $$3 }'
-DOTH_FILE=`printf "gcc%d%d_predef_old.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
-DOTH_FILE2=`printf "gcc%d%d_predef_std.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
-DOTH_FILE3=`printf "gxx%d%d_predef_std.h" ${DOTH_MAJOR} ${DOTH_MINOR}`
-ARCHDIR=mcpp-gcc-.`uname -m`
+includes:
+	# Nothing here so far...
 
 depend:
-	${CC} -E -dM - </dev/null > ${DOTH_FILE}
-
-includes:
-	${INSTALL} -d -o ${BINOWN} -g ${BINGRP} -m 755 \
-		${DESTDIR}/usr/include/${ARCHDIR}
-	${INSTALL} ${INSTALL_COPY} -m 444 ${DOTH_FILE} \
-		${DESTDIR}/usr/include/${ARCHDIR}
-	ln -f ${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE} \
-		${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE2}
-	ln -f ${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE} \
-		${DESTDIR}/usr/include/${ARCHDIR}/${DOTH_FILE3}
+	# Nothing here so far...
 
 lint:
 	# Nothing here so far...
