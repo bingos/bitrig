@@ -2,7 +2,7 @@
 
 BINDIR=		/usr/libexec
 
-XCFLAGS=	CC="${CC}" CFLAGS="${CFLAGS} ${COPTS}" LDFLAGS="${LDFLAGS}"
+XCFLAGS=	CC="${CC}" CXX="${CXX}" CFLAGS="${CFLAGS} ${COPTS}" LDFLAGS="${LDFLAGS}"
 CONFIGURE_OPTS=	--prefix=/usr --enable-replace-cpp
 
 PROG=	mcpp
