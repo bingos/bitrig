@@ -123,10 +123,9 @@ union bufq_data {
 };
 
 /*
- * These are currently used only by the soft dependency code, hence
- * are stored once in a global variable. If other subsystems wanted
- * to use these hooks, a pointer to a set of bio_ops could be added
- * to each buffer.
+ * Callbacks from the buffer cache into the subsystem that is consuming the
+ * buffer. These are called by the buf_* functions below under different
+ * conditions to signal events pertaining to the life of the buffer.
  */
 struct bio_ops {
 	void	(*io_start)(struct buf *);
@@ -314,6 +313,11 @@ int bread_cluster(struct vnode *, daddr_t, int, struct buf **);
 void buf_print(struct buf *);
 #endif
 
+/*
+ * buf_start(): called before the buffer is passed to the strategy routine of
+ * the underlying device. Currently only called if 'b_dep' is not empty.
+ * Called from process context without IPL protection.
+ */
 static __inline void
 buf_start(struct buf *bp)
 {
@@ -321,6 +325,10 @@ buf_start(struct buf *bp)
 		(*bp->b_ops->io_start)(bp);
 }
 
+/*
+ * buf_complete(): called after the buffer has finished I/O. Currently only
+ * called if 'b_dep' is not empty. Called from interrupt context under IPL_BIO.
+ */
 static __inline void
 buf_complete(struct buf *bp)
 {
@@ -328,6 +336,11 @@ buf_complete(struct buf *bp)
 		(*bp->b_ops->io_complete)(bp);
 }
 
+/*
+ * buf_deallocate(): called when the buffer has been tagged as invalid and is
+ * being released. Currently only called if 'b_dep' is not empty. Called from
+ * interrupt and process contexts under IPL_BIO.
+ */
 static __inline void
 buf_deallocate(struct buf *bp)
 {
@@ -335,6 +348,9 @@ buf_deallocate(struct buf *bp)
 		(*bp->b_ops->io_deallocate)(bp);
 }
 
+/*
+ * buf_movedeps(): currently unused. Good candidate for removal?
+ */
 static __inline void
 buf_movedeps(struct buf *bp, struct buf *bp2)
 {
@@ -342,6 +358,13 @@ buf_movedeps(struct buf *bp, struct buf *bp2)
 		(*bp->b_ops->io_movedeps)(bp, bp2);
 }
 
+/*
+ * buf_countdeps(): called to decide whether a buffer should be written.
+ * Currently only called by the cleaner and ffs_fsync() if 'b_dep' is not
+ * empty. If a buffer has dependencies, it is considered a bad candidate for
+ * flushing and its write is deferred once. Called from process context without
+ * IPL protection.
+ */
 static __inline int
 buf_countdeps(struct buf *bp, int i, int islocked)
 {
@@ -351,6 +374,13 @@ buf_countdeps(struct buf *bp, int i, int islocked)
 		return (0);
 }
 
+/*
+ * buf_checkwrite(): serves a similar purpose as buf_countdeps(). Perhaps the
+ * two should be merged? The difference is that deferring in the
+ * buf_countdeps() case happens once, while buf_checkwrite() can prevent a
+ * buffer from being written indefinitely. Called from process context without
+ * IPL protection.
+ */
 static __inline int
 buf_checkwrite(struct buf *bp)
 {
