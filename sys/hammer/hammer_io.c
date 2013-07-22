@@ -40,7 +40,7 @@
  * HAMMER structures.
  *
  * If the kernel tries to destroy a passively associated buf which we cannot
- * yet let go we set B_LOCKED in the buffer and then actively released it
+ * yet let go we set B_LOCKED in the buffer and then actively release it
  * later when we can.
  *
  * The io_token is required for anything which might race bioops and bio_done
@@ -341,7 +341,7 @@ hammer_io_read(struct vnode *devvp, struct hammer_io *io, int limit)
 		 * even if we error out here.
 		 */
 		bp = io->bp;
-		if ((hammer_debug_io & 0x0001) && (bp->b_flags & B_IODEBUG)) {
+		if ((hammer_debug_io & 0x0001) && (bp->b_flags & B_XXX)) {
 			const char *metatype;
 
 			switch(io->type) {
@@ -379,7 +379,7 @@ hammer_io_read(struct vnode *devvp, struct hammer_io *io, int limit)
 				(intmax_t)bp->b_bio2.bio_offset,
 				metatype);
 		}
-		bp->b_flags &= ~B_IODEBUG;
+		bp->b_flags &= ~B_XXX;
 		bp->b_ops = &hammer_bioops;
 		KASSERT(LIST_FIRST(&bp->b_dep) == NULL);
 
@@ -518,7 +518,7 @@ hammer_io_inval(hammer_volume_t volume, hammer_off_t zone2_offset)
  * The io must be interlocked with a refcount of zero.  The hammer structure
  * will remain interlocked on return.
  *
- * This routine may return a non-NULL bp to the caller for dispoal.
+ * This routine may return a non-NULL bp to the caller for disposal.
  * The caller typically brelse()'s the bp.
  *
  * The bp may or may not still be passively associated with the IO.  It
@@ -1651,7 +1651,7 @@ hammer_io_direct_write(hammer_mount_t hmp, struct bio *bio,
 	buf_offset = leaf->data_offset;
 
 	KASSERT(buf_offset > HAMMER_ZONE_BTREE);
-	KASSERT(bio->bio_buf->b_cmd == BUF_CMD_WRITE);
+	KASSERT((bio->bio_buf->b_flags & B_READ) == 0);
 
 	/*
 	 * Issue or execute the I/O.  The new memory record must replace
