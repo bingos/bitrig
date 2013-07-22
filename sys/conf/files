@@ -763,8 +763,8 @@ file hammer/hammer_object.c		hammer
 file hammer/hammer_btree.c		hammer
 file hammer/hammer_inode.c		hammer
 file hammer/hammer_io.c			hammer
-file hammer/hammer_vnops.c		hammer
-file hammer/hammer_vfsops.c		hammer
+#file hammer/hammer_vnops.c		hammer
+#file hammer/hammer_vfsops.c		hammer
 file net/bpf.c				bpfilter		needs-count
 file net/bpf_filter.c			bpfilter
 file net/if.c
