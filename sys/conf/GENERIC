@@ -48,7 +48,7 @@ option		UDF		# UDF (DVD) file system
 option		MSDOSFS		# MS-DOS file system
 option		FIFO		# FIFOs; RECOMMENDED
 option		TMPFS		# efficient memory file system
-#option		HAMMER		# HAMMER file system
+option		HAMMER		# HAMMER file system
 
 option		SOCKET_SPLICE	# Socket Splicing for TCP
 option		TCP_SACK	# Selective Acknowledgements for TCP
