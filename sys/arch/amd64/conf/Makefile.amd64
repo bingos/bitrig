@@ -53,11 +53,12 @@ AFLAGS=		-D_LOCORE -x assembler-with-cpp ${CWARNFLAGS} ${CMACHFLAGS}
 LINKFLAGS=	-Ttext 0xffffffff810001e0 -e start --warn-common -nopie
 
 .else
+# clang
 
 CWARNFLAGS=	-Wall -Wstrict-prototypes -Wmissing-prototypes \
 		-Werror -Wpointer-arith -Wno-conditional-uninitialized
 # these are to shutup clang vs gcc, should be ultimately fixed
-CWARNFLAGS+=	-Wno-pointer-sign
+CWARNFLAGS+=	-Wno-pointer-sign -ferror-limit=0
 CMACHFLAGS=	-mcmodel=kernel -mno-red-zone -mno-sse -mno-sse2 -mno-sse3 \
 		-mno-3dnow -mno-mmx -msoft-float -mno-avx
 CMACHFLAGS+=	-ffreestanding -fno-omit-frame-pointer \
