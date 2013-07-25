@@ -376,8 +376,7 @@ hammer_io_read(struct vnode *devvp, struct hammer_io *io, int limit)
 				break;
 			}
 			printf("doff %016jx %s\n",
-				(intmax_t)bp->b_bio2.bio_offset,
-				metatype);
+			    (intmax_t)(bp->b_blkno << DEV_BSHIFT), metatype);
 		}
 		bp->b_flags &= ~B_XXX;
 		bp->b_ops = &hammer_bioops;
@@ -749,7 +748,8 @@ hammer_io_flush(struct hammer_io *io, int reclaim)
 	hammer_rel(&io->lock);
 
 	if (hammer_debug_io & 0x0002)
-		printf("hammer io_write %016jx\n", bp->b_bio1.bio_offset);
+		printf("hammer io_write %016jx\n",
+		    (intmax_t)(bp->b_lblkno << DEV_BSHIFT));
 
 	/*
 	 * Transfer ownership to the kernel and initiate I/O.
