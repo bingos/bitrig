@@ -433,7 +433,7 @@ hammer_io_new(struct vnode *devvp, struct hammer_io *io)
 		}
 	}
 	hammer_io_modify(io, 0);
-	vfs_bio_clrbuf(bp);
+	clrbuf(bp);
 	return(0);
 }
 
