@@ -179,7 +179,8 @@ struct ctlname {
 #define	KERN_NETLIVELOCKS	76	/* int: number of network livelocks */
 #define	KERN_POOL_DEBUG		77	/* int: enable pool_debug */
 #define	KERN_PROC_CWD		78      /* node: proc cwd */
-#define	KERN_MAXID		79	/* number of valid kern ids */
+#define	KERN_CHROOTMKNOD	79	/* allow mknod in chroot */
+#define	KERN_MAXID		80	/* number of valid kern ids */
 
 #define	CTL_KERN_NAMES { \
 	{ 0, 0 }, \
@@ -818,6 +819,7 @@ struct kinfo_file2 {
 	{ "usermem", CTLTYPE_QUAD }, \
 	{ "ncpufound", CTLTYPE_INT }, \
 	{ "allowpowerdown", CTLTYPE_INT }, \
+	{ "chroot_mknod", CTLTYPE_INT }, \
 }
 
 /*
