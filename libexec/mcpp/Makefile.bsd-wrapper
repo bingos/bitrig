@@ -1,5 +1,17 @@
 .include <bsd.own.mk>
 
+# mcpp works slightly different then gnu cpp.  The big difference being that
+# cpp has builtin #defines and mcpp does NOT.  mcpp on the other hand has a
+# well known path where it picks up a file that contains #defines.  The
+# filename of that file is invocation specific (gcc, g++ etc).
+#
+# To generate these files we use the system compiler.
+# This is good since we always track the latest version and this is bad because
+# old software might be reliant on some old #define that no longer exists, is
+# different etc.  In order to be able to cross check the #defines a file called
+# old_gcc_defines exists in this directory that contains the output of the old
+# cpp.
+
 BINDIR=		/usr/libexec
 
 XCFLAGS=	CC="${CC}" CFLAGS="${CFLAGS} ${COPTS}" LDFLAGS="${LDFLAGS}"
