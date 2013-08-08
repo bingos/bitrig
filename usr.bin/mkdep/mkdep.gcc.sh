@@ -89,9 +89,9 @@ TMP=`mktemp /tmp/mkdep.XXXXXXXXXX` || exit 1
 trap 'rm -f $TMP ; trap 2 ; kill -2 $$' 1 2 3 13 15
 
 if [ "x$file" = x ]; then
-	${CC:-clang} -M "$@" > $TMP
+	${CC:-cc} -M "$@" > $TMP
 else
-	${CC:-clang} -M "$@" && cat -- "$file" > $TMP
+	${CC:-cc} -M "$@" && cat -- "$file" > $TMP
 fi
 
 if [ $? != 0 ]; then
