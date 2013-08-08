@@ -19,6 +19,7 @@
 #include <machine/asm.h>
 
 #define	DSB	.long	0xf57ff04f
+#define	DMB	.long	0xf57ff05f
 #define	ISB	.long	0xf57ff06f
 #define	WFI	.long	0xe320f003
 
@@ -27,8 +28,7 @@ ENTRY(armv7_cpu_sleep)
 	mov	pc, lr
 
 ENTRY(armv7_drain_writebuf)
-	DSB
-	ISB
+	DMB
 	mov	pc, lr
 
 /*
