@@ -126,7 +126,7 @@ agtimer_set_ctrl(uint32_t val)
 	    [val] "r" (val));
 
 	cpu_drain_writebuf();
-	//isb();
+	__asm volatile("isb");
 
 	return (0);
 }
@@ -147,7 +147,7 @@ agtimer_set_tval(uint32_t val)
 	__asm volatile("mcr p15, 0, %[val], c14, c2, 0" : :
 	    [val] "r" (val));
 	cpu_drain_writebuf();
-	//isb();
+	__asm volatile("isb");
 
 	return (0);
 }
