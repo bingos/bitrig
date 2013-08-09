@@ -106,8 +106,8 @@ Lmemcpy_floop32:
 	bge	Lmemcpy_floop32
 
 	cmn	r2, #0x10
-	ldmgeia	r1!, {r3, r4, r12, lr}	/* blat a remaining 16 bytes */
-	stmgeia	r0!, {r3, r4, r12, lr}
+	ldmiage	r1!, {r3, r4, r12, lr}	/* blat a remaining 16 bytes */
+	stmiage	r0!, {r3, r4, r12, lr}
 	subge	r2, r2, #0x10         
 	ldmia	sp!, {r4}		/* return r4 */
 
@@ -116,9 +116,9 @@ Lmemcpy_fl32:
 
 	/* blat 12 bytes at a time */
 Lmemcpy_floop12:
-	ldmgeia	r1!, {r3, r12, lr}
-	stmgeia	r0!, {r3, r12, lr}
-	subges	r2, r2, #0x0c         
+	ldmiage	r1!, {r3, r12, lr}
+	stmiage	r0!, {r3, r12, lr}
+	subsge	r2, r2, #0x0c         
 	bge	Lmemcpy_floop12
 
 Lmemcpy_fl12:
@@ -128,26 +128,26 @@ Lmemcpy_fl12:
 	subs	r2, r2, #4
 	ldrlt	r3, [r1], #4
 	strlt	r3, [r0], #4
-	ldmgeia	r1!, {r3, r12}
-	stmgeia	r0!, {r3, r12}
+	ldmiage	r1!, {r3, r12}
+	stmiage	r0!, {r3, r12}
 	subge	r2, r2, #4
 
 Lmemcpy_fl4:
 	/* less than 4 bytes to go */
 	adds	r2, r2, #4
 #ifdef __APCS_26_
-	ldmeqia sp!, {r0, pc}^		/* done */
+	ldmiaeq sp!, {r0, pc}^		/* done */
 #else
-	ldmeqia	sp!, {r0, pc}		/* done */
+	ldmiaeq	sp!, {r0, pc}		/* done */
 #endif
 	/* copy the crud byte at a time */
 	cmp	r2, #2
 	ldrb	r3, [r1], #1
 	strb	r3, [r0], #1
-	ldrgeb	r3, [r1], #1
-	strgeb	r3, [r0], #1
-	ldrgtb	r3, [r1], #1
-	strgtb	r3, [r0], #1
+	ldrbge	r3, [r1], #1
+	strbge	r3, [r0], #1
+	ldrbgt	r3, [r1], #1
+	strbgt	r3, [r0], #1
 #ifdef __APCS_26__
 	ldmia	sp!, {r0, pc}^
 #else
@@ -162,10 +162,10 @@ Lmemcpy_fdestul:
 	/* align destination with byte copies */
 	ldrb	r3, [r1], #1
 	strb	r3, [r0], #1
-	ldrgeb	r3, [r1], #1
-	strgeb	r3, [r0], #1
-	ldrgtb	r3, [r1], #1
-	strgtb	r3, [r0], #1
+	ldrbge	r3, [r1], #1
+	strbge	r3, [r0], #1
+	ldrbgt	r3, [r1], #1
+	strbgt	r3, [r0], #1
 	subs	r2, r2, r12
 	blt	Lmemcpy_fl4		/* less the 4 bytes */
 
@@ -314,12 +314,12 @@ Lmemcpy_bloop32:
 
 Lmemcpy_bl32:
 	cmn	r2, #0x10            
-	ldmgedb	r1!, {r3, r4, r12, lr}	/* blat a remaining 16 bytes */
-	stmgedb	r0!, {r3, r4, r12, lr}
+	ldmdbge	r1!, {r3, r4, r12, lr}	/* blat a remaining 16 bytes */
+	stmdbge	r0!, {r3, r4, r12, lr}
 	subge	r2, r2, #0x10         
 	adds	r2, r2, #0x14         
-	ldmgedb	r1!, {r3, r12, lr}	/* blat a remaining 12 bytes */
-	stmgedb	r0!, {r3, r12, lr}
+	ldmdbge	r1!, {r3, r12, lr}	/* blat a remaining 12 bytes */
+	stmdbge	r0!, {r3, r12, lr}
 	subge	r2, r2, #0x0c         
 	ldmia	sp!, {r4}
 
@@ -329,27 +329,27 @@ Lmemcpy_bl12:
 	subs	r2, r2, #4
 	ldrlt	r3, [r1, #-4]!
 	strlt	r3, [r0, #-4]!
-	ldmgedb	r1!, {r3, r12}
-	stmgedb	r0!, {r3, r12}
+	ldmdbge	r1!, {r3, r12}
+	stmdbge	r0!, {r3, r12}
 	subge	r2, r2, #4
 
 Lmemcpy_bl4:
 	/* less than 4 bytes to go */
 	adds	r2, r2, #4
 #ifdef __APCS_26__
-	ldmeqia	sp!, {r0, pc}^
+	ldmiaeq	sp!, {r0, pc}^
 #else
-	ldmeqia	sp!, {r0, pc}
+	ldmiaeq	sp!, {r0, pc}
 #endif
 
 	/* copy the crud byte at a time */
 	cmp	r2, #2
 	ldrb	r3, [r1, #-1]!
 	strb	r3, [r0, #-1]!
-	ldrgeb	r3, [r1, #-1]!
-	strgeb	r3, [r0, #-1]!
-	ldrgtb	r3, [r1, #-1]!
-	strgtb	r3, [r0, #-1]!
+	ldrbge	r3, [r1, #-1]!
+	strbge	r3, [r0, #-1]!
+	ldrbgt	r3, [r1, #-1]!
+	strbgt	r3, [r0, #-1]!
 #ifdef __APCS_26__
 	ldmia	sp!, {r0, pc}^
 #else
@@ -363,10 +363,10 @@ Lmemcpy_bdestul:
 	/* align destination with byte copies */
 	ldrb	r3, [r1, #-1]!
 	strb	r3, [r0, #-1]!
-	ldrgeb	r3, [r1, #-1]!
-	strgeb	r3, [r0, #-1]!
-	ldrgtb	r3, [r1, #-1]!
-	strgtb	r3, [r0, #-1]!
+	ldrbge	r3, [r1, #-1]!
+	strbge	r3, [r0, #-1]!
+	ldrbgt	r3, [r1, #-1]!
+	strbgt	r3, [r0, #-1]!
 	subs	r2, r2, r12
 	blt	Lmemcpy_bl4		/* less than 4 bytes to go */
 	ands	r12, r1, #3

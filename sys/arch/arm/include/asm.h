@@ -67,8 +67,8 @@
  * We define a couple of macros so that assembly code will not be dependant
  * on one or the other.
  */
-#define _ASM_TYPE_FUNCTION	#function
-#define _ASM_TYPE_OBJECT	#object
+#define _ASM_TYPE_FUNCTION	%function
+#define _ASM_TYPE_OBJECT	%object
 #define _ENTRY(x) \
 	.text; _ALIGN_TEXT; .globl x; .type x,_ASM_TYPE_FUNCTION; x:
 
