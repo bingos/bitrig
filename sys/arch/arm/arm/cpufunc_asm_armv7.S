@@ -22,6 +22,19 @@
 #define	ISB	.long	0xf57ff06f
 #define	WFI	.long	0xe320f003
 
+#define	TTB_IRGN_NC		(0 << 0)
+#define	TTB_IRGN_C		(1 << 0)
+#define	TTB_SHARED		(1 << 1)
+#define	TTB_RGN_NC		(0 << 3)
+#define	TTB_RGN_WB		(1 << 3)
+#define	TTB_RGN_WT		(2 << 3)
+#define	TTB_RGN_WBWA		(3 << 3)
+#ifndef MULTIPROCESSOR
+#define	TTB_FLAGS	(TTB_IRGN_C|TTB_RGN_WB)
+#else
+#define	TTB_FLAGS	(TTB_IRGN_C|TTB_SHARED|TTB_RGN_WB)
+#endif /* !MULTIPROCESSOR */
+
 ENTRY(armv7_cpu_sleep)
 	WFI
 	mov	pc, lr
@@ -47,7 +60,9 @@ ENTRY(armv7_setttb)
 	DSB
 	ISB
 
+	orr	r0, #TTB_FLAGS
 	mcr	p15, 0, r0, c2, c0, 0	/* load new TTB */
+	bic	r0, #TTB_FLAGS
 	mcr	p15, 0, r0, c8, c7, 0	/* invalidate I+D TLBs */
 	DSB
 	ISB

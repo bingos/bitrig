@@ -3554,8 +3554,6 @@ pmap_pte_init_armv7(void)
 	pte_l1_s_proto = L1_S_PROTO_v7;
 	pte_l1_c_proto = L1_C_PROTO_v7;
 	pte_l2_s_proto = L2_S_PROTO_v7;
-
-	pmap_needs_pte_sync = 1;
 }
 
 uint32_t pmap_alias_dist;
