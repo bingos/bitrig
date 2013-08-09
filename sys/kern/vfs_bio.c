@@ -79,7 +79,6 @@ struct bio_ops bioops;
  */
 struct pool bufpool;
 struct bufhead bufhead = LIST_HEAD_INITIALIZER(bufhead);
-void buf_put(struct buf *);
 
 /*
  * Insq/Remq for the buffer free lists.
