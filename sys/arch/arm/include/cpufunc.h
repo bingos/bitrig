@@ -393,6 +393,8 @@ void	armv7_dcache_wbinv_all		(void);
 void	armv7_dcache_wbinv_range	(vaddr_t, vsize_t);
 void	armv7_dcache_inv_range		(vaddr_t, vsize_t);
 void	armv7_dcache_wb_range		(vaddr_t, vsize_t);
+void	armv7_icache_inv_all		(void);
+void	armv7_dcache_inv_all		(void);
 
 void	armv7_idcache_wbinv_all		(void);
 void	armv7_idcache_wbinv_range	(vaddr_t, vsize_t);
