@@ -29,14 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: ffs_wapbl.c,v 1.22 2013/06/23 22:03:34 dholland Exp $");
-
 #define WAPBL_INTERNAL
-
-#if defined(_KERNEL_OPT)
-#include "opt_ffs.h"
-#endif
 
 #include <sys/param.h>
 #include <sys/systm.h>
@@ -47,13 +40,11 @@ __KERNEL_RCSID(0, "$NetBSD: ffs_wapbl.c,v 1.22 2013/06/23 22:03:34 dholland Exp 
 #include <sys/disk.h>
 #include <sys/ioctl.h>
 #include <sys/errno.h>
-#include <sys/kauth.h>
 #include <sys/wapbl.h>
 
-#include <ufs/ufs/inode.h>
 #include <ufs/ufs/quota.h>
+#include <ufs/ufs/inode.h>
 #include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/ufs_bswap.h>
 #include <ufs/ufs/ufs_extern.h>
 #include <ufs/ufs/ufs_wapbl.h>
 
@@ -98,7 +89,7 @@ static int
 ffs_superblock_layout(struct fs *fs)
 {
 	if ((fs->fs_magic == FS_UFS1_MAGIC) &&
-	    ((fs->fs_old_flags & FS_FLAGS_UPDATED) == 0))
+	    ((fs->fs_ffs1_flags & FS_FLAGS_UPDATED) == 0))
 		return 1;
 	else
 		return 2;
