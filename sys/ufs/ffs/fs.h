@@ -521,6 +521,8 @@ struct ocg {
 	((loc) & (fs)->fs_qbmask)
 #define fragoff(fs, loc)	/* calculates (loc % fs->fs_fsize) */ \
 	((loc) & (fs)->fs_qfmask)
+#define	lfragtosize(fs, frag)	/* calculates ((off_t)frag * fs->fs_fsize) */ \
+	(((off_t)(frag)) << (fs)->fs_fshift)
 #define lblktosize(fs, blk)	/* calculates ((off_t)blk * fs->fs_bsize) */ \
 	((off_t)(blk) << (fs)->fs_bshift)
 #define lblkno(fs, loc)		/* calculates (loc / fs->fs_bsize) */ \
