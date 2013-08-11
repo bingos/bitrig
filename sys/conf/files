@@ -909,7 +909,7 @@ file ufs/ufs/ufs_quota.c		quota & ( ffs | mfs | ext2fs )
 file ufs/ufs/ufs_quota_stub.c		ffs | mfs
 file ufs/ufs/ufs_vfsops.c		ffs | mfs | ext2fs
 file ufs/ufs/ufs_vnops.c		ffs | mfs | ext2fs
-#file ufs/ffs/ufs_wapbl.c		ffs & wapbl
+file ufs/ufs/ufs_wapbl.c		ffs & wapbl
 file ufs/ext2fs/ext2fs_alloc.c		ext2fs
 file ufs/ext2fs/ext2fs_balloc.c		ext2fs
 file ufs/ext2fs/ext2fs_bmap.c		ext2fs

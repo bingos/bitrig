@@ -65,9 +65,6 @@
  *	@(#)ufs_vnops.c	8.28 (Berkeley) 7/31/95
  */
 
-#include <sys/cdefs.h>
-__KERNEL_RCSID(0, "$NetBSD: ufs_wapbl.c,v 1.23 2012/01/27 19:22:50 para Exp $");
-
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/namei.h>
@@ -81,22 +78,15 @@ __KERNEL_RCSID(0, "$NetBSD: ufs_wapbl.c,v 1.23 2012/01/27 19:22:50 para Exp $");
 #include <sys/vnode.h>
 #include <sys/dirent.h>
 #include <sys/lockf.h>
-#include <sys/kauth.h>
 #include <sys/wapbl.h>
-#include <sys/fstrans.h>
-
-#include <miscfs/specfs/specdev.h>
-#include <miscfs/fifofs/fifo.h>
 
 #include <ufs/ufs/quota.h>
 #include <ufs/ufs/inode.h>
 #include <ufs/ufs/dir.h>
 #include <ufs/ufs/ufsmount.h>
-#include <ufs/ufs/ufs_bswap.h>
 #include <ufs/ufs/ufs_extern.h>
 #include <ufs/ufs/ufs_wapbl.h>
 #include <ufs/ext2fs/ext2fs_extern.h>
-#include <ufs/lfs/lfs_extern.h>
 
 #include <uvm/uvm.h>
 
