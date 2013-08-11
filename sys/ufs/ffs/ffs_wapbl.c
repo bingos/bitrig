@@ -232,7 +232,7 @@ wapbl_remove_log(struct mount *mp)
 
 	case UFS_WAPBL_JOURNALLOC_IN_FILESYSTEM:
 		log_ino = fs->fs_journallocs[UFS_WAPBL_INFS_INO];
-		DPRINTF("in-fs log, ino = %" PRId64 "\n",log_ino);
+		DPRINTF("in-fs log, ino = %lld\n",log_ino);
 
 		/* if no existing log inode, just clear all fields and bail */
 		if (log_ino == 0)
@@ -717,9 +717,9 @@ wapbl_allocate_log_file(struct mount *mp, struct vnode *vp,
 	VTOI(vp)->i_ffs_first_data_blk = addr;
 	VTOI(vp)->i_ffs_first_indir_blk = indir_addr;
 
-	error = GOP_ALLOC(vp, 0, logsize, B_CONTIG, FSCRED);
+	error = ufs_gop_alloc(vp, 0, logsize, B_CONTIG, FSCRED);
 	if (error) {
-		printf("%s: GOP_ALLOC error %d\n", __func__, error);
+		printf("%s: ufs_gop_alloc error %d\n", __func__, error);
 		return error;
 	}
 
@@ -781,8 +781,8 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 
 	/* add in number of indirect blocks needed */
 	indir_blks = 0;
-	if (desired_blks >= UFS_NDADDR) {
-		struct indir indirs[UFS_NIADDR + 2];
+	if (desired_blks >= NDADDR) {
+		struct indir indirs[NIADDR + 2];
 		int num;
 
 		error = ufs_getlbns(vp, desired_blks, indirs, &num);
@@ -821,9 +821,9 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		min_desired_blks = desired_blks / 4;
 
 	/* Look at number of blocks per CG.  If it's too small, bail early. */
-	bpcg = ffs_fragstoblks(fs, fs->fs_fpg);
+	bpcg = fragstoblks(fs, fs->fs_fpg);
 	if (min_desired_blks > bpcg) {
-		printf("ffs_wapbl: cylinder group size of %" PRId64 " MB "
+		printf("ffs_wapbl: cylinder group size of %lld MB "
 		    " is not big enough for journal\n",
 		    lblktosize(fs, bpcg) / (1024 * 1024));
 		goto bad;
@@ -848,17 +848,17 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 	    s++, n = -n, cg += n * s) {
 		DPRINTF("check cg %d of %d\n", cg, fs->fs_ncg);
 		error = bread(devvp, fsbtodb(fs, cgtod(fs, cg)),
-		    fs->fs_cgsize, FSCRED, 0, &bp);
+		    fs->fs_cgsize, &bp);
 		if (error) {
 			continue;
 		}
 		cgp = (struct cg *)bp->b_data;
-		if (!cg_chkmagic(cgp, UFS_FSNEEDSWAP(fs))) {
-			brelse(bp, 0);
+		if (!cg_chkmagic(cgp)) {
+			brelse(bp);
 			continue;
 		}
 
-		blksfree = cg_blksfree(cgp, needswap);
+		blksfree = cg_blksfree(cgp);
 
 		for (blkno = 0; blkno < bpcg;) {
 			/* look for next free block */
@@ -879,7 +879,7 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 
 			if (freeblks > best_blks) {
 				best_blks = freeblks;
-				best_addr = ffs_blkstofrags(fs, start_addr) +
+				best_addr = blkstofrags(fs, start_addr) +
 				    cgbase(fs, cg);
 
 				if (freeblks >= desired_blks) {
@@ -890,7 +890,7 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 				}
 			}
 		}
-		brelse(bp, 0);
+		brelse(bp);
 	}
 	DPRINTF("best found len = %" PRId64 ", wanted %" PRId64
 	    " at addr %" PRId64 "\n", best_blks, desired_blks, best_addr);
@@ -900,7 +900,7 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		*indir_addr = 0;
 	} else {
 		/* put indirect blocks at start, and data blocks after */
-		*addr = best_addr + ffs_blkstofrags(fs, indir_blks);
+		*addr = best_addr + blkstofrags(fs, indir_blks);
 		*indir_addr = best_addr;
 	}
 	*size = min(desired_blks, best_blks) - indir_blks;

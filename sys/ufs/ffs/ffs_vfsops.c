@@ -1,6 +1,35 @@
 /*	$OpenBSD: ffs_vfsops.c,v 1.138 2013/06/11 16:42:18 deraadt Exp $	*/
 /*	$NetBSD: ffs_vfsops.c,v 1.19 1996/02/09 22:22:26 christos Exp $	*/
 
+/*-
+ * Copyright (c) 2008, 2009 The NetBSD Foundation, Inc.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to The NetBSD Foundation
+ * by Wasabi Systems, Inc, and by Andrew Doran.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /*
  * Copyright (c) 1989, 1991, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
@@ -1472,6 +1501,42 @@ ffs_sbupdate(struct ufsmount *mp, int waitfor)
 	else if ((error = bwrite(bp)))
 		allerror = error;
 
+	return (allerror);
+}
+
+int
+ffs_cgupdate(struct ufsmount *mp, int waitfor)
+{
+	struct fs *fs = mp->um_fs;
+	struct buf *bp;
+	int blks;
+	void *space;
+	int i, size, error = 0, allerror = 0;
+
+	allerror = ffs_sbupdate(mp, waitfor);
+	blks = howmany(fs->fs_cssize, fs->fs_fsize);
+	space = fs->fs_csp;
+	for (i = 0; i < blks; i += fs->fs_frag) {
+		size = fs->fs_bsize;
+		if (i + fs->fs_frag > blks)
+			size = (blks - i) * fs->fs_fsize;
+		bp = getblk(mp->um_devvp, fsbtodb(fs, fs->fs_csaddr + i), size,
+		    0, 0);
+#ifdef FFS_EI
+		if (mp->um_flags & UFS_NEEDSWAP)
+			ffs_csum_swap((struct csum*)space,
+			    (struct csum*)bp->b_data, size);
+		else
+#endif
+			memcpy(bp->b_data, space, (u_int)size);
+		space = (char *)space + size;
+		if (waitfor == MNT_WAIT)
+			error = bwrite(bp);
+		else
+			bawrite(bp);
+	}
+	if (!allerror && error)
+		allerror = error;
 	return (allerror);
 }
 

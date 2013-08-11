@@ -1,6 +1,35 @@
 /*	$OpenBSD: ufs_vnops.c,v 1.107 2013/06/11 16:42:19 deraadt Exp $	*/
 /*	$NetBSD: ufs_vnops.c,v 1.18 1996/05/11 18:28:04 mycroft Exp $	*/
 
+/*-
+ * Copyright (c) 2008 The NetBSD Foundation, Inc.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to The NetBSD Foundation
+ * by Wasabi Systems, Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /*
  * Copyright (c) 1982, 1986, 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -66,6 +95,7 @@
 #include <ufs/ufs/dir.h>
 #include <ufs/ufs/ufsmount.h>
 #include <ufs/ufs/ufs_extern.h>
+#include <ufs/ffs/fs.h>
 #ifdef UFS_DIRHASH
 #include <ufs/ufs/dirhash.h>
 #endif
@@ -1921,6 +1951,53 @@ bad:
 	vput(tvp);
 
 	return (error);
+}
+
+/*
+ * Allocate len bytes at offset off.
+ */
+int
+ufs_gop_alloc(struct vnode *vp, off_t off, off_t len, int flags,
+    struct ucred *cred)
+{
+        struct inode *ip = VTOI(vp);
+        int error, delta, bshift, bsize;
+
+        error = 0;
+        bshift = ip->i_fs->fs_bshift;
+        bsize = 1 << bshift;
+
+        delta = off & (bsize - 1);
+        off -= delta;
+        len += delta;
+
+        while (len > 0) {
+                bsize = MIN(bsize, len);
+
+                error = UFS_BUF_ALLOC(ip, off, bsize, cred, flags, NULL);
+                if (error) {
+                        goto out;
+                }
+
+                /*
+                 * increase file size now, UFS_BUF_ALLOC() requires that
+                 * EOF be up-to-date before each call.
+                 */
+
+                if (DIP(ip, size) < off + bsize) {
+                        /* ip->i_size = off + bsize; */
+			DIP_ASSIGN(ip, size, off + bsize);
+                }
+
+                off += bsize;
+                len -= bsize;
+        }
+
+out:
+#if 0	/* XXX pedro: not yet */
+	UFS_WAPBL_UPDATE(vp, NULL, NULL, 0);
+#endif
+	return error;
 }
 
 struct filterops ufsread_filtops = 
