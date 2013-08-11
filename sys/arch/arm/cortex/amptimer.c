@@ -193,7 +193,6 @@ amptimer_attach(struct device *parent, struct device *self, void *args)
 	    PTIMER_STATUS_EVENT);
 #endif
 
-
 #ifdef AMPTIMER_DEBUG
 	evcount_attach(&sc->sc_clk_count, "clock", NULL);
 	evcount_attach(&sc->sc_stat_count, "stat", NULL);
@@ -290,6 +289,8 @@ again:
 	    nextevent >> 32);
 	reg |= GTIMER_CTRL_COMP;
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, GTIMER_CTRL, reg);
+	bus_space_barrier(sc->sc_iot, sc->sc_ioh, 0, GTIMER_SIZE,
+	    BUS_SPACE_BARRIER_WRITE);
 
 	now = amptimer_readcnt64(sc);
 	if (now >= nextevent) {
@@ -313,6 +314,8 @@ again:
 		    (PTIMER_CTRL_ENABLE | PTIMER_CTRL_IRQEN));
 
 	bus_space_write_4(sc->sc_iot, sc->sc_pioh, PTIMER_LOAD, delay);
+	bus_space_barrier(sc->sc_iot, sc->sc_pioh, 0, PTIMER_SIZE,
+	    BUS_SPACE_BARRIER_WRITE);
 #endif
 
 	return (rc);
@@ -380,11 +383,15 @@ amptimer_cpu_initclocks()
 	    next >> 32);
 	reg |= GTIMER_CTRL_COMP | GTIMER_CTRL_IRQ;
 	bus_space_write_4(sc->sc_iot, sc->sc_ioh, GTIMER_CTRL, reg);
+	bus_space_barrier(sc->sc_iot, sc->sc_ioh, 0, GTIMER_SIZE,
+	    BUS_SPACE_BARRIER_WRITE);
 #else
 	bus_space_write_4(sc->sc_iot, sc->sc_pioh, PTIMER_CTRL,
 	    (PTIMER_CTRL_ENABLE | PTIMER_CTRL_IRQEN));
 	bus_space_write_4(sc->sc_iot, sc->sc_pioh, PTIMER_LOAD,
 	    sc->sc_ticks_per_intr);
+	bus_space_barrier(sc->sc_iot, sc->sc_pioh, 0, PTIMER_SIZE,
+	    BUS_SPACE_BARRIER_WRITE);
 #endif
 }
 
@@ -459,4 +466,6 @@ amptimer_startclock(void)
 	
 	bus_space_write_4(sc->sc_iot, sc->sc_pioh, PTIMER_LOAD,
 		sc->sc_ticks_per_intr);
+	bus_space_barrier(sc->sc_iot, sc->sc_pioh, PTIMER_LOAD, 4,
+	    BUS_SPACE_BARRIER_WRITE);
 }

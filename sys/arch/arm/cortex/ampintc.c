@@ -270,6 +270,8 @@ ampintc_attach(struct device *parent, struct device *self, void *args)
 	/* enable interrupts */
 	bus_space_write_4(iot, d_ioh, ICD_DCR, 3);
 	bus_space_write_4(iot, p_ioh, ICPICR, 1);
+	bus_space_barrier(iot, d_ioh, 0, ICD_SIZE, BUS_SPACE_BARRIER_WRITE);
+	bus_space_barrier(iot, p_ioh, 0, ICP_SIZE, BUS_SPACE_BARRIER_WRITE);
 	enable_interrupts(I32_bit);
 }
 
@@ -287,6 +289,8 @@ ampintc_set_priority(int irq, int pri)
 	 */
 	prival = (IPL_HIGH - pri) << ICMIPMR_SH;
 	bus_space_write_1(sc->sc_iot, sc->sc_d_ioh, ICD_IPRn(irq), prival);
+	bus_space_barrier(sc->sc_iot, sc->sc_d_ioh, ICD_IPRn(irq), 1,
+	    BUS_SPACE_BARRIER_WRITE);
 }
 
 void
@@ -303,6 +307,8 @@ ampintc_setipl(int new)
 	/* low values are higher priority thus IPL_HIGH - pri */
 	bus_space_write_4(sc->sc_iot, sc->sc_p_ioh, ICPIPMR,
 	    (IPL_HIGH - new) << ICMIPMR_SH);
+	bus_space_barrier(sc->sc_iot, sc->sc_p_ioh, ICPIPMR, 4,
+	    BUS_SPACE_BARRIER_WRITE);
 	restore_interrupts(psw);
 }
 
@@ -318,6 +324,8 @@ ampintc_intr_enable(int irq)
 
 	bus_space_write_4(sc->sc_iot, sc->sc_d_ioh, ICD_ISERn(irq),
 	    1 << IRQ_TO_REG32BIT(irq));
+	bus_space_barrier(sc->sc_iot, sc->sc_d_ioh, ICD_ISERn(irq), 4,
+	    BUS_SPACE_BARRIER_WRITE);
 }
 
 void
@@ -327,6 +335,8 @@ ampintc_intr_disable(int irq)
 
 	bus_space_write_4(sc->sc_iot, sc->sc_d_ioh, ICD_ICERn(irq),
 	    1 << IRQ_TO_REG32BIT(irq));
+	bus_space_barrier(sc->sc_iot, sc->sc_d_ioh, ICD_ICERn(irq), 4,
+	    BUS_SPACE_BARRIER_WRITE);
 }
 
 
@@ -423,12 +433,14 @@ ampintc_splraise(int new)
 }
 
 
-uint32_t 
+uint32_t
 ampintc_iack(void)
 {
 	uint32_t intid;
 	struct ampintc_softc	*sc = ampintc;
 
+	bus_space_barrier(sc->sc_iot, sc->sc_p_ioh, ICPIAR, 4,
+	     BUS_SPACE_BARRIER_READ);
 	intid = bus_space_read_4(sc->sc_iot, sc->sc_p_ioh, ICPIAR);
 
 	return (intid);
@@ -440,6 +452,8 @@ ampintc_eoi(uint32_t eoi)
 	struct ampintc_softc	*sc = ampintc;
 
 	bus_space_write_4(sc->sc_iot, sc->sc_p_ioh, ICPEOIR, eoi);
+	bus_space_barrier(sc->sc_iot, sc->sc_p_ioh, ICPEOIR, 4,
+	    BUS_SPACE_BARRIER_WRITE);
 }
 
 void
@@ -448,12 +462,16 @@ ampintc_route(int irq, int enable, int cpu)
 	uint8_t  val;
 	struct ampintc_softc	*sc = ampintc;
 
+	bus_space_barrier(sc->sc_iot, sc->sc_d_ioh, ICD_IPTRn(irq), 1,
+	    BUS_SPACE_BARRIER_READ);
 	val = bus_space_read_1(sc->sc_iot, sc->sc_d_ioh, ICD_IPTRn(irq));
 	if (enable == IRQ_ENABLE)
 		val |= (1 << cpu);
 	else
 		val &= ~(1 << cpu);
 	bus_space_write_1(sc->sc_iot, sc->sc_d_ioh, ICD_IPTRn(irq), val);
+	bus_space_barrier(sc->sc_iot, sc->sc_d_ioh, ICD_IPTRn(irq), 1,
+	    BUS_SPACE_BARRIER_WRITE);
 }
 
 void
