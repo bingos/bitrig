@@ -139,9 +139,9 @@ ufs_wapbl_end2(struct mount *mp, struct vnode *vp1, struct vnode *vp2)
 #define	UFS_WAPBL_END(mp)	ufs_wapbl_end2(mp, NULL, NULL)
 #define	UFS_WAPBL_END1(mp, v1)	ufs_wapbl_end2(mp, v1, NULL)
 
-#define	UFS_WAPBL_UPDATE(vp, access, modify, flags)			\
+#define	UFS_WAPBL_UPDATE(vp, flags)					\
 	if ((vp)->v_mount->mnt_wapbl) {					\
-		UFS_UPDATE(vp, access, modify, flags);			\
+		UFS_UPDATE(VTOI(vp), flags);				\
 	}
 
 #ifdef UFS_WAPBL_DEBUG_JLOCK
