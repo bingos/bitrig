@@ -118,7 +118,7 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		error = VFS_VGET(mp, wr->wr_inodes[i].wr_inumber, &vp);
 		if (error) {
 			printf("ffs_wapbl_replay_finish: "
-			    "unable to cleanup inode %" PRIu32 "\n",
+			    "unable to cleanup inode %u\n",
 			    wr->wr_inodes[i].wr_inumber);
 			continue;
 		}
@@ -126,10 +126,10 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		KDASSERT(wr->wr_inodes[i].wr_inumber == ip->i_number);
 #ifdef WAPBL_DEBUG
 		printf("ffs_wapbl_replay_finish: "
-		    "cleaning inode %" PRIu64 " size=%" PRIu64 " mode=%o nlink=%d\n",
+		    "cleaning inode %llu size=%llu mode=%o nlink=%d\n",
 		    ip->i_number, ip->i_size, ip->i_mode, ip->i_nlink);
 #endif
-		KASSERT(ip->i_nlink == 0);
+		KASSERT(DIP(ip, nlink) == 0);
 
 		/*
 		 * The journal may have left partially allocated inodes in mode
@@ -137,9 +137,10 @@ ffs_wapbl_replay_finish(struct mount *mp)
 		 * allocation in ffs_nodeallocg and when the node is properly
 		 * initialized in ufs_makeinode.  If so, just dallocate them.
 		 */
-		if (ip->i_mode == 0) {
+		if (DIP(ip, mode) == 0) {
 			UFS_WAPBL_BEGIN(mp);
-			ffs_vfree(vp, ip->i_number, wr->wr_inodes[i].wr_imode);
+			ffs_inode_free(ip, ip->i_number,
+			    wr->wr_inodes[i].wr_imode);
 			UFS_WAPBL_END(mp);
 		}
 		vput(vp);
@@ -167,8 +168,8 @@ ffs_wapbl_sync_metadata(struct mount *mp, daddr_t *deallocblks,
 		 * blkfree errors are unreported, might silently fail
 		 * if it cannot read the cylinder group block
 		 */
-		ffs_blkfree(fs, ump->um_devvp,
-		    FFS_DBTOFSB(fs, deallocblks[i]), dealloclens[i], -1);
+		ffs_wapbl_blkfree(fs, ump->um_devvp,
+		    dbtofsb(fs, deallocblks[i]), dealloclens[i]);
 	}
 
 	fs->fs_fmod = 0;
@@ -192,7 +193,7 @@ ffs_wapbl_abort_sync_metadata(struct mount *mp, daddr_t *deallocblks,
 		 * blkfree succeeded above, then this shouldn't fail because
 		 * the buffer will be locked in the current transaction.
 		 */
-		ffs_blkalloc_ump(ump, FFS_DBTOFSB(fs, deallocblks[i]),
+		ffs_blkalloc_ump(ump, dbtofsb(fs, deallocblks[i]),
 		    dealloclens[i]);
 	}
 }

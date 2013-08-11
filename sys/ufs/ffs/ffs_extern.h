@@ -112,6 +112,7 @@ int32_t ffs1_blkpref(struct inode *, daddr_t, int, int32_t *);
 #ifdef FFS2
 int64_t ffs2_blkpref(struct inode *, daddr_t, int, int64_t *);
 #endif
+void ffs_wapbl_blkfree(struct fs *, struct vnode *, daddr_t, long);
 void ffs_blkfree(struct inode *, daddr_t, long);
 void ffs_clusteracct(struct fs *, struct cg *, daddr_t, int);
 

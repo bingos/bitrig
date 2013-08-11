@@ -70,7 +70,7 @@
 } while (0)
 
 daddr_t		ffs_alloccg(struct inode *, int, daddr_t, int);
-struct buf *	ffs_cgread(struct fs *, struct inode *, int);
+struct buf *	ffs_cgread(struct fs *, struct vnode *, int);
 daddr_t		ffs_alloccgblk(struct inode *, struct buf *, daddr_t);
 daddr_t		ffs_clusteralloc(struct inode *, int, daddr_t, int);
 ufsino_t	ffs_dirpref(struct inode *);
@@ -1317,11 +1317,11 @@ ffs_hashalloc(struct inode *ip, int cg, daddr_t pref, int size,
 }
 
 struct buf *
-ffs_cgread(struct fs *fs, struct inode *ip, int cg)
+ffs_cgread(struct fs *fs, struct vnode *devvp, int cg)
 {
 	struct buf *bp;
 
-	if (bread(ip->i_devvp, fsbtodb(fs, cgtod(fs, cg)),
+	if (bread(devvp, fsbtodb(fs, cgtod(fs, cg)),
 	    (int)fs->fs_cgsize, &bp)) {
 		brelse(bp);
 		return (NULL);
@@ -1360,7 +1360,7 @@ ffs_fragextend(struct inode *ip, int cg, daddr_t bprev, int osize, int nsize)
 		return (0);
 	}
 
-	if (!(bp = ffs_cgread(fs, ip, cg)))
+	if (!(bp = ffs_cgread(fs, ip->i_devvp, cg)))
 		return (0);
 
 	cgp = (struct cg *)bp->b_data;
@@ -1417,7 +1417,7 @@ ffs_alloccg(struct inode *ip, int cg, daddr_t bpref, int size)
 	if (fs->fs_cs(fs, cg).cs_nbfree == 0 && size == fs->fs_bsize)
 		return (0);
 
-	if (!(bp = ffs_cgread(fs, ip, cg)))
+	if (!(bp = ffs_cgread(fs, ip->i_devvp, cg)))
 		return (0);
 
 	cgp = (struct cg *)bp->b_data;
@@ -1576,7 +1576,7 @@ ffs_clusteralloc(struct inode *ip, int cg, daddr_t bpref, int len)
 	if (fs->fs_maxcluster[cg] < len)
 		return (0);
 
-	if (!(bp = ffs_cgread(fs, ip, cg)))
+	if (!(bp = ffs_cgread(fs, ip->i_devvp, cg)))
 		return (0);
 
 	cgp = (struct cg *)bp->b_data;
@@ -1690,7 +1690,7 @@ ffs_nodealloccg(struct inode *ip, int cg, daddr_t ipref, int mode)
 	if (fs->fs_cs(fs, cg).cs_nifree == 0)
 		return (0);
 
-	if (!(bp = ffs_cgread(fs, ip, cg)))
+	if (!(bp = ffs_cgread(fs, ip->i_devvp, cg)))
 		return (0);
 
 	cgp = (struct cg *)bp->b_data;
@@ -1825,6 +1825,103 @@ gotit:
 	return (cg * fs->fs_ipg + ipref);
 }
 
+/* XXX pedro: merge this with ffs_blkfree() at some point */
+void
+ffs_wapbl_blkfree(struct fs *fs, struct vnode *devvp, daddr_t bno, long size)
+{
+	struct cg *cgp;
+	struct buf *bp;
+	daddr_t blkno;
+	int i, cg, blk, frags, bbase;
+
+	if ((u_int)size > fs->fs_bsize || fragoff(fs, size) != 0 ||
+	    fragnum(fs, bno) + numfrags(fs, size) > fs->fs_frag) {
+		printf("bsize = %d, size = %ld, fs = %s\n",
+		    fs->fs_bsize, size, fs->fs_fsmnt);
+		panic("ffs_wapbl_blkfree: bad size");
+	}
+	cg = dtog(fs, bno);
+	if ((u_int)bno >= fs->fs_size) {
+		printf("bad block %lld\n", bno);
+		ffs_fserr(fs, 0, "bad block");
+		return;
+	}
+	if (!(bp = ffs_cgread(fs, devvp, cg)))
+		return;
+
+	cgp = (struct cg *)bp->b_data;
+	cgp->cg_ffs2_time = cgp->cg_time = time_second;
+
+	bno = dtogd(fs, bno);
+	if (size == fs->fs_bsize) {
+		blkno = fragstoblks(fs, bno);
+		if (!ffs_isfreeblock(fs, cg_blksfree(cgp), blkno)) {
+			printf("block = %lld, fs = %s\n", bno, fs->fs_fsmnt);
+			panic("ffs_wapbl_blkfree: freeing free block");
+		}
+		ffs_setblock(fs, cg_blksfree(cgp), blkno);
+		ffs_clusteracct(fs, cgp, blkno, 1);
+		cgp->cg_cs.cs_nbfree++;
+		fs->fs_cstotal.cs_nbfree++;
+		fs->fs_cs(fs, cg).cs_nbfree++;
+
+		if (fs->fs_magic != FS_UFS2_MAGIC) {
+			i = cbtocylno(fs, bno);
+			cg_blks(fs, cgp, i)[cbtorpos(fs, bno)]++;
+			cg_blktot(cgp)[i]++;
+		}
+
+	} else {
+		bbase = bno - fragnum(fs, bno);
+		/*
+		 * decrement the counts associated with the old frags
+		 */
+		blk = blkmap(fs, cg_blksfree(cgp), bbase);
+		ffs_fragacct(fs, blk, cgp->cg_frsum, -1);
+		/*
+		 * deallocate the fragment
+		 */
+		frags = numfrags(fs, size);
+		for (i = 0; i < frags; i++) {
+			if (isset(cg_blksfree(cgp), bno + i)) {
+				printf("block = %lld, fs = %s\n", bno + i,
+				    fs->fs_fsmnt);
+				panic("ffs_wapbl_blkfree: freeing free frag");
+			}
+			setbit(cg_blksfree(cgp), bno + i);
+		}
+		cgp->cg_cs.cs_nffree += i;
+		fs->fs_cstotal.cs_nffree += i;
+		fs->fs_cs(fs, cg).cs_nffree += i;
+		/*
+		 * add back in counts associated with the new frags
+		 */
+		blk = blkmap(fs, cg_blksfree(cgp), bbase);
+		ffs_fragacct(fs, blk, cgp->cg_frsum, 1);
+		/*
+		 * if a complete block has been reassembled, account for it
+		 */
+		blkno = fragstoblks(fs, bbase);
+		if (ffs_isblock(fs, cg_blksfree(cgp), blkno)) {
+			cgp->cg_cs.cs_nffree -= fs->fs_frag;
+			fs->fs_cstotal.cs_nffree -= fs->fs_frag;
+			fs->fs_cs(fs, cg).cs_nffree -= fs->fs_frag;
+			ffs_clusteracct(fs, cgp, blkno, 1);
+			cgp->cg_cs.cs_nbfree++;
+			fs->fs_cstotal.cs_nbfree++;
+			fs->fs_cs(fs, cg).cs_nbfree++;
+
+			if (fs->fs_magic != FS_UFS2_MAGIC) {
+				i = cbtocylno(fs, bbase);
+				cg_blks(fs, cgp, i)[cbtorpos(fs, bbase)]++;
+				cg_blktot(cgp)[i]++;
+			}
+		}
+	}
+	fs->fs_fmod = 1;
+	bdwrite(bp);
+}
+
 /*
  * Free a block or fragment.
  *
@@ -1854,7 +1951,7 @@ ffs_blkfree(struct inode *ip, daddr_t bno, long size)
 		ffs_fserr(fs, DIP(ip, uid), "bad block");
 		return;
 	}
-	if (!(bp = ffs_cgread(fs, ip, cg)))
+	if (!(bp = ffs_cgread(fs, ip->i_devvp, cg)))
 		return;
 
 	cgp = (struct cg *)bp->b_data;
@@ -1962,7 +2059,7 @@ ffs_freefile(struct inode *pip, ufsino_t ino, mode_t mode)
 		    pip->i_dev, ino, fs->fs_fsmnt);
 
 	cg = ino_to_cg(fs, ino);
-	if (!(bp = ffs_cgread(fs, pip, cg)))
+	if (!(bp = ffs_cgread(fs, pip->i_devvp, cg)))
 		return (0);
 
 	cgp = (struct cg *)bp->b_data;
@@ -2013,7 +2110,7 @@ ffs_checkblk(struct inode *ip, daddr_t bno, long size)
 	if ((u_int)bno >= fs->fs_size)
 		panic("ffs_checkblk: bad block %lld", bno);
 
-	if (!(bp = ffs_cgread(fs, ip, dtog(fs, bno))))
+	if (!(bp = ffs_cgread(fs, ip->i_devvp, dtog(fs, bno))))
 		return (0);
 
 	cgp = (struct cg *)bp->b_data;
