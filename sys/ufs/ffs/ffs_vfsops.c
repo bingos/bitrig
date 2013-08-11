@@ -432,6 +432,10 @@ success:
 	if (path && (mp->mnt_flag & MNT_UPDATE)) {
 		/* Update clean flag after changing read-onlyness. */
 		fs = ump->um_fs;
+		/*
+		 * XXX pedro: should use FS_ISCLEAN below when setting fs_clean
+		 * for consistency between the kernel and userland
+		 */
 		if (ronly != fs->fs_ronly) {
 			fs->fs_ronly = ronly;
 			fs->fs_clean = ronly &&
