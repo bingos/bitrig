@@ -332,12 +332,12 @@ struct fs {
  */
 #define FS_UNCLEAN	0x01	/* filesystem not clean at mount */
 #define FS_DOSOFTDEP	0x02	/* filesystem using soft dependencies */
+#define FS_DOWAPBL	0x04	/* write-ahead physical block logging */
 /*
  * The following flag is used to detect a FFS1 file system that had its flags
  * moved to the new (FFS2) location for compatibility.
  */
 #define FS_FLAGS_UPDATED	0x80	/* file system has FFS2-like flags */
-#define FS_DOWAPBL	0x100	/* write-ahead physical block logging */
 
 /*
  * Rotational layout table format types
