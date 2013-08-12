@@ -82,10 +82,6 @@
 
 #if defined(WAPBL)
 
-#if defined(WAPBL_DEBUG)
-#define	WAPBL_DEBUG_INODES
-#endif
-
 #ifdef WAPBL_DEBUG_INODES
 #error Undefine WAPBL_DEBUG_INODES or update the code.  Have a nice day.
 #endif

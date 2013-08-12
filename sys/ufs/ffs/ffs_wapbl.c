@@ -53,7 +53,6 @@
 #include <ufs/ffs/fs.h>
 #include <ufs/ffs/ffs_extern.h>
 
-#undef	WAPBL_DEBUG
 #ifdef WAPBL_DEBUG
 int ffs_wapbl_debug = 1;
 #define DPRINTF(fmt, args...)						\
@@ -130,7 +129,7 @@ ffs_wapbl_replay_finish(struct mount *mp)
 #ifdef WAPBL_DEBUG
 		printf("ffs_wapbl_replay_finish: "
 		    "cleaning inode %llu size=%llu mode=%o nlink=%d\n",
-		    ip->i_number, ip->i_size, ip->i_mode, ip->i_nlink);
+		    ip->i_number, DIP(ip, size), DIP(ip, mode), DIP(ip, nlink));
 #endif
 		KASSERT(DIP(ip, nlink) == 0);
 
@@ -534,7 +533,7 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 			*startp = fs->fs_journallocs[UFS_WAPBL_EPART_ADDR];
 			*countp = fs->fs_journallocs[UFS_WAPBL_EPART_COUNT];
 			*blksizep = fs->fs_journallocs[UFS_WAPBL_EPART_BLKSZ];
-			DPRINTF(" start = %" PRId64 ", size = %zu, "
+			DPRINTF(" start = %lld, size = %zu, "
 			    "blksize = %zu\n", *startp, *countp, *blksizep);
 			return 0;
 
@@ -543,7 +542,7 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 			*startp = fs->fs_journallocs[UFS_WAPBL_INFS_ADDR];
 			*countp = fs->fs_journallocs[UFS_WAPBL_INFS_COUNT];
 			*blksizep = fs->fs_journallocs[UFS_WAPBL_INFS_BLKSZ];
-			DPRINTF(" start = %" PRId64 ", size = %zu, "
+			DPRINTF(" start = %lld, size = %zu, "
 			    "blksize = %zu\n", *startp, *countp, *blksizep);
 			return 0;
 
@@ -556,10 +555,10 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 
 	desired_logsize =
 	    lfragtosize(fs, fs->fs_size) / UFS_WAPBL_JOURNAL_SCALE;
-	DPRINTF("desired log size = %" PRId64 " kB\n", desired_logsize / 1024);
+	DPRINTF("desired log size = %lld kB\n", desired_logsize / 1024);
 	desired_logsize = max(desired_logsize, UFS_WAPBL_MIN_JOURNAL_SIZE);
 	desired_logsize = min(desired_logsize, UFS_WAPBL_MAX_JOURNAL_SIZE);
-	DPRINTF("adjusted desired log size = %" PRId64 " kB\n",
+	DPRINTF("adjusted desired log size = %lld kB\n",
 	    desired_logsize / 1024);
 
 	/* Is there space after after filesystem on partition for log? */
@@ -589,7 +588,7 @@ wapbl_log_position(struct mount *mp, struct fs *fs, struct vnode *devvp,
 		fs->fs_journallocs[UFS_WAPBL_EPART_BLKSZ] = *blksizep;
 		fs->fs_journallocs[UFS_WAPBL_EPART_UNUSED] = *extradatap;
 	} else {
-		DPRINTF("end-of-partition has only %" PRId64 " free\n",
+		DPRINTF("end-of-partition has only %lld free\n",
 		    logend - logstart);
 
 		location = UFS_WAPBL_JOURNALLOC_IN_FILESYSTEM;
@@ -767,17 +766,17 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		fixedsize = 0;	/* We can adjust the size if tight */
 		logsize = lfragtosize(fs, fs->fs_dsize) /
 		    UFS_WAPBL_JOURNAL_SCALE;
-		DPRINTF("suggested log size = %" PRId64 "\n", logsize);
+		DPRINTF("suggested log size = %lld\n", logsize);
 		logsize = max(logsize, UFS_WAPBL_MIN_JOURNAL_SIZE);
 		logsize = min(logsize, UFS_WAPBL_MAX_JOURNAL_SIZE);
-		DPRINTF("adjusted log size = %" PRId64 "\n", logsize);
+		DPRINTF("adjusted log size = %lld\n", logsize);
 	} else {
 		fixedsize = 1;
-		DPRINTF("fixed log size = %" PRId64 "\n", logsize);
+		DPRINTF("fixed log size = %lld\n", logsize);
 	}
 
 	desired_blks = logsize / fs->fs_bsize;
-	DPRINTF("desired blocks = %" PRId64 "\n", desired_blks);
+	DPRINTF("desired blocks = %lld\n", desired_blks);
 
 	/* add in number of indirect blocks needed */
 	indir_blks = 0;
@@ -809,7 +808,7 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		}
 		desired_blks += indir_blks;
 	}
-	DPRINTF("desired blocks = %" PRId64 " (including indirect)\n",
+	DPRINTF("desired blocks = %lld (including indirect)\n",
 	    desired_blks);
 
 	/*
@@ -883,8 +882,8 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 				    cgbase(fs, cg);
 
 				if (freeblks >= desired_blks) {
-					DPRINTF("found len %" PRId64
-					    " at offset %" PRId64 " in gc\n",
+					DPRINTF("found len %lld "
+					    " at offset %lld in gc\n",
 					    freeblks, start_addr);
 					break;
 				}
@@ -892,8 +891,8 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 		}
 		brelse(bp);
 	}
-	DPRINTF("best found len = %" PRId64 ", wanted %" PRId64
-	    " at addr %" PRId64 "\n", best_blks, desired_blks, best_addr);
+	DPRINTF("best found len = %lld, wanted %lld"
+	    " at addr %lld\n", best_blks, desired_blks, best_addr);
 
 	if (best_blks < min_desired_blks) {
 		*addr = 0;

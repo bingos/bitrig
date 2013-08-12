@@ -781,7 +781,7 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 
 	WAPBL_PRINTF(WAPBL_PRINT_IO,
 	    ("wapbl_doio: %s %d bytes at block %lld on dev 0x%llx\n",
-	    BUF_ISWRITE(bp) ? "write" : "read", bp->b_bcount,
+	    (bp->b_flags & B_READ) == 0 ? "write" : "read", bp->b_bcount,
 	    bp->b_blkno, bp->b_dev));
 
 	VOP_STRATEGY(bp);
