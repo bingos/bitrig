@@ -36,6 +36,8 @@ option		LKM		# loadable kernel modules
 
 option		FFS		# UFS
 option		FFS2		# UFS2
+option		WAPBL
+option		WAPBL_DEBUG
 option		FFS_SOFTUPDATES	# Soft updates
 option		UFS_DIRHASH	# hash large directories
 option		QUOTA		# UFS quotas
