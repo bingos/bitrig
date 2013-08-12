@@ -258,7 +258,7 @@ wapbl_remove_log(struct mount *mp)
 		 * remove the log inode by setting its link count back
 		 * to zero and bail.
 		 */
-		/* ip->i_nlink = 0; */
+		ip->i_effnlink = 0;
 		DIP_ASSIGN(ip, nlink, 0);
 		vput(vp);
 
@@ -652,7 +652,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 	DIP_ASSIGN(ip, mode, 0 | IFREG);
 	/* ip->i_flags = SF_LOG; */
 	DIP_ASSIGN(ip, flags, SF_LOG);
-	/* ip->i_nlink = 1; */
+	ip->i_effnlink = 1;
 	DIP_ASSIGN(ip, nlink, 1);
 	ffs_update(ip, NULL, NULL, MNT_WAIT);
 
@@ -663,7 +663,7 @@ wapbl_create_infs_log(struct mount *mp, struct fs *fs, struct vnode *devvp,
 		 * remove the inode by setting its link count back to
 		 * zero and bail.
 		 */
-		/* ip->i_nlink = 0; */
+		ip->i_effnlink = 0;
 		DIP_ASSIGN(ip, nlink, 0);
 		VOP_UNLOCK(vp, 0);
 		vgone(vp);
