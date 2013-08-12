@@ -467,7 +467,7 @@ done:
 	else	/* sanity */
 		DIP_ASSIGN(oip, blocks, 0);
 	oip->i_flag |= IN_CHANGE;
-	UFS_WAPBL_UPDATE(ovp, 0);
+	UFS_WAPBL_UPDATE(oip, 0);
 	(void)ufs_quota_free_blocks(oip, blocksreleased, NOCRED);
 	return (allerror);
 }
