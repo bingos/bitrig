@@ -487,7 +487,7 @@ ffs_wapbl_sync_device(struct vnode *vp, int waitfor)
 int
 ffs_wapbl_sync_vnode(struct vnode *vp, int waitfor)
 {
-	int error = 0;
+	int error = 0, s;
 
 	if ((VTOI(vp)->i_flag & (IN_ACCESS | IN_CHANGE | IN_MODIFIED |
 	    IN_UPDATE)) != 0) {
@@ -504,8 +504,11 @@ ffs_wapbl_sync_vnode(struct vnode *vp, int waitfor)
 			return error;
 	}
 
-	if (waitfor == MNT_WAIT)
-		vwaitforio(vp, 0, "ffs_fsync", 0);
+	if (waitfor == MNT_WAIT) {
+		s = splbio();
+		vwaitforio(vp, 0, "ffs_wapbl", 0);
+		splx(s);
+	}
 
 	KASSERT(LIST_EMPTY(&vp->v_dirtyblkhd));
 
