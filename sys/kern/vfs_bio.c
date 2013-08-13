@@ -1,6 +1,35 @@
 /*	$OpenBSD: vfs_bio.c,v 1.150 2013/06/13 15:00:04 tedu Exp $	*/
 /*	$NetBSD: vfs_bio.c,v 1.44 1996/06/11 11:15:36 pk Exp $	*/
 
+/*-
+ * Copyright (c) 2007, 2008, 2009 The NetBSD Foundation, Inc.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to The NetBSD Foundation
+ * by Andrew Doran, and by Wasabi Systems, Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 /*
  * Copyright (c) 1994 Christopher G. Demetriou
  * Copyright (c) 1982, 1986, 1989, 1993
@@ -56,7 +85,7 @@
 #include <sys/resourcevar.h>
 #include <sys/conf.h>
 #include <sys/kernel.h>
-#include <sys/specdev.h>
+#include <sys/wapbl.h>
 
 #include <uvm/uvm_extern.h>
 
@@ -585,6 +614,13 @@ bwrite(struct buf *bp)
 	else
 		mp = NULL;
 
+	if (mp && mp->mnt_wapbl) {
+		if (bp->b_iodone != mp->mnt_wapbl_op->wo_wapbl_biodone) {
+			bdwrite(bp);
+			return (0);
+		}
+	}
+
 	/*
 	 * Remember buffer type, to switch on it later.  If the write was
 	 * synchronous, but the file system was mounted with MNT_ASYNC,
@@ -676,6 +712,20 @@ bdwrite(struct buf *bp)
 {
 	int s;
 
+	/* If this is a tape block, write the block now. */
+	if (major(bp->b_dev) < nblkdev &&
+	    bdevsw[major(bp->b_dev)].d_type == D_TAPE) {
+		bawrite(bp);
+		return;
+	}
+
+	if (wapbl_vphaswapbl(bp->b_vp)) {
+		struct mount *mp = wapbl_vptomp(bp->b_vp);
+		if (bp->b_iodone != mp->mnt_wapbl_op->wo_wapbl_biodone) {
+			WAPBL_ADD_BUF(mp, bp);
+		}
+	}
+
 	/*
 	 * If the block hasn't been seen before:
 	 *	(1) Mark it as having been seen,
@@ -689,13 +739,6 @@ bdwrite(struct buf *bp)
 		reassignbuf(bp);
 		splx(s);
 		curproc->p_ru.ru_oublock++;		/* XXX */
-	}
-
-	/* If this is a tape block, write the block now. */
-	if (major(bp->b_dev) < nblkdev &&
-	    bdevsw[major(bp->b_dev)].d_type == D_TAPE) {
-		bawrite(bp);
-		return;
 	}
 
 	/* Otherwise, the "write" is done, so mark and release the buffer. */
@@ -780,6 +823,14 @@ brelse(struct buf *bp)
 		SET(bp->b_flags, B_INVAL);
 
 	if (ISSET(bp->b_flags, B_INVAL)) {
+		if (ISSET(bp->b_flags, B_LOCKED)) {
+			if (wapbl_vphaswapbl(bp->b_vp)) {
+				struct mount *mp = wapbl_vptomp(bp->b_vp);
+				KASSERT(bp->b_iodone !=
+				    mp->mnt_wapbl_op->wo_wapbl_biodone);
+				WAPBL_REMOVE_BUF(mp, bp);
+			}
+		}
 		/*
 		 * If the buffer is invalid, place it in the clean queue, so it
 		 * can be reused.
