@@ -1530,7 +1530,7 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 		 * only a partial transaction in the log and allow the
 		 * remaining to flush without the protection of the journal.
 		 */
-		panic("wapbl_flush: current transaction too big to flush\n");
+		panic("wapbl_flush: current transaction too big to flush");
 	}
 
 	error = wapbl_truncate(wl, flushsize, 0);
@@ -1641,6 +1641,7 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 			continue;
 		}
 		bp->b_iodone = wapbl_biodone;
+		bp->b_flags |= B_CALL;
 		bp->b_private = we;
 		bremfree(bp);
 		wapbl_remove_buf_locked(wl, bp);
