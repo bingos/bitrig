@@ -203,7 +203,7 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 	char fname[MNAMELEN];
 	char fspec[MNAMELEN];
 	int error = 0, flags;
-	int ronly, logged =0;
+	int ronly, logged = 0;
 	mode_t accessmode;
 
 	error = copyin(data, &args, sizeof(struct ufs_args));
@@ -525,7 +525,7 @@ success:
 				fs->fs_flags &= ~FS_DOSOFTDEP;
 		}
 		ffs_sbupdate(ump, MNT_WAIT);
-		if (error == 0)
+		if (error == 0 && logged != 0)
 			UFS_WAPBL_END(mp);
 	}
 	return (0);
