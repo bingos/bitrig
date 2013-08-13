@@ -616,19 +616,31 @@ cpu_alloc_idle_pcb(struct cpu_info *ci)
 void
 atomic_setbits_int(__volatile unsigned int *uip, unsigned int v)
 {
-	int oldirqstate;
-	oldirqstate = disable_interrupts(I32_bit|F32_bit);
-	*uip |= v;
-	restore_interrupts(oldirqstate);
+	uint32_t scratch = 0;
+	uint32_t success = 0;
+	__asm __volatile("1: ldrex %0, [%1]      \n"
+			 "   orr %0, %3          \n"
+			 "   strex %2, %0, [%1]  \n"
+			 "   cmp %2, #0          \n"
+			 "   bne 1b              \n"
+			 "   .long 0xf57ff05f    \n" /* XXX: use dmb */
+			 : "+r" (scratch), "+r" (uip), "+r" (success)
+			 : "r" (v));
 }
 
 void
 atomic_clearbits_int(__volatile unsigned int *uip, unsigned int v)
 {
-	int oldirqstate;
-	oldirqstate = disable_interrupts(I32_bit|F32_bit);
-	*uip &= ~v;
-	restore_interrupts(oldirqstate);
+	uint32_t scratch = 0;
+	uint32_t success = 0;
+	__asm __volatile("1: ldrex %0, [%1]      \n"
+			 "   bic %0, %3          \n"
+			 "   strex %2, %0, [%1]  \n"
+			 "   cmp %2, #0          \n"
+			 "   bne 1b              \n"
+			 "   .long 0xf57ff05f    \n" /* XXX: use dmb */
+			 : "+r" (scratch), "+r" (uip), "+r" (success)
+			 : "r" (v));
 }
 
 /* End of cpu.c */
