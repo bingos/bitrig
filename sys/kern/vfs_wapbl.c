@@ -785,9 +785,11 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 	    bp->b_blkno, bp->b_dev));
 
 	VOP_STRATEGY(bp);
-
 	error = biowait(bp);
+	bp->b_data = NULL;
+	s = splbio();
 	buf_put(bp);
+	splx(s);
 
 	if (error) {
 		WAPBL_PRINTF(WAPBL_PRINT_ERROR,
