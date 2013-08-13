@@ -5,6 +5,10 @@ device	cortex {}
 attach	cortex at mainbus
 file	arch/arm/cortex/cortex.c		cortex
 
+device	ampscu
+attach	ampscu at cortex
+file	arch/arm/cortex/ampscu.c		ampscu
+
 device	ampintc
 attach	ampintc at cortex
 file	arch/arm/cortex/ampintc.c		ampintc
@@ -20,7 +24,3 @@ file	arch/arm/cortex/agtimer.c		agtimer
 device	armliicc
 attach	armliicc at cortex
 file	arch/arm/cortex/arml2cc.c		armliicc
-
-device	ampscu
-attach	ampscu at cortex
-file	arch/arm/cortex/ampscu.c		ampscu

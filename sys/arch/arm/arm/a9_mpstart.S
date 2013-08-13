@@ -39,20 +39,10 @@
 #define SCU_CTL_SCU_ENA 0x1
 ENTRY(armv7_mpstart)
 	/*
-	 * Step 1, set SVC mode, disable IRQ|FIQ
-	 */
-	mrs	r2, cpsr
-	bic	r2, r2, #(PSR_MODE)
-	orr	r2, r2, #(PSR_SVC32_MODE)
-	orr	r2, r2, #(I32_bit | F32_bit)
-	msr	cpsr_all, r2
-
-	/*
 	 * Step 1, invalidate the caches
 	 */
-	/*
-	bl	_C_LABEL(armv7_idcache_wbinv_all)	@ toss d-cache
-	*/
+	bl	_C_LABEL(armv7_icache_inv_all)	@ toss i-cache
+	bl	_C_LABEL(armv7_dcache_inv_all)	@ toss d-cache
 
 	/*
 	 * Step 2, wait for the SCU to be enabled
@@ -123,8 +113,14 @@ ENTRY(armv7_mpstart)
 	mcr	p15, 0, r0, c1, c0, 0
 	CPWAIT(r0)
 
-	bl	_C_LABEL(armv7_idcache_wbinv_all)	@ toss d-cache
 	dmb						@ make sure all memory stuff is done
+
+	/* set SVC mode, disable IRQ|FIQ */
+	mrs	r2, cpsr
+	bic	r2, r2, #(PSR_MODE)
+	orr	r2, r2, #(PSR_SVC32_MODE)
+	orr	r2, r2, #(I32_bit | F32_bit)
+	msr	cpsr, r2
 
 	mov	r0, r4
 	bl	_C_LABEL(cpu_hatch)

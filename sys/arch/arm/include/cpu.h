@@ -213,6 +213,9 @@ struct cpu_info {
 #define CPUF_SP		0x0004		/* CPU is only processor */
 #define CPUF_PRIMARY	0x0008		/* CPU is active primary processor */
 
+#define CPUF_IDENTIFY	0x0010		/* CPU may now identify */
+#define CPUF_IDENTIFIED	0x0020		/* CPU has been identified */
+
 #define CPUF_PRESENT	0x1000		/* CPU is present */
 #define CPUF_RUNNING	0x2000		/* CPU is running */
 

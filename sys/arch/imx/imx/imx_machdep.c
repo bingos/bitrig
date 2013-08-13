@@ -997,7 +997,27 @@ cpu_hatch(uint32_t id)
 	set_stackptr(PSR_UND32_MODE,
 	    undstack.pv_va + UND_STACK_SIZE * PAGE_SIZE * (id + 1));
 
+	while (cpu_info[id] == NULL)
+		cpu_drain_writebuf();
+
+	/* put curcpu into the TPIDRPRW */
+	__asm __volatile("mcr p15, 0, %0, c13, c0, 4" :: "r" (cpu_info[id]));
+
+	struct cpu_info *ci = curcpu();
+
+#if 0
+	for (int i = 31; i >= 0; i--) {
+		*console = 0x30 + (((uint32_t)ci >> i) & 0x1);
+		__asm __volatile("dmb");
+	}
+#endif
+
 	curcpu()->ci_cpuid = id;
+
+	/* Get the CPU ID from coprocessor 15 */
+	ci->ci_arm_cpuid = cpu_id();
+	ci->ci_arm_cputype = ci->ci_arm_cpuid & CPU_ID_CPU_MASK;
+	ci->ci_arm_cpurev = ci->ci_arm_cpuid & CPU_ID_REVISION_MASK;
 
 	/* Now, set the core to use the settings from the primary */
 	cpuctrl = CPU_CONTROL_MMU_ENABLE | CPU_CONTROL_SYST_ENABLE
@@ -1028,9 +1048,28 @@ cpu_hatch(uint32_t id)
 			: : "r" (auxctl));
 	}
 
-	curcpu()->ci_flags |= CPUF_PRESENT;
-
 	//printf("Core %d is here!\n", id);
+
+	curcpu()->ci_flags |= CPUF_PRESENT;
+	cpu_drain_writebuf();
+
+	if ((ci->ci_flags & CPUF_IDENTIFIED) == 0) {
+		/*
+		 * We need to wait until we can identify, otherwise dmesg
+		 * output will be messy.
+		 */
+		while ((ci->ci_flags & CPUF_IDENTIFY) == 0)
+			delay(10);
+
+		printf("%s at %s", ci->ci_dev->dv_xname, ci->ci_dev->dv_parent->dv_xname);
+		extern void identify_arm_cpu(struct device *dv, struct cpu_info *ci);
+		identify_arm_cpu(ci->ci_dev, ci);
+
+		/* Signal we're done */
+		atomic_clearbits_int(&ci->ci_flags, CPUF_IDENTIFY);
+		/* Prevent identifycpu() from running again */
+		atomic_setbits_int(&ci->ci_flags, CPUF_IDENTIFIED);
+	}
 
 	while (1);
 }
