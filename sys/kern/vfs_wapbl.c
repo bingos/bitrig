@@ -58,9 +58,9 @@
 #include <sys/wapbl.h>
 #include <sys/wapbl_replay.h>
 
-#define	wapbl_alloc(s) malloc((s), M_TEMP, M_WAITOK)
+#define	wapbl_alloc(s) malloc((s), M_TEMP, M_WAITOK | M_ZERO)
 #define	wapbl_free(a, s) free((a), M_TEMP)
-#define	wapbl_calloc(n, s) malloc((n)*(s), M_TEMP, M_WAITOK)
+#define	wapbl_calloc(n, s) malloc((n)*(s), M_TEMP, M_WAITOK | M_ZERO)
 
 /* static struct sysctllog *wapbl_sysctl; */
 static int wapbl_flush_disk_cache = 1;
