@@ -196,6 +196,12 @@ ffs_alloc(struct inode *ip, daddr_t lbn, daddr_t bpref, int size, int flags,
 	/* Restore user's disk quota because allocation failed. */
 	(void) ufs_quota_free_blocks(ip, btodb(size), cred);
 
+	if (flags & B_CONTIG) {
+		/*
+		 * Fail silently -- it's up to our caller to report errors.
+		 */
+		return (ENOSPC);
+	}
 nospace:
 	if (ratecheck(&fsfull_last, &fserr_interval)) {
 		ffs_fserr(fs, cred->cr_uid, "file system full");
