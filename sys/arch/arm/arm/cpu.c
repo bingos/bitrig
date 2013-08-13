@@ -88,8 +88,9 @@ cpu_attach(struct device *dv)
 		printf(": disabled (uniprocessor kernel)\n");
 #else
 		printf(": enabled\n");
-		cpu_info[id] = malloc(sizeof(struct cpu_info), M_DEVBUF,
+		ci = cpu_info[id] = malloc(sizeof(struct cpu_info), M_DEVBUF,
 		    M_WAITOK|M_ZERO);
+		ci->ci_dev = dv;
 #endif
 		return;
 	}
