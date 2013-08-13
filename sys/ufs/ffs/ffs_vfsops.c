@@ -392,6 +392,13 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 logok:
 			ronly = 0;
 		}
+
+#ifdef WAPBL
+		error = ffs_wapbl_start(mp);
+		if (error)
+			return error;
+#endif /* WAPBL */
+
 		if (args.fspec == NULL) {
 			/*
 			 * Process export requests.
