@@ -1402,6 +1402,14 @@ ffs_sync(struct mount *mp, int waitfor, struct ucred *cred, struct proc *p)
 	if (fs->fs_fmod != 0 && (error = ffs_sbupdate(ump, waitfor)) != 0)
 		allerror = error;
 
+#ifdef WAPBL
+	if (mp->mnt_wapbl) {
+		error = wapbl_flush(mp->mnt_wapbl, 0);
+		if (error)
+			allerror = error;
+	}
+#endif
+
 	return (allerror);
 }
 
