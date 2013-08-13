@@ -1387,17 +1387,17 @@ ufs_rmdir(void *v)
 	 * inode.  If we crash in between, the directory
 	 * will be reattached to lost+found,
 	 */
-	dp->i_effnlink--;
-	ip->i_effnlink--;
 	if (DOINGSOFTDEP(vp)) {
+		dp->i_effnlink--;
+		ip->i_effnlink--;
 		softdep_change_linkcnt(dp, 0);
 		softdep_change_linkcnt(ip, 0);
 	}
 	if ((error = ufs_dirremove(dvp, ip, cnp->cn_flags, 1)) != 0) {
-		dp->i_effnlink++;
-		ip->i_effnlink++;
 		UFS_WAPBL_END(dvp->v_mount);
 		if (DOINGSOFTDEP(vp)) {
+			dp->i_effnlink++;
+			ip->i_effnlink++;
 			softdep_change_linkcnt(dp, 0);
 			softdep_change_linkcnt(ip, 0);
 		}
@@ -1416,9 +1416,11 @@ ufs_rmdir(void *v)
 	if (!DOINGSOFTDEP(vp)) {
 		int ioflag;
 
+		dp->i_effnlink--;
 		DIP_ADD(dp, nlink, -1);
 		dp->i_flag |= IN_CHANGE;
 		UFS_WAPBL_UPDATE(dp, MNT_WAIT);
+		ip->i_effnlink--;
 		DIP_ADD(ip, nlink, -1);
 		ip->i_flag |= IN_CHANGE;
 		ioflag = DOINGASYNC(vp) ? 0 : IO_SYNC;
