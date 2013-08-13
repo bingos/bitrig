@@ -883,7 +883,7 @@ wapbl_find_log_start(struct mount *mp, struct vnode *vp, off_t logsize,
 				    cgbase(fs, cg);
 
 				if (freeblks >= desired_blks) {
-					DPRINTF("found len %lld "
+					DPRINTF("found len %lld"
 					    " at offset %lld in gc\n",
 					    freeblks, start_addr);
 					break;
