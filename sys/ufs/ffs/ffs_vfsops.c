@@ -332,6 +332,9 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 					goto error_1;
 			}
 
+			fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
+			     M_UFSMNT, M_WAITOK|M_ZERO);
+
 #ifdef WAPBL
 			if (fs->fs_flags & FS_DOWAPBL) {
 				printf("%s: replaying log to disk\n",
@@ -340,6 +343,7 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 				error = wapbl_replay_write(mp->mnt_wapbl_replay,
 				    devvp);
 				if (error) {
+					free(fs->fs_contigdirs, M_UFSMNT);
 					return (error);
 				}
 				wapbl_replay_stop(mp->mnt_wapbl_replay);
@@ -371,6 +375,7 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 "WARNING: R/W mount of %s denied.  Filesystem is not clean - run fsck\n",
 					    fs->fs_fsmnt);
 					error = EROFS;
+					free(fs->fs_contigdirs, M_UFSMNT);
 					goto error_1;
 				}
 			}
@@ -378,14 +383,13 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 			if ((fs->fs_flags & FS_DOSOFTDEP)) {
 				error = softdep_mount(devvp, mp, fs,
 						      p->p_ucred);
-				if (error)
+				if (error) {
+					free(fs->fs_contigdirs, M_UFSMNT);
 					goto error_1;
+				}
 			}
 
 logok:
-			fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
-			     M_UFSMNT, M_WAITOK|M_ZERO);
-
 			ronly = 0;
 		}
 		if (args.fspec == NULL) {
@@ -970,6 +974,13 @@ sbagain:
 	devvp->v_specmountpoint = mp;
 	ffs_oldfscompat(fs);
 
+	if (ronly)
+		fs->fs_contigdirs = NULL;
+	else {
+		fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
+		    M_UFSMNT, M_WAITOK|M_ZERO);
+	}
+
 #ifdef WAPBL
 	if (!ronly) {
 		KASSERT(fs->fs_ronly == 0);
@@ -982,17 +993,11 @@ sbagain:
 		error = ffs_wapbl_start(mp);
 		if (error) {
 			free(fs->fs_csp, M_UFSMNT);
+			free(fs->fs_contigdirs, M_UFSMNT);
 			goto out;
 		}
 	}
 #endif /* WAPBL */
-
-	if (ronly)
-		fs->fs_contigdirs = NULL;
-	else {
-		fs->fs_contigdirs = malloc((u_long)fs->fs_ncg,
-		    M_UFSMNT, M_WAITOK|M_ZERO);
-	}
 
 	/*
 	 * Set FS local "last mounted on" information (NULL pad)
