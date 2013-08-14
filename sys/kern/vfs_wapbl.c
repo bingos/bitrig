@@ -796,10 +796,11 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 		curproc->p_ru.ru_inblock++;
 	}
 
-	bp = geteblk(0);
+	bp = geteblk(len);
 	bp->b_flags = flags | B_BUSY; /* silly & dubious */
 	bp->b_dev = devvp->v_rdev;
-	bp->b_data = data;
+	if (!(bp->b_flags & B_READ))
+		bcopy(data, bp->b_data, len);
 	bp->b_bufsize = bp->b_resid = bp->b_bcount = len;
 	bp->b_vp = devvp; /* XXX pedro: this is likely to cause problems */
 	bp->b_blkno = pbn;
@@ -812,10 +813,6 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 
 	VOP_STRATEGY(bp);
 	error = biowait(bp);
-	bp->b_data = NULL;
-	s = splbio();
-	buf_put(bp);
-	splx(s);
 
 	if (error) {
 		WAPBL_PRINTF(WAPBL_PRINT_ERROR,
@@ -824,7 +821,13 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 		    (((flags & (B_WRITE | B_READ)) == B_WRITE) ?
 		     "write" : "read"),
 		    len, pbn, devvp->v_rdev, error));
-	}
+	} else if (bp->b_flags & B_READ)
+		bcopy(bp->b_data, data, len);
+
+	s = splbio();
+	bp->b_vp = NULL;
+	brelse(bp);
+	splx(s);
 
 	return error;
 }
