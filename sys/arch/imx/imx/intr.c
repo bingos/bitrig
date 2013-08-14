@@ -333,6 +333,15 @@ cpu_initclocks(void)
 }
 
 void
+cpu_mpstartclock(void)
+{
+	if (arm_clock_func.mpstartclock == NULL)
+		panic("mpstartclock function not initialized yet");
+
+	arm_clock_func.mpstartclock();
+}
+
+void
 arm_dflt_delay(u_int usecs)
 {
 	int j;

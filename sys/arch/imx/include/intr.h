@@ -144,6 +144,8 @@ const char *arm_intr_string(void *cookie);
 void arm_clock_register(void (*)(void), void (*)(u_int), void (*)(int),
     void (*)(void));
 
+void cpu_mpstartclock(void);
+
 #ifdef DIAGNOSTIC
 /*
  * Although this function is implemented in MI code, it must be in this MD
