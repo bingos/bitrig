@@ -1020,7 +1020,7 @@ wapbl_end(struct wapbl *wl)
 		 * only a partial transaction in the log and allow the
 		 * remaining to flush without the protection of the journal.
 		 */
-		panic("wapbl_end: current transaction too big to flush\n");
+		panic("wapbl_end: current transaction too big to flush");
 	}
 #endif
 
@@ -1566,7 +1566,7 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 #ifdef WAPBL_DEBUG
 	if (head != off) {
 		panic("lost head! head=%lld tail=%lld"
-		      " off=%lld flush=%zu\n",
+		      " off=%lld flush=%zu",
 		      (intmax_t)head, (intmax_t)tail, (intmax_t)off,
 		      flushsize);
 	}
@@ -2139,7 +2139,7 @@ wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
 		 */
 		if (error)
 			panic("wapbl_write_commit: error writing duplicate "
-			      "log header: %d\n", error);
+			      "log header: %d", error);
 	}
 	return 0;
 }
