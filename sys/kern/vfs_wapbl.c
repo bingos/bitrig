@@ -1507,12 +1507,10 @@ wapbl_flush(struct wapbl *wl, int waitfor)
 		goto out;
 	}
 
-#if 0
 	WAPBL_PRINTF(WAPBL_PRINT_FLUSH,
 		     ("wapbl_flush proc %d flushing entries with "
 		      "bufcount=%zu bufbytes=%zu\n",
 		      curproc->p_pid, wl->wl_bufcount, wl->wl_bufbytes));
-#endif
 
 	/* Calculate amount of space needed to flush */
 	flushsize = wapbl_transaction_len(wl);
