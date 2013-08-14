@@ -113,7 +113,7 @@ ENTRY(armv7_mpstart)
 	mcr	p15, 0, r0, c1, c0, 0
 	CPWAIT(r0)
 
-	dmb						@ make sure all memory stuff is done
+	dsb						@ make sure all memory stuff is done
 
 	/* set SVC mode, disable IRQ|FIQ */
 	mrs	r2, cpsr

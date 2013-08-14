@@ -93,7 +93,7 @@ file	arch/arm/armv7/armv7_a4x_space.c	cpu_armv7
 file	arch/arm/armv7/armv7_a4x_io.S		cpu_armv7
 file	arch/arm/armv7/bus_space_asm_armv7.S	cpu_armv7
 file	arch/arm/arm/vfp.c			cpu_armv7
-file	arch/arm/arm/a9_mpstart.S		cpu_armv7
+file	arch/arm/arm/a9_mpstart.S		cpu_armv7 & multiprocessor
 
 # mp lock
 file	arch/arm/arm/lock_machdep.c		multiprocessor

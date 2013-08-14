@@ -983,6 +983,7 @@ platform_smc_write(bus_space_tag_t iot, bus_space_handle_t ioh, bus_size_t off,
 	bus_space_write_4(iot, ioh, off, val);
 }
 
+#ifdef MULTIPROCESSOR
 extern void imxuartcnputc(dev_t dev, int c);
 void
 cpu_hatch(uint32_t id)
@@ -1036,8 +1037,7 @@ cpu_hatch(uint32_t id)
 	cpu_control(cpuctrlmask, cpuctrl);
 
 	/* XXX */
-	if ((cputype & CPU_ID_CORTEX_A9_MASK) == CPU_ID_CORTEX_A9
-			|| 1) {
+	if ((ci->ci_arm_cpuid & CPU_ID_CORTEX_A9_MASK) == CPU_ID_CORTEX_A9) {
 		__asm __volatile("mrc p15, 0, %0, c1, c0, 1"
 			: "=r" (auxctl));
 		auxctl |= CORTEX_A9_AUXCTL_FW; /* Cache and TLB maintenance broadcast */
@@ -1071,5 +1071,22 @@ cpu_hatch(uint32_t id)
 		atomic_setbits_int(&ci->ci_flags, CPUF_IDENTIFIED);
 	}
 
-	while (1);
+	/* XXX: fubar */
+	extern void ampintc_route(int, int, int);
+	ampintc_route(29, 1, ci->ci_cpuid);
+	cpu_mpstartclock();
+
+	while ((ci->ci_flags & CPUF_GO) == 0)
+		delay(10);
+#ifdef DEBUG
+	if (ci->ci_flags & CPUF_RUNNING)
+		panic("%s: already running!?", ci->ci_dev->dv_xname);
+#endif
+
+	nanouptime(&ci->ci_schedstate.spc_runtime);
+
+	int s;
+	SCHED_LOCK(s);
+	cpu_switchto(NULL, sched_chooseproc());
 }
+#endif /* MULTIPROCESSOR */

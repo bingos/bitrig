@@ -61,7 +61,8 @@ struct imxsrc_softc *imxsrc_sc;
 
 void imxsrc_attach(struct device *, struct device *, void *);
 void imxsrc_reset_cpu(int);
-void imxsrc_wait_for_cpu(int);
+void cpu_init(int);
+void cpu_start_secondary(struct cpu_info *);
 
 struct cfattach	imxsrc_ca = {
 	sizeof (struct imxsrc_softc), NULL, imxsrc_attach
@@ -76,7 +77,6 @@ imxsrc_attach(struct device *parent, struct device *self, void *args)
 {
 	struct imx_attach_args *ia = args;
 	struct imxsrc_softc *sc = (struct imxsrc_softc *) self;
-	int i;
 
 	sc->sc_iot = ia->ia_iot;
 	if (bus_space_map(sc->sc_iot, ia->ia_dev->mem[0].addr,
@@ -86,14 +86,17 @@ imxsrc_attach(struct device *parent, struct device *self, void *args)
 	printf("\n");
 	imxsrc_sc = sc;
 
-	for (i = 1; i < ncpusfound; i++) {
+#ifdef MULTIPROCESSOR
+	for (int i = 1; i < ncpusfound; i++) {
 		config_found(self, NULL, NULL);
 		imxsrc_reset_cpu(i);
-		imxsrc_wait_for_cpu(i);
+		cpu_init(i);
 		delay(1000);
 	}
+#endif
 }
 
+#ifdef MULTIPROCESSOR
 void
 imxsrc_reset_cpu(int id)
 {
@@ -127,16 +130,31 @@ imxsrc_reset_cpu(int id)
 }
 
 void
-imxsrc_wait_for_cpu(int id)
+cpu_init (int id)
 {
 	struct cpu_info *ci;
-	int i;
 
 	/* On this system, `id' should be the one in cpu_info. */
 	ci = cpu_info[id];
 	if (ci == NULL)
 		panic("%s: cpu_info for core %d is not allocated!",
 		    __func__, id);
+
+	sched_init_cpu(ci);
+	cpu_start_secondary(ci);
+	ncpus++;
+	if (ci->ci_flags & CPUF_PRESENT) {
+		ci->ci_next = cpu_info_list->ci_next;
+		cpu_info_list->ci_next = ci;
+	}
+}
+
+void
+cpu_start_secondary(struct cpu_info *ci)
+{
+	int i;
+
+	ci->ci_flags |= CPUF_AP;
 
 	/*
 	 * wait for it to become ready
@@ -183,3 +201,4 @@ cpu_imxsrc_attach(struct device *parent, struct device *self, void *aux)
 struct cfattach cpu_imxsrc_ca = {
 	sizeof(struct device), cpu_imxsrc_match, cpu_imxsrc_attach
 };
+#endif /* MULTIPROCESSOR */

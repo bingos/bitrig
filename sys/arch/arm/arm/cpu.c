@@ -64,6 +64,7 @@ char cpu_model[256];
 
 /* Prototypes */
 void identify_arm_cpu(struct device *dv, struct cpu_info *);
+void cpu_boot_secondary(struct cpu_info *);
 
 /*
  * Identify the master (boot) CPU
@@ -549,16 +550,33 @@ cpu_boot_secondary_processors(void)
 		ci = cpu_info[i];
 		if (ci == NULL)
 			continue;
-		//if (ci->ci_idle_pcb == NULL)
-		//	continue;
 		if ((ci->ci_flags & CPUF_PRESENT) == 0)
 			continue;
 		//if (ci->ci_flags & (CPUF_BSP|CPUF_SP|CPUF_PRIMARY))
 		//	continue;
 		ci->ci_randseed = random();
 		/* XXX: Not yet, my dear. */
-		//cpu_boot_secondary(ci);
+		cpu_boot_secondary(ci);
 		printf("%s: Core %i is there\n", __func__, i);
+	}
+}
+
+void
+cpu_boot_secondary(struct cpu_info *ci)
+{
+	int i;
+
+	atomic_setbits_int(&ci->ci_flags, CPUF_GO);
+
+	for (i = 100000; (!(ci->ci_flags & CPUF_RUNNING)) && i>0;i--) {
+		delay(10);
+	}
+	if (! (ci->ci_flags & CPUF_RUNNING)) {
+		printf("cpu failed to start\n");
+#if defined(MPDEBUG) && defined(DDB)
+		printf("dropping into debugger; continue from here to resume boot\n");
+		Debugger();
+#endif
 	}
 }
 

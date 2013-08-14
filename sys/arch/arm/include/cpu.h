@@ -218,6 +218,8 @@ struct cpu_info {
 
 #define CPUF_PRESENT	0x1000		/* CPU is present */
 #define CPUF_RUNNING	0x2000		/* CPU is running */
+#define CPUF_PAUSE	0x4000		/* CPU is paused in DDB */
+#define CPUF_GO		0x8000		/* CPU should start running */
 
 static inline struct cpu_info *
 curcpu(void)
