@@ -197,13 +197,13 @@ int wapbl_debug_print = WAPBL_DEBUG_PRINT;
 struct wapbl *wapbl_debug_wl;
 #endif
 
-static int wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail);
-static int wapbl_write_blocks(struct wapbl *wl, off_t *offp);
-static int wapbl_write_revocations(struct wapbl *wl, off_t *offp);
-static int wapbl_write_inodes(struct wapbl *wl, off_t *offp);
+int wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail);
+int wapbl_write_blocks(struct wapbl *wl, off_t *offp);
+int wapbl_write_revocations(struct wapbl *wl, off_t *offp);
+int wapbl_write_inodes(struct wapbl *wl, off_t *offp);
 #endif /* _KERNEL */
 
-static int wapbl_replay_process(struct wapbl_replay *wr, off_t, off_t);
+int wapbl_replay_process(struct wapbl_replay *wr, off_t, off_t);
 
 static inline size_t wapbl_space_free(size_t avail, off_t head,
 	off_t tail);
@@ -223,18 +223,38 @@ struct wapbl_ino {
 	mode_t wi_mode;
 };
 
-static void wapbl_inodetrk_init(struct wapbl *wl, u_int size);
-static void wapbl_inodetrk_free(struct wapbl *wl);
-static struct wapbl_ino *wapbl_inodetrk_get(struct wapbl *wl, ino_t ino);
+void wapbl_inodetrk_init(struct wapbl *wl, u_int size);
+void wapbl_inodetrk_free(struct wapbl *wl);
+struct wapbl_ino *wapbl_inodetrk_get(struct wapbl *wl, ino_t ino);
 
-static size_t wapbl_transaction_len(struct wapbl *wl);
+size_t wapbl_transaction_len(struct wapbl *wl);
 static inline size_t wapbl_transaction_inodes_len(struct wapbl *wl);
+
+int wapbl_start_flush_inodes(struct wapbl *, struct wapbl_replay *);
+int wapbl_doio(void *, size_t, struct vnode *, daddr_t, int);
+int wapbl_buffered_flush(struct wapbl *);
+int wapbl_buffered_write(void *, size_t, struct wapbl *, daddr_t);
+int wapbl_circ_write(struct wapbl *, void *, size_t, off_t *);
+int wapbl_truncate(struct wapbl *, size_t, int);
+int wapbl_cache_sync(struct wapbl *, const char *);
+int wapbl_circ_read(struct wapbl_replay *, void *, size_t, off_t *);
+void wapbl_circ_advance(struct wapbl_replay *, size_t, off_t *);
+void wapbl_remove_buf_locked(struct wapbl *, struct buf *);
+void wapbl_blkhash_init(struct wapbl_replay *, u_int);
+void wapbl_blkhash_free(struct wapbl_replay *);
+void wapbl_blkhash_ins(struct wapbl_replay *, daddr_t, off_t);
+void wapbl_blkhash_rem(struct wapbl_replay *, daddr_t);
+void wapbl_blkhash_clear(struct wapbl_replay *);
+void wapbl_replay_process_blocks(struct wapbl_replay *, off_t *);
+void wapbl_replay_process_revocations(struct wapbl_replay *);
+void wapbl_replay_process_inodes(struct wapbl_replay *, off_t, off_t);
+struct wapbl_blk * wapbl_blkhash_get(struct wapbl_replay *, daddr_t);
 
 #if 0
 int wapbl_replay_verify(struct wapbl_replay *, struct vnode *);
 #endif
 
-static int wapbl_replay_isopen1(struct wapbl_replay *);
+int wapbl_replay_isopen1(struct wapbl_replay *);
 
 int wapbl_bbusy(struct buf *, struct mutex *);
 
@@ -331,7 +351,7 @@ wapbl_fini(bool interface)
 }
 #endif
 
-static int
+int
 wapbl_start_flush_inodes(struct wapbl *wl, struct wapbl_replay *wr)
 {
 	int error, i;
@@ -758,7 +778,7 @@ wapbl_stop(struct wapbl *wl, int force)
 	return 0;
 }
 
-static int
+int
 wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 {
 	struct buf *bp;
@@ -826,7 +846,7 @@ wapbl_read(void *data, size_t len, struct vnode *devvp, daddr_t pbn)
 /*
  * Flush buffered data if any.
  */
-static int
+int
 wapbl_buffered_flush(struct wapbl *wl)
 {
 	int error;
@@ -845,7 +865,7 @@ wapbl_buffered_flush(struct wapbl *wl)
  * Write data to the log.
  * Try to coalesce writes and emit MAXPHYS aligned blocks.
  */
-static int
+int
 wapbl_buffered_write(void *data, size_t len, struct wapbl *wl, daddr_t pbn)
 {
 	int error;
@@ -902,7 +922,7 @@ wapbl_buffered_write(void *data, size_t len, struct wapbl *wl, daddr_t pbn)
  * Off is byte offset returns new offset for next write
  * handles log wraparound
  */
-static int
+int
 wapbl_circ_write(struct wapbl *wl, void *data, size_t len, off_t *offp)
 {
 	size_t slen;
@@ -1075,7 +1095,7 @@ wapbl_add_buf(struct wapbl *wl, struct buf * bp)
 	bp->b_flags |= B_LOCKED;
 }
 
-static void
+void
 wapbl_remove_buf_locked(struct wapbl * wl, struct buf *bp)
 {
 
@@ -1234,7 +1254,7 @@ wapbl_advance_tail(size_t size, size_t off, size_t delta, off_t *headp,
  * only intended to be called from inside wapbl_flush and therefore
  * does not protect against commit races with itself or with flush.
  */
-static int
+int
 wapbl_truncate(struct wapbl *wl, size_t minfree, int waitonly)
 {
 	size_t delta;
@@ -1893,7 +1913,7 @@ wapbl_register_deallocation(struct wapbl *wl, daddr_t blk, int len)
 
 /****************************************************************/
 
-static void
+void
 wapbl_inodetrk_init(struct wapbl *wl, u_int size)
 {
 
@@ -1908,7 +1928,7 @@ wapbl_inodetrk_init(struct wapbl *wl, u_int size)
 	}
 }
 
-static void
+void
 wapbl_inodetrk_free(struct wapbl *wl)
 {
 
@@ -1924,7 +1944,7 @@ wapbl_inodetrk_free(struct wapbl *wl)
 	}
 }
 
-static struct wapbl_ino *
+struct wapbl_ino *
 wapbl_inodetrk_get(struct wapbl *wl, ino_t ino)
 {
 	struct wapbl_ino_head *wih;
@@ -1987,7 +2007,7 @@ wapbl_unregister_inode(struct wapbl *wl, ino_t ino, mode_t mode)
 
 /****************************************************************/
 
-static inline size_t
+inline size_t
 wapbl_transaction_inodes_len(struct wapbl *wl)
 {
 	int blocklen = 1<<wl->wl_log_dev_bshift;
@@ -2004,7 +2024,7 @@ wapbl_transaction_inodes_len(struct wapbl *wl)
 
 
 /* Calculate amount of space a transaction will take on disk */
-static size_t
+size_t
 wapbl_transaction_len(struct wapbl *wl)
 {
 	int blocklen = 1<<wl->wl_log_dev_bshift;
@@ -2028,7 +2048,7 @@ wapbl_transaction_len(struct wapbl *wl)
 /*
  * wapbl_cache_sync: issue DIOCCACHESYNC
  */
-static int
+int
 wapbl_cache_sync(struct wapbl *wl, const char *msg)
 {
 	const bool verbose = wapbl_verbose_commit >= 2;
@@ -2071,7 +2091,7 @@ wapbl_cache_sync(struct wapbl *wl, const char *msg)
  * of wapbl_write_commit.  This is ok since this routine
  * is only invoked from wapbl_flush
  */
-static int
+int
 wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
 {
 	struct wapbl_wc_header *wc = wl->wl_wc_header;
@@ -2145,7 +2165,7 @@ wapbl_write_commit(struct wapbl *wl, off_t head, off_t tail)
 }
 
 /* Returns new offset value */
-static int
+int
 wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 {
 	struct wapbl_wc_blocklist *wc =
@@ -2234,7 +2254,7 @@ wapbl_write_blocks(struct wapbl *wl, off_t *offp)
 	return 0;
 }
 
-static int
+int
 wapbl_write_revocations(struct wapbl *wl, off_t *offp)
 {
 	struct wapbl_wc_blocklist *wc =
@@ -2275,7 +2295,7 @@ wapbl_write_revocations(struct wapbl *wl, off_t *offp)
 	return 0;
 }
 
-static int
+int
 wapbl_write_inodes(struct wapbl *wl, off_t *offp)
 {
 	struct wapbl_wc_inodelist *wc =
@@ -2335,7 +2355,7 @@ struct wapbl_blk {
 };
 #define	WAPBL_BLKPOOL_MIN 83
 
-static void
+void
 wapbl_blkhash_init(struct wapbl_replay *wr, u_int size)
 {
 	if (size < WAPBL_BLKPOOL_MIN)
@@ -2357,7 +2377,7 @@ wapbl_blkhash_init(struct wapbl_replay *wr, u_int size)
 #endif /* ! _KERNEL */
 }
 
-static void
+void
 wapbl_blkhash_free(struct wapbl_replay *wr)
 {
 	KASSERT(wr->wr_blkhashcnt == 0);
@@ -2369,7 +2389,7 @@ wapbl_blkhash_free(struct wapbl_replay *wr)
 #endif /* ! _KERNEL */
 }
 
-static struct wapbl_blk *
+struct wapbl_blk *
 wapbl_blkhash_get(struct wapbl_replay *wr, daddr_t blk)
 {
 	struct wapbl_blk_head *wbh;
@@ -2382,7 +2402,7 @@ wapbl_blkhash_get(struct wapbl_replay *wr, daddr_t blk)
 	return 0;
 }
 
-static void
+void
 wapbl_blkhash_ins(struct wapbl_replay *wr, daddr_t blk, off_t off)
 {
 	struct wapbl_blk_head *wbh;
@@ -2401,7 +2421,7 @@ wapbl_blkhash_ins(struct wapbl_replay *wr, daddr_t blk, off_t off)
 	}
 }
 
-static void
+void
 wapbl_blkhash_rem(struct wapbl_replay *wr, daddr_t blk)
 {
 	struct wapbl_blk *wb = wapbl_blkhash_get(wr, blk);
@@ -2413,7 +2433,7 @@ wapbl_blkhash_rem(struct wapbl_replay *wr, daddr_t blk)
 	}
 }
 
-static void
+void
 wapbl_blkhash_clear(struct wapbl_replay *wr)
 {
 	unsigned long i;
@@ -2432,7 +2452,7 @@ wapbl_blkhash_clear(struct wapbl_replay *wr)
 
 /****************************************************************/
 
-static int
+int
 wapbl_circ_read(struct wapbl_replay *wr, void *data, size_t len, off_t *offp)
 {
 	size_t slen;
@@ -2472,7 +2492,7 @@ wapbl_circ_read(struct wapbl_replay *wr, void *data, size_t len, off_t *offp)
 	return 0;
 }
 
-static void
+void
 wapbl_circ_advance(struct wapbl_replay *wr, size_t len, off_t *offp)
 {
 	size_t slen;
@@ -2641,7 +2661,7 @@ wapbl_replay_isopen1(struct wapbl_replay *wr)
 }
 #endif
 
-static void
+void
 wapbl_replay_process_blocks(struct wapbl_replay *wr, off_t *offp)
 {
 	struct wapbl_wc_blocklist *wc =
@@ -2662,7 +2682,7 @@ wapbl_replay_process_blocks(struct wapbl_replay *wr, off_t *offp)
 	}
 }
 
-static void
+void
 wapbl_replay_process_revocations(struct wapbl_replay *wr)
 {
 	struct wapbl_wc_blocklist *wc =
@@ -2680,7 +2700,7 @@ wapbl_replay_process_revocations(struct wapbl_replay *wr)
 	}
 }
 
-static void
+void
 wapbl_replay_process_inodes(struct wapbl_replay *wr, off_t oldoff, off_t newoff)
 {
 	struct wapbl_wc_inodelist *wc =
@@ -2718,7 +2738,7 @@ wapbl_replay_process_inodes(struct wapbl_replay *wr, off_t oldoff, off_t newoff)
 	wr->wr_inodescnt += wc->wc_inocnt;
 }
 
-static int
+int
 wapbl_replay_process(struct wapbl_replay *wr, off_t head, off_t tail)
 {
 	off_t off;
