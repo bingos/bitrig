@@ -868,6 +868,11 @@ sbagain:
 
 	fs->fs_fmod = 0;
 	fs->fs_flags &= ~FS_UNCLEAN;
+
+	/* XXX pedro */
+	if (fs->fs_clean == 0 && mp->mnt_wapbl_replay)
+		fs->fs_clean = FS_ISCLEAN;
+
 	if (fs->fs_clean == 0) {
 #if 0
 		/*
