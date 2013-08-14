@@ -853,6 +853,7 @@ sbagain:
 
 			/* Force a re-read of the superblock */
 			bp->b_flags |= B_INVAL;
+			brelse(bp);
 			bp = NULL;
 			fs = NULL;
 			goto sbagain;
