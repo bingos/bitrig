@@ -431,7 +431,7 @@ wapbl_start(struct wapbl ** wlp, struct mount *mp, struct vnode *vp,
 
 	wl = wapbl_calloc(1, sizeof(*wl));
 	rw_init(&wl->wl_rwlock, "wapblk");
-	mtx_init(&wl->wl_mtx, IPL_NONE);
+	mtx_init(&wl->wl_mtx, IPL_BIO);
 	LIST_INIT(&wl->wl_bufs);
 	SIMPLEQ_INIT(&wl->wl_entries);
 
