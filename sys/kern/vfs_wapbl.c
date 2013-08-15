@@ -778,6 +778,10 @@ wapbl_stop(struct wapbl *wl, int force)
 	return 0;
 }
 
+/*
+ * XXX pedro: make wapbl_alloc() allocate from DMA reachable memory in the
+ * future, to avoid the memcpy() calls in this function.
+ */
 int
 wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 {
@@ -800,9 +804,12 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 	bp->b_flags = flags | B_BUSY; /* silly & dubious */
 	bp->b_dev = devvp->v_rdev;
 	if (!(bp->b_flags & B_READ))
-		bcopy(data, bp->b_data, len);
-	bp->b_bufsize = bp->b_resid = bp->b_bcount = len;
-	bp->b_vp = devvp; /* XXX pedro: this is likely to cause problems */
+		memcpy(bp->b_data, data, len);
+	/*
+	 * XXX pedro: this is a blatant interface violation, and is likely to
+	 * cause problems
+	 */
+	bp->b_vp = devvp;
 	bp->b_blkno = pbn;
 	/* BIO_SETPRIO(bp, BPRIO_TIMECRITICAL); */
 
@@ -822,7 +829,7 @@ wapbl_doio(void *data, size_t len, struct vnode *devvp, daddr_t pbn, int flags)
 		     "write" : "read"),
 		    len, pbn, devvp->v_rdev, error));
 	} else if (bp->b_flags & B_READ)
-		bcopy(bp->b_data, data, len);
+		memcpy(data, bp->b_data, len);
 
 	s = splbio();
 	bp->b_vp = NULL;
