@@ -246,7 +246,7 @@ ffs_read(void *v)
 
 		if (lblktosize(fs, nextlbn) >= DIP(ip, size))
 			error = bread(vp, lbn, size, &bp);
-		else if (lbn - 1 == ip->i_ci.ci_lastr) {
+		else if (lbn - 1 == ip->i_ci.ci_lastr && doclusterread) {
 			error = bread_cluster(vp, lbn, size, &bp);
 		} else
 			error = bread(vp, lbn, size, &bp);
