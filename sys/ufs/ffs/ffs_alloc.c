@@ -284,8 +284,12 @@ ffs_realloccg(struct inode *ip, daddr_t lbprev, daddr_t bpref, int osize,
 			if (nsize > bp->b_bufsize)
 				panic("ffs_realloccg: small buf");
 #endif
+			long ocount = bp->b_bcount;
 			bp->b_bcount = nsize;
 			bp->b_flags |= B_DONE;
+			if (wapbl_vphaswapbl(bp->b_vp))
+				WAPBL_RESIZE_BUF(wapbl_vptomp(bp->b_vp), bp,
+				    bp->b_bufsize, ocount);
 			bzero(bp->b_data + osize, (u_int)nsize - osize);
 			*bpp = bp;
 		}
@@ -373,8 +377,12 @@ ffs_realloccg(struct inode *ip, daddr_t lbprev, daddr_t bpref, int osize,
 		if (nsize > bp->b_bufsize)
 			panic("ffs_realloccg: small buf 2");
 #endif
+		long ocount = bp->b_bcount;
 		bp->b_bcount = nsize;
 		bp->b_flags |= B_DONE;
+		if (wapbl_vphaswapbl(bp->b_vp))
+			WAPBL_RESIZE_BUF(wapbl_vptomp(bp->b_vp), bp,
+			    bp->b_bufsize, ocount);
 		bzero(bp->b_data + osize, (u_int)nsize - osize);
 		*bpp = bp;
 	}
