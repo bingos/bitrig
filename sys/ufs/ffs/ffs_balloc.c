@@ -169,7 +169,7 @@ ffs1_balloc(struct inode *ip, off_t startoffset, int size, struct ucred *cred,
 						brelse(*bpp);
 						return (error);
 					}
-					(*bpp)->b_bcount = osize;
+					buf_adjcnt((*bpp), osize);
 				}
 				return (0);
 			} else {

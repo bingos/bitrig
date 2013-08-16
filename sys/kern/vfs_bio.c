@@ -1336,3 +1336,14 @@ bcstats_print(
 	    bcstats.pendingreads, bcstats.pendingwrites);
 }
 #endif
+
+void
+buf_adjcnt(struct buf *bp, long ncount)
+{
+	KASSERT(ncount <= bp->b_bufsize);
+	long ocount = bp->b_bcount;
+	bp->b_bcount = ncount;
+	if (wapbl_vphaswapbl(bp->b_vp))
+		WAPBL_RESIZE_BUF(wapbl_vptomp(bp->b_vp), bp, bp->b_bufsize,
+		    ocount);
+}
