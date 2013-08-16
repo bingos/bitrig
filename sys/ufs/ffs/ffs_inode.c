@@ -303,6 +303,7 @@ ffs_truncate(struct inode *oip, off_t length, int flags, struct ucred *cred)
 			bzero((char *)bp->b_data + offset,
 			      (u_int)(size - offset));
 		bp->b_bcount = size;
+		KASSERT(!(bp->b_flags & B_LOCKED));
 		if (aflags & B_SYNC)
 			bwrite(bp);
 		else

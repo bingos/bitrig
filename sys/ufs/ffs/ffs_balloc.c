@@ -205,8 +205,11 @@ ffs1_balloc(struct inode *ip, off_t startoffset, int size, struct ucred *cred,
 				return (error);
 			if (bpp != NULL) {
 				*bpp = getblk(vp, lbn, fs->fs_bsize, 0, 0);
-				if (nsize < fs->fs_bsize)
+				if (nsize < fs->fs_bsize) {
+					/* XXX pedro: remove me */
+					KASSERT(!((*bpp)->b_flags & B_LOCKED));
 					(*bpp)->b_bcount = nsize;
+				}
 				(*bpp)->b_blkno = fsbtodb(fs, newb);
 				if (flags & B_CLRBUF)
 					clrbuf(*bpp);
@@ -549,6 +552,8 @@ ffs2_balloc(struct inode *ip, off_t off, int size, struct ucred *cred,
 						return (error);
 					}
 					(*bpp)->b_bcount = osize;
+					/* XXX pedro: remove me */
+					KASSERT(!((*bpp)->b_flags & B_LOCKED));
 				}
 
 				return (0);
@@ -587,8 +592,11 @@ ffs2_balloc(struct inode *ip, off_t off, int size, struct ucred *cred,
 
 			if (bpp != NULL) {
 				bp = getblk(vp, lbn, fs->fs_bsize, 0, 0);
-				if (nsize < fs->fs_bsize)
+				if (nsize < fs->fs_bsize) {
+					/* XXX pedro: remove me */
+					KASSERT(!(bp->b_flags & B_LOCKED));
 					bp->b_bcount = nsize;
+				}
 				bp->b_blkno = fsbtodb(fs, newb);
 				if (flags & B_CLRBUF)
 					clrbuf(bp);
