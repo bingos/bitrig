@@ -2,8 +2,9 @@
 set -eu
 
 IGNORE_ERRORS=1
-SOFTDEP=
-#SOFTDEP="-o softdep"
+MNTOPT=
+#MNTOPT="-o log"
+#MNTOPT="-o softdep"
 
 totntest=0
 totnfail=0
@@ -19,13 +20,13 @@ setup() {
 	dd if=/dev/zero of=fakeobj bs=2048 count=4k
 	vnconfig vnd0 fakeobj
 	newfs /dev/rvnd0c
-	mount ${SOFTDEP} /dev/vnd0c /mnt
+	mount ${MNTOPT} /dev/vnd0c /mnt
 }
 
 
 # mount auxiliary fs
 mountfs() {
-	mount ${SOFTDEP} $1 $2
+	mount ${MNTOPT} $1 $2
 }
 
 # thin shell around 'fstest' to test and provide descriptive output
