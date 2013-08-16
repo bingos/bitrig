@@ -203,7 +203,7 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 	char fname[MNAMELEN];
 	char fspec[MNAMELEN];
 	int error = 0, flags;
-	int ronly, logged = 0;
+	int ronly;
 	mode_t accessmode;
 
 	error = copyin(data, &args, sizeof(struct ufs_args));
@@ -263,11 +263,16 @@ ffs_mount(struct mount *mp, const char *path, void *data,
 				mp->mnt_flag &= ~MNT_SOFTDEP;
 			} else {
 				error = ffs_flushfiles(mp, flags, p);
-				if (error == 0) {
+				if (error == 0)
 					error = UFS_WAPBL_BEGIN(mp);
-					if (error == 0)
-						logged = 1;
+				if (error == 0 &&
+				    ffs_cgupdate(ump, MNT_WAIT) == 0 &&
+				    fs->fs_clean & FS_WASCLEAN) {
+				    	fs->fs_clean = FS_ISCLEAN;
+				    	(void) ffs_sbupdate(ump, MNT_WAIT);
 				}
+				if (error == 0)
+					UFS_WAPBL_END(mp);
 			}
 			ronly = 1;
 		}
@@ -532,8 +537,6 @@ success:
 				fs->fs_flags &= ~FS_DOSOFTDEP;
 		}
 		ffs_sbupdate(ump, MNT_WAIT);
-		if (error == 0 && logged != 0)
-			UFS_WAPBL_END(mp);
 	}
 	return (0);
 
