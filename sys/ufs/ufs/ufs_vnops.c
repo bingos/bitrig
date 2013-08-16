@@ -369,13 +369,17 @@ ufs_setattr(void *v)
 			return (error);
 		if (cred->cr_uid == 0) {
 			if ((DIP(ip, flags) & (SF_IMMUTABLE | SF_APPEND)) &&
-			    securelevel > 0)
+			    securelevel > 0) {
+				UFS_WAPBL_END(vp->v_mount);
 				return (EPERM);
+			}
 			DIP_ASSIGN(ip, flags, vap->va_flags);
 		} else {
 			if (DIP(ip, flags) & (SF_IMMUTABLE | SF_APPEND) ||
-			    (vap->va_flags & UF_SETTABLE) != vap->va_flags)
+			    (vap->va_flags & UF_SETTABLE) != vap->va_flags) {
+				UFS_WAPBL_END(vp->v_mount);
 				return (EPERM);
+			}
 			DIP_AND(ip, flags, SF_SETTABLE);
 			DIP_OR(ip, flags, vap->va_flags & UF_SETTABLE);
 		}
