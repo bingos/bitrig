@@ -767,6 +767,7 @@ ufs_rename(void *v)
 	struct vnode *tdvp = ap->a_tdvp;
 	struct vnode *fvp = ap->a_fvp;
 	struct vnode *fdvp = ap->a_fdvp;
+	struct mount *mp = fdvp->v_mount;
 	struct componentname *tcnp = ap->a_tcnp;
 	struct componentname *fcnp = ap->a_fcnp;
 	struct proc *p = fcnp->cn_proc;
@@ -780,6 +781,9 @@ ufs_rename(void *v)
 	    (fcnp->cn_flags & HASBUF) == 0)
 		panic("ufs_rename: no name");
 #endif
+
+	KASSERT(mp != NULL);
+
 	/*
 	 * Check for cross-device rename.
 	 */
@@ -899,6 +903,12 @@ abortit:
 	xp = NULL;
 	if (tvp)
 		xp = VTOI(tvp);
+
+	error = UFS_WAPBL_BEGIN(mp);
+	if (error) {
+		VOP_UNLOCK(fvp, 0);
+		goto bad;
+	}
 
 	/*
 	 * 1) Bump link count while we're moving stuff
@@ -1075,6 +1085,7 @@ abortit:
 			if (!newparent) {
 				DIP_ADD(dp, nlink, -1);
 				dp->i_flag |= IN_CHANGE;
+				UFS_WAPBL_UPDATE(dp, 0);
 			}
 
 			DIP_ADD(xp, nlink, -1);
@@ -1099,6 +1110,7 @@ abortit:
 		panic("ufs_rename: lost from startdir");
 	if ((error = vfs_relookup(fdvp, &fvp, fcnp)) != 0) {
 		vrele(ap->a_fvp);
+		UFS_WAPBL_END(mp);
 		return (error);
 	}
 	vrele(fdvp);
@@ -1109,6 +1121,7 @@ abortit:
 		if (doingdirectory)
 			panic("ufs_rename: lost dir entry");
 		vrele(ap->a_fvp);
+		UFS_WAPBL_END(mp);
 		return (0);
 	}
 
@@ -1148,6 +1161,7 @@ abortit:
 	if (xp)
 		vput(fvp);
 	vrele(ap->a_fvp);
+	UFS_WAPBL_END(mp);
 	return (error);
 
 bad:
@@ -1163,11 +1177,13 @@ out:
 		DIP_ADD(ip, nlink, -1);
 		ip->i_flag |= IN_CHANGE;
 		ip->i_flag &= ~IN_RENAME;
+		UFS_WAPBL_UPDATE(ip, 0);
 		if (DOINGSOFTDEP(fvp))
 			softdep_change_linkcnt(ip, 0);
 		vput(fvp);
 	} else
 		vrele(fvp);
+	UFS_WAPBL_END(mp);
 	return (error);
 }
 
