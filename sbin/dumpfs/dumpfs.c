@@ -672,6 +672,6 @@ print_journal_entries(const char *name, size_t blklen)
 __dead void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: dumpfs [-m] filesys | device\n");
+	(void)fprintf(stderr, "usage: dumpfs [-jm] filesys | device\n");
 	exit(1);
 }
