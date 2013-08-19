@@ -592,6 +592,7 @@ int	vflush(struct mount *, struct vnode *, int);
 int	vget(struct vnode *, int, struct proc *);
 void	vgone(struct vnode *);
 void	vgonel(struct vnode *, struct proc *);
+int	vtruncbuf(struct vnode *, daddr_t, int, int);
 int	vinvalbuf(struct vnode *, int, struct ucred *, struct proc *,
 	    int, int);
 void	vntblinit(void);
