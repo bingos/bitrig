@@ -618,7 +618,8 @@ bwrite(struct buf *bp)
 		mp = NULL;
 
 	if (mp && mp->mnt_wapbl) {
-		if (bp->b_iodone != mp->mnt_wapbl_op->wo_wapbl_biodone) {
+		if (bp->b_iodone != mp->mnt_wapbl_op->wo_wapbl_biodone &&
+		    vp->v_type != VREG) {
 			bdwrite(bp);
 			return (0);
 		}
@@ -724,7 +725,8 @@ bdwrite(struct buf *bp)
 
 	if (wapbl_vphaswapbl(bp->b_vp)) {
 		struct mount *mp = wapbl_vptomp(bp->b_vp);
-		if (bp->b_iodone != mp->mnt_wapbl_op->wo_wapbl_biodone) {
+		if (bp->b_iodone != mp->mnt_wapbl_op->wo_wapbl_biodone &&
+		    bp->b_vp->v_type != VREG) {
 			WAPBL_ADD_BUF(mp, bp);
 		}
 	}
@@ -829,6 +831,7 @@ brelse(struct buf *bp)
 		if (ISSET(bp->b_flags, B_LOCKED)) {
 			if (wapbl_vphaswapbl(bp->b_vp)) {
 				struct mount *mp = wapbl_vptomp(bp->b_vp);
+				KASSERT(bp->b_vp->v_type != VREG);
 				KASSERT(bp->b_iodone !=
 				    mp->mnt_wapbl_op->wo_wapbl_biodone);
 				WAPBL_REMOVE_BUF(mp, bp);
